@@ -274,35 +274,31 @@ nemo::nemo(
     // Identify the radiation sources
     N_rsrc = 0;
     for (int src = 0; src < RS->Nsources; src++) {
-      // proceed if the source type is SINGLE
-      if (RS->sources[src].type == RT_SRC_SINGLE) {
-
-        // check number of Ntau equals to SED energy bins
-        // Size of energy bin in parameter file should match the
-        // energy bin hardcoded in SED.
-        if (RS->sources[src].NTau != N_ebins) {
-          spdlog::error(
-              " nemo: Incompatible number of energy bins "
-              "between SED and parameter file-{}.",
-              RS->sources[src].NTau);
-          exit(1);
-        }
-        N_rsrc++;
-        // setting the size of the vector rt_data
-        rt_data.resize(N_rsrc);
-        // Generate the energy flux in different energy bin for the given
-        // radiation source.
-        int err = generate_bin_luminosity(
-            RS->sources[src].effect, RS->sources[src].Tstar,
-            RS->sources[src].Rstar, RS->sources[src].strength, bin_luminosity,
-            SED_info);
-        if (err) {
-          spdlog::error(
-              "Attempt to generate stellar spectrum for source-id: {}"
-              " failed.",
-              RS->sources[src].id);
-          exit(1);
-        }
+      // check number of Ntau equals to SED energy bins
+      // Size of energy bin in parameter file should match the
+      // energy bin hardcoded in SED.
+      if (RS->sources[src].NTau != N_ebins) {
+        spdlog::error(
+            " nemo: Incompatible number of energy bins "
+            "between SED and parameter file-{}.",
+            RS->sources[src].NTau);
+        exit(1);
+      }
+      N_rsrc++;
+      // setting the size of the vector rt_data
+      rt_data.resize(N_rsrc);
+      // Generate the energy flux in different energy bin for the given
+      // radiation source.
+      int err = generate_bin_luminosity(
+          RS->sources[src].effect, RS->sources[src].Tstar,
+          RS->sources[src].Rstar, RS->sources[src].strength, bin_luminosity,
+          SED_info);
+      if (err) {
+        spdlog::error(
+            "Attempt to generate stellar spectrum for source-id: {}"
+            " failed.",
+            RS->sources[src].id);
+        exit(1);
       }
     }
 
@@ -926,7 +922,7 @@ void nemo::tracer_species_cataloger(
 
 // GET ELECTRON NUMBER DENSITY ################################################
 // Calculates electron number density from primitive vector
-double nemo::get_n_elec(const pion_flt *prim  ///< primitive state vector array.
+double nemo::get_n_elec(const double *prim  ///< primitive state vector array.
 )
 {
   int sct               = 0;
@@ -957,7 +953,7 @@ double nemo::get_n_elec(const pion_flt *prim  ///< primitive state vector array.
 // Calculate given ion's number density from the primitive vector.
 double nemo::get_n_ion(
     string s,             ///< ion name
-    const pion_flt *prim  ///< primitive state vector.
+    const double *prim  ///< primitive state vector.
 )
 {
   double species_num_density;
@@ -992,7 +988,7 @@ double nemo::get_X_H()
 // and internal energy using T = E*(gamma-1)/(k_B*n_total)
 double nemo::get_temperature(
     const std::vector<double> &y_species_frac,
-    const std::vector<pion_flt>
+    const std::vector<double>
         &element_number_density,  // element number density
     const double E)
 {
@@ -1007,7 +1003,7 @@ double nemo::get_temperature(
 // number density.
 double nemo::get_ntot(
     const std::vector<double> &y_species_frac,  ///< y_ion_fraction
-    const std::vector<pion_flt>
+    const std::vector<double>
         &element_number_density  ///< element number density
 )
 {
@@ -1108,10 +1104,10 @@ void nemo::get_ne(const std::vector<double> &y_species_frac, double &ne)
 // GET OPTICAL DEPTH
 // Calculate the optical depth of the current cell for individual energy bins
 void nemo::get_dtau(
-    const rad_source *,       ///< pointer to radiation source struct
-    const pion_flt depth,     ///< ds, thickness of the cell
-    const pion_flt *prim_in,  ///< input primitive vector
-    pion_flt *dtau_vec        ///< output dtau vector
+    const rad_src_info *, ///< pointer to radiation source struct
+    const double depth,     ///< ds, thickness of the cell
+    const double *prim_in,  ///< input primitive vector
+    double *dtau_vec        ///< output dtau vector
 )
 {
 
@@ -1140,7 +1136,7 @@ void nemo::get_dtau(
 // #############################################################################
 // CONVERT PRIMITIVE VECTOR TO LOCAL VECTOR
 int nemo::convert_prim2local(
-    const pion_flt
+    const double
         *prim_in,  ///< primitive vector from grid cell (length N_prim)
     std::vector<double> &p_local,  ///< converted local vector.
     int function_flag  /// < flag to say which function called this function
@@ -1200,8 +1196,8 @@ int nemo::convert_prim2local(
 // CONVERT LOCAL VECTOR TO PRIMITIVE VECTOR
 int nemo::convert_local2prim(
     const std::vector<double> &p_local,
-    const pion_flt *prim_in,  ///< input primitive vector
-    pion_flt *prim_out,       ///< updated primitive vector
+    const double *prim_in,  ///< input primitive vector
+    double *prim_out,       ///< updated primitive vector
     int function_flag         /// < flag to say which function called me
 )
 {
@@ -1234,7 +1230,7 @@ int nemo::convert_local2prim(
         "T = {} K, eint = {} erg/cm^3, ...  limiting to T = {} K", T,
         p_local[E_index], EP->MaxTemperature);
     spdlog::warn(
-        "prim_in {}", std::vector<pion_flt>(prim_in, prim_in + N_prim));
+        "prim_in {}", std::vector<double>(prim_in, prim_in + N_prim));
   }
   if (T < 0.99 * EP->MinTemperature) {
     spdlog::warn("nemo::convert_local2prim() LOW temperature encountered!!!");
@@ -1277,7 +1273,7 @@ void nemo::set_localvariables(
 
 // ##################################################################
 double nemo::Temperature(
-    const pion_flt *prim,  ///< primitive vector
+    const double *prim,  ///< primitive vector
     const double           ///< eos gamma
 )
 {
@@ -1291,7 +1287,7 @@ double nemo::Temperature(
   if (!isfinite(prim[PG])) {
     spdlog::error(
         "NEMO Temperature() pressure is not finite: {}",
-        std::vector<pion_flt>(prim, prim + nv_prim));
+        std::vector<double>(prim, prim + nv_prim));
     exit_nemo(1);
   }
 
@@ -1332,7 +1328,7 @@ double nemo::Temperature(
 
 // ##################################################################
 int nemo::Set_Temp(
-    pion_flt *prim,  ///< primitive vector.
+    double *prim,  ///< primitive vector.
     const double T,  ///< temperature
     const double     ///< eos gamma.
 )
@@ -1385,8 +1381,8 @@ int nemo::Set_Temp(
 // ##################################################################
 // TIME UPDATE MP
 int nemo::TimeUpdateMP(
-    const pion_flt *p_in,  ///< Primitive Vector to be updated.
-    pion_flt *p_out,       ///< Destination Vector for updated values.
+    const double *p_in,  ///< Primitive Vector to be updated.
+    double *p_out,       ///< Destination Vector for updated values.
     const double dt,       ///< Time Step to advance by.
     const double,          ///< EOS gamma.
     const int,             ///< Switch for what type of integration to use.
@@ -1408,13 +1404,13 @@ int nemo::TimeUpdateMP(
 // ##################################################################
 // TIME UPDATE MP RT NEW
 int nemo::TimeUpdateMP_RTnew(
-    const pion_flt *p_in,  ///< Primitive Vector to be updated.
+    const double *p_in,  ///< Primitive Vector to be updated.
     const int,             ///< unused.
     const std::vector<struct rt_source_data> &,  ///< unused.
     const int N_ion,  ///< number of ionising radiation sources.
     std::vector<struct rt_source_data> &ion_src,
     ///< list of ionising src column densities and source properties.
-    pion_flt *p_out,      ///< Destination Vector for updated values
+    double *p_out,      ///< Destination Vector for updated values
                           ///< (can be same as first Vector.
     const double dt,      ///< Time Step to advance by.
     const double,         ///< EOS gamma.
@@ -1626,7 +1622,7 @@ int nemo::correct_localvector(
 
 // ##################################################################
 double nemo::timescales(
-    const pion_flt *prim_in,  ///< Current cell state vector.
+    const double *prim_in,  ///< Current cell state vector.
     const double,             ///< EOS gamma.
     const bool,               ///< set to 'true' if including cooling time.
     const bool,  ///< set to 'true' if including recombination time.
@@ -1654,7 +1650,7 @@ double nemo::timescales(
 /// Default setting is DT02, which limits by 0.25/ydot (and not by E/Edot)
 ///
 double nemo::timescales_RT(
-    const pion_flt *prim_in,  ///< Current cell state vector.
+    const double *prim_in,  ///< Current cell state vector.
     const int N_heat,         ///< Number of UV heating sources.
     const std::vector<struct rt_source_data> &heat_src,
     ///< list of UV-heating column densities and source properties.
@@ -1732,8 +1728,8 @@ double nemo::timescales_RT(
 
 // ##################################################################
 void nemo::sCMA(
-    pion_flt *corr,          ///< corrected vector.
-    const pion_flt *prim_in  ///< input primitive vector from grid cell.
+    double *corr,          ///< corrected vector.
+    const double *prim_in  ///< input primitive vector from grid cell.
 )
 {
   // "Consistent multi-species advection" correction step from
@@ -1756,7 +1752,7 @@ void nemo::sCMA(
   for (int e = 0; e < N_elements; e++) {
     // if (prim[massfrac_idx[e]] < 0.0 || prim[massfrac_idx[e]] > 1.0) {
     //  spdlog::warn("element {} out of range: {}", e, prim[massfrac_idx[e]]);
-    //  spdlog::info("prim: {}",std::vector<pion_flt>(prim,prim+N_prim));
+    //  spdlog::info("prim: {}",std::vector<double>(prim,prim+N_prim));
     //  warn=true;
     //}
     // spdlog::info("e {}, el {}, val {:12.3e}, N_prim
@@ -1790,7 +1786,7 @@ void nemo::sCMA(
       //    prim[species_prim_idx[sct]] > prim[massfrac_idx[e]]*(1.0+1e-12)) {
       //  spdlog::warn("species {},{} out of range: {}, {}", e,sct,
       //               prim[massfrac_idx[e]],prim[species_prim_idx[sct]]);
-      //  spdlog::info("prim: {}",std::vector<pion_flt>(prim,prim+N_prim));
+      //  spdlog::info("prim: {}",std::vector<double>(prim,prim+N_prim));
       //  warn=true;
       //}
 
@@ -1831,8 +1827,8 @@ void nemo::sCMA(
     corr[i] = prim[i];
   // if (warn) {
   //  spdlog::warn("before correction
-  //  {}",std::vector<pion_flt>(prim_in,prim_in+N_prim)); spdlog::warn("after
-  //  correction {}",std::vector<pion_flt>(corr,corr+N_prim));
+  //  {}",std::vector<double>(prim_in,prim_in+N_prim)); spdlog::warn("after
+  //  correction {}",std::vector<double>(corr,corr+N_prim));
   //}
 
   return;

@@ -14,7 +14,7 @@
 #include <fmt/ranges.h>
 
 #include "nemo-constants.h"
-#include "tools/interpolate.h"
+#include "microphysics/interpolate.h"
 
 
 class photoionisation : virtual public interpolate_arrays {

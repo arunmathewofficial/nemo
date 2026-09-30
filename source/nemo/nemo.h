@@ -93,6 +93,8 @@ public:
   // ****** CATALOGER ******
 
 
+  // --------------------------------------------------------------------------
+  // static variables for book-keeping
   std::vector<string> tracers_replica;  ///< microphysics tracers replica.
   int N_prim;              ///< Size of the primitive vector (prim_vec).
   int first_tracer_index;  /// Idx of the first tracer variable in the prim_vec.
@@ -104,7 +106,6 @@ public:
   std::vector<int> element_atomic_number;   ///< atomic number of elements.
   std::vector<double> element_atomic_mass;  ///< atomic mass of elements.
   int N_elements;  ///< Number of elements in the primitive-vector/tracer.
-  std::vector<double> element_num_density;  ///< element number density vector.
 
   std::vector<string> local_tracers;  ///< Extracted local tracers.
   int N_species;                      ///< Number of species.
@@ -115,6 +116,7 @@ public:
       element_species_count;  ///< number of species belong to same elements.
   std::vector<int> species_element;  ///< species' element positions.
   std::unordered_map<std::string, int> species_prim_index_map;
+  // --------------------------------------------------------------------------
 
 
   /// Cosmic-ray ionisation ===================================================
@@ -201,8 +203,25 @@ public:
   std::ofstream cooling_outfile;                 /// CIE cooling function
 
 
+  // --------------------------------------------------------------------------
+  // cell data variables, that are specific to each update call
+  protected:
+  std::vector<double> element_num_density;  ///< element number density vector.
   /// variable recording species number density for NEMO tracer list
   std::vector<std::vector<double> > species_number_density;
+  double ds     = 0.0;           ///< Path length through the current cell
+  double vshell = 0.0;           ///< Shell volume in the current cell
+  std::vector<double> tau_bins;  ///< Optical depth in each energy bin
+  ///	Vector to store initial corrector values (used to modify flux according to
+  /// sCMA)
+  std::vector<double> prim_copy;
+  // Constant data in the cell, received from cell data.
+  double mpv_nH;  ///< total hydrogen number density at current cell.
+  int N_rsrc;     ///< number of radiation sources to include.
+  std::vector<struct rt_source_data> rt_data;  ///< data on radiation sources.
+
+  // --------------------------------------------------------------------------
+
 
 
 
@@ -364,8 +383,8 @@ protected:
   /// input vector.
   ///
   int TimeUpdateMP(
-      const pion_flt *,  ///< Primitive Vector to be updated.
-      pion_flt *,        ///< Destination Vector for updated values.
+      const double *,  ///< Primitive Vector to be updated.
+      double *,        ///< Destination Vector for updated values.
       const double,      ///< Time Step to advance by.
       const double,      ///< EOS gamma.
       const int,         ///< Switch for what type of integration to use.
@@ -376,8 +395,8 @@ protected:
   ///
   ///
   int TimeUpdate_RTsinglesrc(
-      const pion_flt *,  ///< Primitive Vector to be updated.
-      pion_flt *,        ///< Destination Vector for updated values.
+      const double *,  ///< Primitive Vector to be updated.
+      double *,        ///< Destination Vector for updated values.
       const double,      ///< Time Step to advance by.
       const double,      ///< EOS gamma.
       const int,         ///< Switch for what type of integration to use.
@@ -395,13 +414,13 @@ protected:
   /// Update microphysics including photoionization and photoheating
   ///
   virtual int TimeUpdateMP_RTnew(
-      const pion_flt *,  ///< Primitive Vector to be updated.
+      const double *,  ///< Primitive Vector to be updated.
       const int,         ///< unused
       const std::vector<struct rt_source_data> &,  ///< unused
       const int,                                   ///< unused
       std::vector<struct rt_source_data> &,
       ///< list of ionising src column densities and source properties.
-      pion_flt *,    ///< Destination Vector for updated values
+      double *,    ///< Destination Vector for updated values
       const double,  ///< Time Step to advance by.
       const double,  ///< EOS gamma.
       const int,     ///< unused
@@ -426,7 +445,7 @@ protected:
   /// - Is threadsafe.
   ///
   double Temperature(
-      const pion_flt *,  ///< primitive vector
+      const double *,  ///< primitive vector
       const double       ///< eos gamma
   );
 
@@ -435,7 +454,7 @@ protected:
   /// Needed if you want this feature to set initial conditions.
   ///
   int Set_Temp(
-      pion_flt *,    ///< primitive vector.
+      double *,    ///< primitive vector.
       const double,  ///< temperature
       const double   ///< eos gamma.
   );
@@ -445,7 +464,7 @@ protected:
   /// arguments.
   ///
   virtual double timescales(
-      const pion_flt *,  ///< Current cell.
+      const double *,  ///< Current cell.
       const double,      ///< EOS gamma.
       const bool,        ///< set to 'true' if including cooling time.
       const bool,        ///< set to 'true' if including recombination time.
@@ -460,7 +479,7 @@ protected:
   /// used for now so the vectors can be null.
   ///
   virtual double timescales_RT(
-      const pion_flt *,  ///< Current cell.
+      const double *,  ///< Current cell.
       const int,         ///< Number of UV heating sources.
       const std::vector<struct rt_source_data> &,
       ///< list of UV-heating column densities and source properties.
@@ -476,7 +495,7 @@ protected:
   /// generator.  Not implemented here.
   ///
   int Init_ionfractions(
-      pion_flt *,    ///< Primitive vector to be updated.
+      double *,    ///< Primitive vector to be updated.
       const double,  ///< eos gamma.
       const double   ///< optional gas temperature to end up at.
   )
@@ -496,7 +515,7 @@ protected:
   /// simulation data only -- IT IS NOT OPTIMISED FOR SPEED.
   ///
   virtual double total_cooling_rate(
-      const pion_flt *,  ///< Current cell values.
+      const double *,  ///< Current cell values.
       const int,         ///< Number of UV heating sources.
       const std::vector<struct rt_source_data> &,
       ///< list of UV-heating column densities and source properties.
@@ -516,7 +535,7 @@ protected:
   ///
   virtual double get_recombination_rate(
       const int,         ///< ion index in tracer array (optional).
-      const pion_flt *,  ///< input state vector (primitive).
+      const double *,  ///< input state vector (primitive).
       const double       ///< EOS gamma (optional)
   )
   {
@@ -532,7 +551,7 @@ protected:
   ///
   /// Get electron number density (cm^{-3})
   ///
-  double get_n_elec(const pion_flt *  ///< primitive state vector.
+  double get_n_elec(const double *  ///< primitive state vector.
   );
 
   ///
@@ -540,7 +559,7 @@ protected:
   ///
   double get_n_ion(
       std::string,      ///< ion name
-      const pion_flt *  ///< primitive state vector.
+      const double *  ///< primitive state vector.
   );
 
   ///
@@ -548,11 +567,10 @@ protected:
   /// for use in the Raytracing module
   ///
   virtual void get_dtau(
-      const rad_source *,  ///< pointer to radiation source struct
-      const pion_flt,      ///< ds, thickness of the cell
-      const pion_flt
-          *,      ///< input primitive vector from grid cell (length nv_prim)
-      pion_flt *  ///< output dtau vector
+      const rad_src_info *,  ///< not used in NEMO
+      const double,       ///< ds, thickness of the cell
+      const double *,     ///< input primitive vector from grid cell (length nv_prim)
+      double *  ///< output dtau vector
   );
 
 
@@ -564,7 +582,7 @@ protected:
   /// convert state vector from grid cell into local microphysics vector.
   ///
   virtual int convert_prim2local(
-      const pion_flt *,       ///< primitive vector (nv_prim)
+      const double *,       ///< primitive vector (nv_prim)
       std::vector<double> &,  ///< local vector [x(H0),E](n+1).
       int                     /// flags the function
   );
@@ -575,8 +593,8 @@ protected:
   ///
   virtual int convert_local2prim(
       const std::vector<double> &,  ///< local (updated) vector [x(H0),E](n+1).
-      const pion_flt *,             ///< input primitive vector (nv_prim)
-      pion_flt *,                   ///< updated primitive vector (nv_prim)
+      const double *,             ///< input primitive vector (nv_prim)
+      double *,                   ///< updated primitive vector (nv_prim)
       int                           /// flags the function
   );
 
@@ -658,8 +676,8 @@ protected:
   /// the sum of elemental mass fractions must equal unity.
   ///
   virtual void sCMA(
-      pion_flt *,       ///< corrected vector.
-      const pion_flt *  ///< input primitive vector.
+      double *,       ///< corrected vector.
+      const double *  ///< input primitive vector.
   );
 
   const int ndim;          ///< Number of dimensions in grid.
@@ -672,9 +690,6 @@ protected:
 
   ///***********************************************
 
-  ///	Vector to store initial corrector values (used to modify flux according to
-  /// sCMA)
-  std::vector<pion_flt> prim_copy;
 
 
   int print_flag;
@@ -700,16 +715,12 @@ protected:
   /// ydot() needs to know for both heating and ionisation sources.
   ///
   void setup_radiation_source_parameters(
-      // const pion_flt *,  ///< primitive input state vector.
+      // const double *,  ///< primitive input state vector.
       // vector<double> &,  ///< local input state vector (x_in,E_int)
       const int,  ///< number of ionising radiation sources.
       const std::vector<struct rt_source_data>
           &  ///< list of ionising src column densities and source properties.
   );
-
-  double ds     = 0.0;           ///< Path length through the current cell
-  double vshell = 0.0;           ///< Shell volume in the current cell
-  std::vector<double> tau_bins;  ///< Optical depth in each energy bin
 
 
 
@@ -729,11 +740,6 @@ protected:
   // int N_ion_srcs;    ///< No ionising sources --> 0, otherwise --> 1
   // int ion_src_type;  ///< Either RT_EFFECT_MFION or RT_EFFECT_PION_MONO.
 
-
-  // Constant data in the cell, received from cell data.
-  double mpv_nH;  ///< total hydrogen number density at current cell.
-  int N_rsrc;     ///< number of radiation sources to include.
-  std::vector<struct rt_source_data> rt_data;  ///< data on radiation sources.
 
 
   /// index matching photo_ion xsection to ion in local vector

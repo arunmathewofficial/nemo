@@ -8,34 +8,12 @@
 /// derived.  This defines the interface between the microphysics
 /// class and the rest of the simulation code.
 ///
-/// - 2011.02.25 JM: removed NEW_RT_MP_INTERFACE ifdef (it is assumed now)
-/// - 2011.03.16 JM: Added TimeUpdateMP_RTnew() function to integrate the rate
-/// equations
-///     NOT in the C2Ray way.  i.e. I assume the timestep is short enough that
-///     the instantaneous optical depth is a good enough approximation to the
-///     time-averaged optical depth.
-/// - 2011.03.21 JM: Updated  RTnew() interface for more sources.  It is now
-/// simpler.
-/// - 2011.05.02 JM: Added set_multifreq_source_properties() function
-/// - 2012.01.16 JM: Tabbing.
-/// - 2013.08.12 JM: added get_recombination_rate() public function.
-/// - 2013.08.19 JM: added get_th_xsection() public function.
-/// - 2013.08.20 JM: Added NTau var to rt_source_data, Column and
-///    DelCol are changed to arrays.  Added get_n_el() function.
-/// - 2014.09.22 JM: Added  total_cooling_rate() function to get the
-///    cooling rates per cell for postprocessing.
-/// - 2015.07.16 JM: added pion_flt datatype (double or float).
-/// - 2015.08.03 JM: Added pion_flt for double* arrays (allow floats)
-/// - 2018.01.25 JM: added functions to request n(H+),n(H0),n(e-)
+/// - 2026.09.30
 
 #ifndef MICROPHYSICS_BASE_H
 #define MICROPHYSICS_BASE_H
 
-#include "defines/functionality_flags.h"
-#include "defines/testing_flags.h"
-
-#include "grid/cell_interface.h"
-#include "raytracing/rad_src_data.h"
+#include "nemo-datastructs.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -67,8 +45,8 @@ public:
   /// internal energy.
   ///
   virtual int TimeUpdateMP(
-      const pion_flt *,  ///< Primitive Vector to be updated.
-      pion_flt *,        ///< Destination Vector for updated values.
+      const double *,  ///< Primitive Vector to be updated.
+      double *,        ///< Destination Vector for updated values.
       const double,      ///< Time Step to advance by.
       const double,      ///< EOS gamma.
       const int,  ///< Switch for what type of integration to use. (0=adaptive
@@ -82,8 +60,8 @@ public:
   /// given an external radiation flux.
   ///
   virtual int TimeUpdate_RTsinglesrc(
-      const pion_flt *,  ///< Primitive Vector to be updated.
-      pion_flt *,        ///< Destination Vector for updated values.
+      const double *,  ///< Primitive Vector to be updated.
+      double *,        ///< Destination Vector for updated values.
       const double,      ///< Time Step to advance by.
       const double,      ///< EOS gamma.
       const int,  ///< Switch for what type of integration to use. (0=adaptive
@@ -96,39 +74,11 @@ public:
 
   /// Initialise microphysics ionisation fractions to an equilibrium value.
   virtual int Init_ionfractions(
-      pion_flt *,    ///< Primitive vector to be updated.
+      double *,    ///< Primitive vector to be updated.
       const double,  ///< eos gamma.
       const double   ///< optional gas temperature to end up at.
                      ///< (negative means use pressure)
       ) = 0;
-
-  ///
-  /// Given a cell, calculated converged time-averaged rates of
-  /// change for species abundances (x(E)) and heating/cooling, including
-  /// radiative effects.
-  ///
-  /// The rates are to be stored in the Ph vector of the cell.  This
-  /// means that this function must not be called on a half-timestep, and
-  /// is supposed to be completely operator split from the dynamics.  It
-  /// should only be called by the raytracing class.
-  ///
-  /// The idea is that for a infinitesimally weak radiation source, this
-  /// will produce an identical update to the non-radiative TimeUpdateMP
-  /// function, once the time-averaged rates are added to the primitive
-  /// vector to get the updated value.
-  /// THIS IS AN UNIMPLEMENTED FEATURE, WHICH WOULD ALLOW ME TO CALCULATE
-  /// THE C2RAY METHOD UPDATES FOR MANY SOURCES.
-  ///
-  virtual int Get_MP_Rates(
-      cell &,        ///< current cell.
-      const double,  ///< timestep
-      const double,  ///< column to cell
-      const double,  ///< Flux entering cell?
-      double *       ///< initial (and final) column density through cell?
-  )
-  {
-    return 0;
-  }
 
   ///
   /// This takes a copy of the primitive vector and advances it in time over
@@ -139,14 +89,14 @@ public:
   /// ordered in a list of UV heating sources and a list of ionising sources.
   ///
   virtual int TimeUpdateMP_RTnew(
-      const pion_flt *,  ///< Primitive Vector to be updated.
+      const double *,  ///< Primitive Vector to be updated.
       const int,         ///< Number of UV heating sources.
       const std::vector<struct rt_source_data> &,
       ///< list of UV-heating column densities and source properties.
       const int,  ///< number of ionising radiation sources.
       std::vector<struct rt_source_data> &,
       ///< list of ionising src column densities and source properties.
-      pion_flt *,  ///< Destination Vector for updated values
+      double *,  ///< Destination Vector for updated values
       ///< (can be same as first Vector.
       const double,  ///< Time Step to advance by.
       const double,  ///< EOS gamma.
@@ -169,7 +119,7 @@ public:
   /// Sets the pressure in p-vec to be such that temperature is
   /// what you want it to be.
   virtual int Set_Temp(
-      pion_flt *,    ///< primitive vector.
+      double *,    ///< primitive vector.
       const double,  ///< temperature.
       const double   ///< eos gamma.
       ) = 0;
@@ -179,7 +129,7 @@ public:
   /// Assumes primitive vector is in cgs units.
   ///
   virtual double Temperature(
-      const pion_flt *,  ///< primitive vector
+      const double *,  ///< primitive vector
       const double       ///< eos gamma
       ) = 0;
 
@@ -188,7 +138,7 @@ public:
   /// arguments.  Time is returned in seconds.
   ///
   virtual double timescales(
-      const pion_flt *,  ///< Current cell.
+      const double *,  ///< Current cell.
       const double,      ///< EOS gamma.
       const bool,        ///< set to true if including cooling time.
       const bool,        ///< set to true if including recombination time.
@@ -202,7 +152,7 @@ public:
   /// substantially greater capability than the other timescales function.
   ///
   virtual double timescales_RT(
-      const pion_flt *,  ///< Current cell.
+      const double *,  ///< Current cell.
       const int,         ///< Number of UV heating sources.
       const std::vector<struct rt_source_data> &,
       ///< list of UV-heating column densities and source properties.
@@ -230,7 +180,7 @@ public:
   /// between heating and cooling.
   ///
   virtual double total_cooling_rate(
-      const pion_flt *,  ///< Current cell values.
+      const double *,  ///< Current cell values.
       const int,         ///< Number of UV heating sources.
       const std::vector<struct rt_source_data> &,
       ///< list of UV-heating column densities and source properties.
@@ -249,7 +199,7 @@ public:
   ///
   virtual double get_recombination_rate(
       const int,         ///< ion index in tracer array (optional).
-      const pion_flt *,  ///< input state vector (primitive).
+      const double *,  ///< input state vector (primitive).
       const double       ///< EOS gamma (optional)
       ) = 0;
 
@@ -260,8 +210,8 @@ public:
   /// Used for modifying tracer fluxes, normalising state vec.
   ///
   virtual void sCMA(
-      pion_flt *,       ///< output corrector vector
-      const pion_flt *  ///< input primitive vector from grid cell
+      double *,       ///< output corrector vector
+      const double *  ///< input primitive vector from grid cell
   );
 
   ///
@@ -270,10 +220,10 @@ public:
   /// vector.
   ///
   virtual void get_dtau(
-      const rad_source *,  ///< pointer to radiation source struct
-      const pion_flt,      ///< ds, thickness of the cell
-      const pion_flt *,    ///< input primitive vector from cell
-      pion_flt *           ///< output dtau vector
+      const rad_src_info *,  ///< pointer to radiation source struct
+      const double,      ///< ds, thickness of the cell
+      const double *,    ///< input primitive vector from cell
+      double *           ///< output dtau vector
   )
   {
     spdlog::error("Base get_dtau!");
@@ -294,7 +244,7 @@ public:
   /// Return number density of a given element.
   ///
   virtual double get_n_el(
-      const pion_flt *,  ///< primitive state vector.
+      const double *,  ///< primitive state vector.
       const int          ///< integer identifier for the element.
   )
   {
@@ -304,7 +254,7 @@ public:
   ///
   /// Get electron number density (cm^{-3})
   ///
-  virtual double get_n_elec(const pion_flt *  ///< primitive state vector.
+  virtual double get_n_elec(const double *  ///< primitive state vector.
   )
   {
     return -1.0e99;
@@ -315,7 +265,7 @@ public:
   ///
   virtual double get_n_ion(
       std::string,      ///< ion name
-      const pion_flt *  ///< primitive state vector.
+      const double *  ///< primitive state vector.
   )
   {
     return -1.0e99;
@@ -324,7 +274,7 @@ public:
   ///
   /// Get H+ number density (cm^{-3})
   ///
-  virtual double get_n_Hplus(const pion_flt *  ///< primitive state vector.
+  virtual double get_n_Hplus(const double *  ///< primitive state vector.
   )
   {
     return -1.0e99;
@@ -333,7 +283,7 @@ public:
   ///
   /// Get neutral H number density (cm^{-3})
   ///
-  virtual double get_n_Hneutral(const pion_flt *  ///< primitive state vector.
+  virtual double get_n_Hneutral(const double *  ///< primitive state vector.
   )
   {
     return -1.0e99;

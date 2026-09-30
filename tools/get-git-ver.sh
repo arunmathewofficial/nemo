@@ -5,5 +5,5 @@ echo "#ifndef GIT_VERSION_H
 #define GIT_VERSION_H
 #include <string>
 static std::string git_version = \"$code\";
-#endif" > source/git_version.h
+#endif" > source/nemo_git_version.h
 

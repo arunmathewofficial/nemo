@@ -74,8 +74,8 @@ microphysics_base::microphysics_base(
 // #define DEBUG_SCMA
 
 void microphysics_base::sCMA(
-    pion_flt *corrected,  ///< output corrected vector
-    const pion_flt *p_in  ///< input primitive vector (nv_prim)
+    double *corrected,  ///< output corrected vector
+    const double *p_in  ///< input primitive vector (nv_prim)
 )
 {
   // "Consistent multi-species advection" correction step from
@@ -93,7 +93,7 @@ void microphysics_base::sCMA(
 
   // sum over all elements and add up mass fraction, correcting
   // state vector to be within allowed limits for mass fraction.
-  pion_flt corr = 0.0;
+  double corr = 0.0;
   for (int v = 0; v < n_el; v++)
     corr += corrected[el_index[v]];
   corr = 1.0 / corr;  // correction factor for elements
@@ -102,7 +102,7 @@ void microphysics_base::sCMA(
   if (print_flag)
     spdlog::warn(
         "Corrected 1: {}",
-        std::vector<pion_flt>(corrected, corrected + nv_prim));
+        std::vector<double>(corrected, corrected + nv_prim));
 #endif  // DEBUG_SCMA
 
   // renormalise element values to sum to 1.
@@ -113,15 +113,15 @@ void microphysics_base::sCMA(
   if (print_flag)
     spdlog::warn(
         "Corrector 2: {}",
-        std::vector<pion_flt>(corrected, corrected + nv_prim));
+        std::vector<double>(corrected, corrected + nv_prim));
 #endif  // DEBUG_SCMA
 
 #ifdef DEBUG_SCMA
   if (print_flag) {
     spdlog::warn("------------  sCMA  ---------------");
-    spdlog::warn("p_in     : {}", std::vector<pion_flt>(p_in, p_in + nv_prim));
+    spdlog::warn("p_in     : {}", std::vector<double>(p_in, p_in + nv_prim));
     spdlog::warn(
-        "Corrected: {}", std::vector<pion_flt>(corrected, corrected + nv_prim));
+        "Corrected: {}", std::vector<double>(corrected, corrected + nv_prim));
   }
 #endif  // DEBUG_SCMA
 }

@@ -1,6 +1,11 @@
 #ifndef DATASTRUCTS_H
 #define DATASTRUCTS_H
 
+#include <array>
+#include <string>
+
+#define NEMO_MAX_DIM 3
+
 ///
 /// struct with lots of flags for what extra physics we are using.
 ///
@@ -37,7 +42,7 @@ struct which_physics {
 /// Radiation source struct.
 ///
 struct rad_src_info {
-  std::array<double, MAX_DIM> pos;  ///< src position (cm) (not used by nemo)
+  std::array<double, NEMO_MAX_DIM> pos;  ///< src position (cm) (not used by nemo)
   double strength;  ///< src luminosity (ergs/sec)
   double Rstar;     ///< stellar radius in solar radii.
   double Tstar;     ///< stellar effective temperature (K).
