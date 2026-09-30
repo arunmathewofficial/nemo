@@ -10,7 +10,7 @@
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
 #endif
-#include "constants.h"
+#include "nemo-constants.h"
 #include <map>
 #include <spdlog/spdlog.h>
 

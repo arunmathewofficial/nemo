@@ -20,27 +20,23 @@
 ///  https://computation.llnl.gov/casc/sundials/main.html
 /// The method is backwards differencing (i.e. implicit) with Newton
 /// iteration.
-/// * This code is not yet working and should not be used.
 
 
 /// Choose the cooling function
 // #define MELLEMA
 #define CHIANTI
 
-#include "defines/functionality_flags.h"
-#include "defines/testing_flags.h"
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
 #endif
 #include <spdlog/spdlog.h>
 /* prevent clang-format reordering */
-#include "atomic_physics_database.h"
-#include "charge_exchange.h"
-#include "coll_ionise_recomb.h"
-#include "constants.h"
+#include "nemo/atomic_physics_database.h"
+#include "nemo/charge_exchange.h"
+#include "nemo/coll_ionise_recomb.h"
+#include "nemo-constants.h"
 #include "microphysics/cvode_integrator.h"
 #include "microphysics/microphysics_base.h"
-#include "sim_params.h"
 #ifdef MELLEMA
 #include "mellema_cooling.h"
 #elif defined CHIANTI

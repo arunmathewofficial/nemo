@@ -1,29 +1,16 @@
 
 add_subdirectory(nemo)
+add_subdirectory(tools)
 
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_library(
-  nemo STATIC
-
-    nemo.cpp
-    mellema_cooling.cpp
-    atomic_physics_database.cpp
-    coll_ionise_recomb.cpp
-    chianti_cooling.cpp
-    stellar_atmosphere_models.cpp
-    multi_ion_photo_xsections.cpp
-    photoionisation.cpp
-    charge_exchange.cpp
-)
-
-target_link_libraries(global PRIVATE spdlog::spdlog)
+target_link_libraries(nemo PRIVATE spdlog::spdlog)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
     include(../cmake/development_flags.cmake)
     add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE")
-    target_link_libraries(global INTERFACE development_flags)
+    target_link_libraries(nemo INTERFACE development_flags)
 else()
     add_definitions("-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO")
 endif(CMAKE_BUILD_TYPE MATCHES Debug)

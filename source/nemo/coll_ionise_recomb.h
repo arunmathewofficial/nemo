@@ -15,7 +15,7 @@
 #include <fmt/ranges.h>
 
 #include "atomic_physics_database.h"
-#include "constants.h"
+#include "nemo-constants.h"
 #include <map>
 
 // Switch to use case B radiative recombination rate for H1+
