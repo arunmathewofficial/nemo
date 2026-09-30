@@ -15,7 +15,7 @@
 /* prevent clang-format reordering */
 #include <fmt/ranges.h>
 
-#include "tools/interpolate.h"
+#include "microphysics/interpolate.h"
 
 
 // USER DEFINED DATATYPE #################################################

@@ -470,7 +470,7 @@ void nemo::tracer_species_cataloger(
       if (!atomic_physics_data.find_species(tracers_replica[s])) {
         spdlog::warn(
             "no species match for tracer: {}  {}", s, tracers_replica[s]);
-        exit_pion(1);
+        exit_nemo(1);
       }
       else
         all_species_list.push_back(
@@ -504,7 +504,7 @@ void nemo::tracer_species_cataloger(
   if (!isElementOrdered) {
     spdlog::error(" NEMO: Elemental mass fraction are not arranged correctly"
                   " within the primitive vector.");
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   int tr = 0;
@@ -586,7 +586,7 @@ void nemo::tracer_species_cataloger(
         " NEMO: local tracers size mismatch with local variables"
         " in prim_vec {} ",
         local_tracers.size());
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   // Check whether the local tracer is arranged in ascending order based on both
@@ -606,7 +606,7 @@ void nemo::tracer_species_cataloger(
   if (!isSorted) {
     spdlog::error(
         " NEMO: Incorrect arrangement of local tracers within the primitive vector.");
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   spdlog::debug(
@@ -689,7 +689,7 @@ void nemo::tracer_species_cataloger(
         spdlog::error(
             " NEMO: Species cannot be collisionally ionized {} ",
             local_tracers[s]);
-        exit_pion(1);
+        exit_nemo(1);
       }
     }
     // end of collisional ionisation species ***********************************
@@ -967,7 +967,7 @@ double nemo::get_n_ion(
     species_primitive_idx = it->second;
   else {
     spdlog::error(" NEMO: Species {} do not found in tracer list", s);
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   std::string element_name = atomic_physics_data.get_element_name(s);
@@ -982,7 +982,7 @@ double nemo::get_n_ion(
 double nemo::get_X_H()
 {
   spdlog::error("don't call get_X_H() in NEMO");
-  exit_pion(1);
+  exit_nemo(1);
   return 0.0;
 }
 
@@ -1097,7 +1097,7 @@ void nemo::get_ne(const std::vector<double> &y_species_frac, double &ne)
         "nemo: Negative ne = {:12.3e}, resetting to {:12.3e}", ne, 1.0e-10);
     ne = max(1.0e-10, ne);
     spdlog::warn("y_species_frac: {}", y_species_frac);
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   return;
@@ -1188,7 +1188,7 @@ int nemo::convert_prim2local(
     spdlog::error(
         "nemo: Input pressure is not finite: {} {}", prim_copy[PG],
         prim_in[PG]);
-    exit_pion(4);
+    exit_nemo(4);
   }
 
   return 0;
@@ -1292,7 +1292,7 @@ double nemo::Temperature(
     spdlog::error(
         "NEMO Temperature() pressure is not finite: {}",
         std::vector<pion_flt>(prim, prim + nv_prim));
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   // generate vector of (y_s, nE, Eint) to calculate Temperature  **************
@@ -1323,7 +1323,7 @@ double nemo::Temperature(
   //   spdlog::error("Temperature {}",p_local);
   //   spdlog::error("{}",y_species_frac);
   //   spdlog::error("{}",element_num_density);
-  //   exit_pion(10);
+  //   exit_nemo(10);
   // }
   return get_temperature(y_species_frac, element_num_density, p_local[E_index]);
 }
@@ -1427,7 +1427,7 @@ int nemo::TimeUpdateMP_RTnew(
   err = convert_prim2local(p_in, p_local, 2);
   if (err) {
     spdlog::error("{}: {}", "Bad input state to nemo::TimeUpdateMP()", err);
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   err = correct_localvector(p_local, 1);
@@ -1495,7 +1495,7 @@ int nemo::TimeUpdateMP_RTnew(
       spdlog::debug("Pout : {}", std::vector<double>(p_out, p_out + N_prim));
       spdlog::debug("Ploc  : {}", p_local);
       // spdlog::error("{}: {}", "NAN in MPv3",P[2]);
-      exit_pion(v);
+      exit_nemo(v);
     }
   }
 #endif
@@ -1678,7 +1678,7 @@ double nemo::timescales_RT(
   err = convert_prim2local(prim_in, p_local, 3);
   if (err) {
     spdlog::error("{}: {}", "Bad input state to nemo::timescales_RT()", err);
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   // correct local vector
@@ -1687,7 +1687,7 @@ double nemo::timescales_RT(
   // spdlog::debug("after correcting - p_local = {}", p_local);
   if (err) {
     spdlog::error("bad input vector to timescales_RT");
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   // v runs over all species and internal energy
@@ -1704,7 +1704,7 @@ double nemo::timescales_RT(
   if (err) {
     spdlog::error(
         "{}: {}", "dYdt() returned an error in nemo::timescales_RT()", err);
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   // spdlog::info("got past blockage 2");
@@ -2638,7 +2638,7 @@ void nemo::print_CIR_LUT(
 
   if (!outfile.is_open()) {
     spdlog::error("NEMO {} : {}", "couldn't open outfile", 1);
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   outfile.setf(ios_base::scientific);
@@ -2713,7 +2713,7 @@ void nemo::print_charge_exchange_LUT(
 
   if (!outfile.is_open()) {
     spdlog::error("NEMO {} : {}", "couldn't open outfile", 1);
-    exit_pion(1);
+    exit_nemo(1);
   }
 
   outfile.setf(ios_base::scientific);
