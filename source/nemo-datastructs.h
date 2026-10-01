@@ -64,6 +64,7 @@ struct rad_src_info {
 struct rad_sources {
   int Nsources;
   std::vector<struct rad_src_info> sources;
+  std::vector<struct rt_source_data> src_data;
 };
 
 /// Radiation Source data struct, used for passing info to microphysics classes.

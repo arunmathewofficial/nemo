@@ -11,6 +11,8 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 
+#include <vector>
+
 #include "nemo_git_version.h"
 #include "nemo/nemo.h"
 #include "nemo-datastructs.h"
@@ -53,8 +55,29 @@ int main(int argc, char **argv)
   
   struct rad_sources rs;
   rs.Nsources=0;
+  rs.sources.resize(0);
+  rs.src_data.resize(0);
 
+  // nemo(ndim, coord-sys, Nel(state vec), Ntracer, tracers, extra-physics, rad-sources, gamma)
   class nemo MP(1,1,15,5, tr, &wp, &rs, 5.0/3.0); 
+
+  std::vector<double> input(15,0.0);
+  spdlog::info("input {}", input);
+  input[0]=1.0e-24; // density
+  input[1]=1.0e-9;  // pressure (~1e7 K)
+  input[10] = 0.72; input[11] = 0.28; input[12] = 0.36; input[13] = 0.05; input[14]= 0.1;
+
+  std::vector<double> output(15,0.0);
+  double x=0.0;
+
+  MP.TimeUpdateMP_RTnew(
+                input.data(), 0, rs.src_data, 0, rs.src_data, output.data(), 1e10,
+                5./3., 0, &x);
+
+  spdlog::info("output {}", output);
+
+
+  
   
   return 0;
 }
