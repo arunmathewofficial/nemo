@@ -93,10 +93,10 @@ int stellar_atmosphere_models::generate_bin_luminosity(
     return 1;
   }
 
-  double L_Stefan_Bolt = 4.0 * M_PI * pconst.StefanBoltzmannConst()
-                         * pow(Tstar, 4.0) * Rstar * pconst.Rsun() * Rstar
-                         * pconst.Rsun();
-  if (fabs(1.0 - L_Stefan_Bolt / Lstar) > 0.05 && !pconst.equalD(Lstar, 1.0)) {
+  double L_Stefan_Bolt = 4.0 * M_PI * StefanBoltzmannConst()
+                         * pow(Tstar, 4.0) * Rstar * Rsun() * Rstar
+                         * Rsun();
+  if (fabs(1.0 - L_Stefan_Bolt / Lstar) > 0.05 && !equalD(Lstar, 1.0)) {
     spdlog::warn(
         "Luminosities don't match! Lstar={} and L_Stefan-Bolt={}", Lstar,
         L_Stefan_Bolt);

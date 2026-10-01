@@ -212,14 +212,14 @@ double charge_exchange::get_charge_exchange_rate(
     if (reaction_key.second == "H1+" && reaction.type) {
       rate = reaction.a * pow(T * 1.00E-04, reaction.b)
              * (1.00 + reaction.c * exp(reaction.d * T * 1.00E-04))
-             * exp(-reaction.dE_fit * pconst.eV() / (T * pconst.kB()));
+             * exp(-reaction.dE_fit * eV() / (T * kB()));
     }
 
     // SECTION 3: Charge-exchange ionisation reaction with He1+
     if (reaction_key.second == "He1+" && reaction.type) {
       rate = reaction.a * pow(T * 1.00E-04, reaction.b)
              * exp(-reaction.c * T * 1.00E-04)
-             * exp(-reaction.dE_fit * pconst.eV() / (T * pconst.kB()));
+             * exp(-reaction.dE_fit * eV() / (T * kB()));
     }
 
     // Note: To ensure rates have acceptable values, we modify the rate

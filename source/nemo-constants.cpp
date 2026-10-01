@@ -1,14 +1,14 @@
 ///
-/// \file constants.cpp
+/// \file nemo-constants.cpp
 /// \author Jonathan Mackey
-/// \date 2015.03.10
+/// \date 2026.10.01
 ///
 /// Class with inline functions for many physics and astronomy
 /// constants.  All constants are in cgs units unless stated
 /// otherwise.
 ///
 /// Modifications:
-/// - 2015.03.10 JM: added equalD() function.
+/// - modified version of PION constants.cpp from 2015
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
@@ -20,27 +20,24 @@
 
 using namespace std;
 
-/// global constants class.
-class constants pconst;
-
 // ##################################################################
 // ##################################################################
 
-constants::constants() {}
-
-
-// ##################################################################
-// ##################################################################
-
-constants::~constants() {}
+nemo_constants::nemo_constants() {}
 
 
 // ##################################################################
 // ##################################################################
 
+nemo_constants::~nemo_constants() {}
 
 
-bool constants::equalD(const double a, const double b)
+// ##################################################################
+// ##################################################################
+
+
+
+bool nemo_constants::equalD(const double a, const double b)
 {
   if (a == b) {
     return (true);
@@ -68,7 +65,7 @@ bool constants::equalD(const double a, const double b)
 
 
 
-double constants::pow_fast(double a, double b)
+double nemo_constants::pow_fast(double a, double b)
 {
   return exp(b * log(a));
 }

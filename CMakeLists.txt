@@ -47,6 +47,8 @@ add_definitions("-DCVODE${SUNDIALS_VERSION_MAJOR}")
 #message(STATUS "SUNDIALS version = ${SUNDIALS_VERSION_MAJOR}.${SUNDIALS_VERSION_MINOR}")
 #message(STATUS "SUNDIALS include = ${SUNDIALS_INCLUDE_DIR}/../")
 
+find_package(MPI REQUIRED)  # Homebrew sundials needs open MPI
+
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     find_package(Curses)
     find_package(READLINE REQUIRED)

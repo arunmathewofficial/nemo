@@ -2,6 +2,11 @@
 add_subdirectory(nemo)
 add_subdirectory(microphysics)
 
+add_library(
+  constants
+
+  nemo-constants.cpp
+)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -17,7 +22,8 @@ endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 
 add_executable(test-nemo test-nemo.cpp)
-target_link_libraries(test-nemo PRIVATE nemo tools microphysics_base)
+target_link_libraries(test-nemo PRIVATE nemo tools microphysics_base constants)
+target_link_libraries(test-nemo PRIVATE MPI::MPI_CXX)
 target_compile_features(test-nemo PRIVATE cxx_std_14)
 
 install( 

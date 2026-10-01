@@ -121,7 +121,7 @@ int atomic_physics_database::get_electron_num(const std::string species)
 double atomic_physics_database::get_ionisation_potential(
     const std::string species)
 {
-  return species_attributes[species].ionise_E * pconst.eV();
+  return species_attributes[species].ionise_E * eV();
 }
 
 
