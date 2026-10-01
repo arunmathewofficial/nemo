@@ -33,12 +33,12 @@ int main(int argc, char **argv)
   std::string tr[5] = {"X_H", "X_He", "H", "He", "He1+"};
   struct which_physics wp;
   wp.dynamics           =1;
-  wp.raytracing         =1;
+  wp.raytracing         =0;
   wp.cooling            =1;
   wp.chemistry          =1;
   wp.coll_ionisation    =1;
   wp.rad_recombination  =1;
-  wp.phot_ionisation    =1;
+  wp.phot_ionisation    =0;
   wp.charge_exchange    =1;
   wp.sat_thermal_cond   =1;
   wp.tc_strength        =1;
@@ -62,10 +62,10 @@ int main(int argc, char **argv)
   class nemo MP(1,1,15,5, tr, &wp, &rs, 5.0/3.0); 
 
   std::vector<double> input(15,0.0);
-  spdlog::info("input {}", input);
-  input[0]=1.0e-24; // density
-  input[1]=1.0e-9;  // pressure (~1e7 K)
+  input[0]=1.0e-22; // density
+  input[1]=1.0e-8;  // pressure (~1e7 K)
   input[10] = 0.72; input[11] = 0.28; input[12] = 0.36; input[13] = 0.05; input[14]= 0.1;
+  spdlog::info("input  [{:8.3e}", fmt::join(input, ", "));
 
   std::vector<double> output(15,0.0);
   double x=0.0;
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
                 input.data(), 0, rs.src_data, 0, rs.src_data, output.data(), 1e10,
                 5./3., 0, &x);
 
-  spdlog::info("output {}", output);
+  spdlog::info("output [{:8.3e}]", fmt::join(output, ", "));
 
 
   
