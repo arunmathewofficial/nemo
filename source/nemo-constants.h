@@ -27,6 +27,11 @@
 #include <mathimf.h>
 #endif
 
+#include <boost/units/systems/cgs.hpp>
+#include <boost/units/systems/cgs/constants.hpp> // <-- doesn't exist!!!
+#include <boost/math/constants/constants.hpp>
+
+
 ///
 /// Physical constants are from CODATA 2014, converted to CGS.
 /// http://dx.doi.org/10.5281/zenodo.22826
@@ -34,21 +39,22 @@
 ///
 class nemo_constants {
 public:
-  nemo_constants();
+  nemo_constants(
+  );
   ~nemo_constants();
 
   //
   // Mathematics
   //
-  inline double ln10() { return 2.3025850929940459; }
-  inline double pi() { return 3.14159265358979324; }
-  inline double halfpi() { return 0.5 * pi(); }
-  inline double root4pi() { return 3.5449077018110318; }
-  inline double sqrt2() { return 1.4142135623730950; }
+  inline double ln10()    { return boost::math::constants::ln_ten<double>(); }
+  inline double pi()      { return boost::math::constants::pi<double>(); }
+  inline double halfpi()  { return 0.5 * pi(); }
+  inline double root4pi() { return 2.0*  boost::math::constants::root_pi<double>(); }
+  inline double sqrt2()   { return boost::math::constants::root_two<double>(); }
   //
   // Physics
   //
-  inline double c() { return 2.99792458e+10; }
+  inline double c() { return boost::units::cgs::constants::c.value();; }
   inline double kB() { return 1.38064852e-16; }
   inline double h() { return 6.62606957e-27; }
   inline double StefanBoltzmannConst() { return 5.670367e-5; }

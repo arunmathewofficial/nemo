@@ -8,6 +8,8 @@ add_library(
   nemo-constants.cpp
 )
 
+target_link_libraries(constants PRIVATE Boost::boost)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 target_link_libraries(nemo PRIVATE spdlog::spdlog)
