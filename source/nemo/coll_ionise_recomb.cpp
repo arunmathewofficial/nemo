@@ -146,7 +146,7 @@ void coll_ionise_recomb::generate_recombination_LUT(
 double coll_ionise_recomb::get_collisional_ionisation_rate(
     const std::string species, const double T)
 {
-  double k_B  = pconst.kB();  // Boltzmann constant.
+  double k_B  = kB();  // Boltzmann constant.
   double U    = 0.0;
   double rate = 0.0;
   U           = atomic_physics_data.get_ionisation_potential(species) / k_B / T;

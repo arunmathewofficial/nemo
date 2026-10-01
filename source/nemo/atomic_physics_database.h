@@ -34,7 +34,8 @@ struct species_datatype {
  * of neutral atoms and their ions. The attributes include element name, charge,
  * mass, ionisation potential energy.
  **/
-class atomic_physics_database {
+class atomic_physics_database :
+  virtual public nemo_constants {
 
   // PUBLIC METHODS AND VARIABLE ***********************
 public:

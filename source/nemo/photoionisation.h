@@ -17,7 +17,7 @@
 #include "microphysics/interpolate.h"
 
 
-class photoionisation : virtual public interpolate_arrays {
+class photoionisation : virtual public interpolate_arrays, virtual public nemo_constants {
 public:
   photoionisation();
   ~photoionisation();

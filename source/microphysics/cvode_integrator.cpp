@@ -22,7 +22,7 @@
 /// - 2013.02.07 JM: Changed int to long int in Jacobian function for
 ///    compatibility with sundials 2.5.0.
 
-#include "constants.h"
+//#include "constants.h"
 #include "microphysics/cvode_integrator.h"
 
 #ifdef SPDLOG_FWD

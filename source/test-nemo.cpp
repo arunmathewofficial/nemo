@@ -5,16 +5,15 @@
 
 
 
-using namespace std;
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
 #endif
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 
-#include "git_version.h"
+#include "nemo_git_version.h"
 #include "nemo/nemo.h"
-#include "datastructs.h"
+#include "nemo-datastructs.h"
 
 int main(int argc, char **argv)
 {
@@ -52,7 +51,7 @@ int main(int argc, char **argv)
   wp.wind_acceleration  =0;
   wp.shocked_tracer     =0;
   
-  struct rad_sources;
+  struct rad_sources rs;
   rs.Nsources=0;
 
   class nemo MP(1,1,15,5, tr, &wp, &rs, 5.0/3.0); 

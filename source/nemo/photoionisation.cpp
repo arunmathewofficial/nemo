@@ -87,7 +87,7 @@ void photoionisation::setup_photoionisation(
       else
         mean_bin_energy = 0.5 * (E_bins[b][0] + E_bins[b][1]);
       // append the mean bin energy to the table for the species
-      mean_energy_table[s].push_back(mean_bin_energy * pconst.eV());
+      mean_energy_table[s].push_back(mean_bin_energy * eV());
     }  // bin loop
   }  // species loop
 }
@@ -185,7 +185,7 @@ double photoionisation::calculate_photoheating_rate(
 
     // the fractional excess energy
     frac_excess_energy = 1.0
-                         - ionisation_thres[species] * pconst.eV()
+                         - ionisation_thres[species] * eV()
                                / mean_energy_table[species][b];
 
     bin_heat_rate *= frac_excess_energy;

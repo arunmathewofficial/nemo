@@ -3,6 +3,7 @@
 
 #include <array>
 #include <string>
+#include <vector>
 
 #define NEMO_MAX_DIM 3
 

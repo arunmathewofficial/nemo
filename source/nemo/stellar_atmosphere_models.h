@@ -7,25 +7,32 @@
 #ifndef PION_STELLAR_ATMOSPHERE_MODELS_H
 #define PION_STELLAR_ATMOSPHERE_MODELS_H
 
+// logging
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
 #endif
 #include <spdlog/spdlog.h>
 /* prevent clang-format reordering */
-#include "microphysics/microphysics_base.h"
 #include <fmt/ranges.h>
+
+// std lib
 #include <fstream>
 #include <sys/stat.h>
 #include <variant>
+#include <string>
 
+// nemo
+#include "microphysics/microphysics_base.h"
+#include "nemo-constants.h"
 
 struct stellar_model_datatype {
-  string info;
+  std::string info;
   std::vector<std::vector<double> > data;
 };
 
 
-class stellar_atmosphere_models {
+class stellar_atmosphere_models :
+  virtual public nemo_constants {
 
 public:
   stellar_atmosphere_models();

@@ -224,9 +224,8 @@ public:
       const double,      ///< ds, thickness of the cell
       const double *,    ///< input primitive vector from cell
       double *           ///< output dtau vector
-  )
+  ) 
   {
-    spdlog::error("Base get_dtau!");
     return;
   }
 

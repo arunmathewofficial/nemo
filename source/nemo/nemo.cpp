@@ -150,7 +150,7 @@ nemo::nemo(
   cosmicray_ionise_rate = 1.000E-17;  // cosmic ray ionisation rate in s^{-1}.
   // Following Goldsmith and Langer (1978), it is assumed that each ionisation
   // deposits 20 eV of energy into the gas.
-  cosmic_ray_energy = 20.0 * pconst.eV();
+  cosmic_ray_energy = 20.0 * eV();
 
   // Section: Collisional ionisation  ******************************************
   if (EP->coll_ionisation) {
@@ -203,7 +203,7 @@ nemo::nemo(
     ionise_cx_energy = ionise_cx_energy_eV;
     for (size_t i = 0; i < ionise_cx_energy.size(); i++)
       for (size_t j = 0; j < ionise_cx_energy[i].size(); j++)
-        ionise_cx_energy[i][j] *= pconst.eV();
+        ionise_cx_energy[i][j] *= eV();
     // Generate recombining charge-exchange reaction energy-defect table
     std::vector<std::vector<double> > recomb_cx_energy_eV;
     recomb_cx_energy_eV = import_energy_defect(recomb_cx_reactions);
@@ -212,7 +212,7 @@ nemo::nemo(
     recomb_cx_energy = recomb_cx_energy_eV;
     for (size_t i = 0; i < recomb_cx_energy.size(); i++)
       for (size_t j = 0; j < recomb_cx_energy[i].size(); j++)
-        recomb_cx_energy[i][j] *= pconst.eV();
+        recomb_cx_energy[i][j] *= eV();
 
 
 #ifdef NEMO_DEBUG
@@ -993,7 +993,7 @@ double nemo::get_temperature(
     const double E)
 {
   return gamma_minus_one * E
-         / (pconst.kB() * get_ntot(y_species_frac, element_number_density));
+         / (kB() * get_ntot(y_species_frac, element_number_density));
 }
 
 
@@ -1367,7 +1367,7 @@ int nemo::Set_Temp(
   }
 
   // Determine internal energy using get_ntot
-  p_local[E_index] = get_ntot(y_species_frac, element_num_density) * pconst.kB()
+  p_local[E_index] = get_ntot(y_species_frac, element_num_density) * kB()
                      * T / gamma_minus_one;
 
   // Call convert_local2prim with the new local vector; this will
@@ -1591,7 +1591,7 @@ int nemo::correct_localvector(
 
     // reset the internal energy (requires using y_ion_frac in get_ntot)
     p_local[E_index] = get_ntot(y_species_frac, element_num_density)
-                       * pconst.kB() * EP->MinTemperature / (gamma_minus_one);
+                       * kB() * EP->MinTemperature / (gamma_minus_one);
   }
   // **************************************************************
 
@@ -1610,7 +1610,7 @@ int nemo::correct_localvector(
 
     // Resetting the internal energy with Minimum Temperature
     p_local[E_index] = get_ntot(y_species_frac, element_num_density)
-                       * pconst.kB() * EP->MinTemperature / (gamma_minus_one);
+                       * kB() * EP->MinTemperature / (gamma_minus_one);
   }
   // **************************************************************
 
@@ -1771,7 +1771,7 @@ void nemo::sCMA(
     prim[massfrac_idx[e]] *= element_correction;
     element_massfrac += prim[massfrac_idx[e]];  // test
   }
-  if (!pconst.equalD(element_massfrac, 1.0))  // test
+  if (!equalD(element_massfrac, 1.0))  // test
     spdlog::warn(
         "renormalisation of element mass fracs failed: {}",
         element_massfrac);  // test
@@ -2032,7 +2032,7 @@ int nemo::ydot(
       // it should be nearly 1 at low temp, and around 0.9 at 1e4 K.
       // It should be lower at high temperature, but here free-free is
       // dominating anyway so it is not important.
-      rr_cool = 0.9 * T * pconst.kB() * radiative_recomb_ydot
+      rr_cool = 0.9 * T * kB() * radiative_recomb_ydot
                 * element_num_density[recomb_species_element[s]];
       Edot -= rr_cool;
 
@@ -2061,7 +2061,7 @@ int nemo::ydot(
         // H ionizations and heating
         NV_Ith_S(y_dot, 0) -=
             ndotgamma * fh / element_num_density[recomb_species_element[0]];
-        Edot += ndotgamma * fh * (24.6 - 13.6) * pconst.eV();
+        Edot += ndotgamma * fh * (24.6 - 13.6) * eV();
 
         // He ionizations and heating
         NV_Ith_S(y_dot, 1) -=
@@ -2078,7 +2078,7 @@ int nemo::ydot(
                                                                // cm3 per s
         NV_Ith_S(y_dot, 0) -=
             ndotgamma * fh / element_num_density[recomb_species_element[0]];
-        Edot += ndotgamma * fh * (18.15 - 13.6) * pconst.eV();
+        Edot += ndotgamma * fh * (18.15 - 13.6) * eV();
       }
       else if (s == 2) {
         // Recombination of He2+ can ionize He+ and H.
@@ -2100,13 +2100,13 @@ int nemo::ydot(
         // H ionizations and heating
         NV_Ith_S(y_dot, 0) -=
             ndotgamma * fh / element_num_density[recomb_species_element[0]];
-        Edot += ndotgamma * fh * (54.4 - 13.6) * pconst.eV();
+        Edot += ndotgamma * fh * (54.4 - 13.6) * eV();
         // He ionizations and heating
         NV_Ith_S(y_dot, 1) -=
             ndotgamma * fhe / element_num_density[recomb_species_element[1]];
         NV_Ith_S(y_dot, 2) +=
             ndotgamma * fhe / element_num_density[recomb_species_element[1]];
-        Edot += ndotgamma * fhe * (54.4 - 24.6) * pconst.eV();
+        Edot += ndotgamma * fhe * (54.4 - 24.6) * eV();
         // He+ ionizations and heating
         NV_Ith_S(y_dot, 2) -=
             ndotgamma * fhe2 / element_num_density[recomb_species_element[2]];
@@ -2128,14 +2128,14 @@ int nemo::ydot(
         // H ionizations and heating
         NV_Ith_S(y_dot, 0) -=
             ndotgamma * fh / element_num_density[recomb_species_element[0]];
-        Edot += ndotgamma * fh * (40.8 - 13.6) * pconst.eV();
+        Edot += ndotgamma * fh * (40.8 - 13.6) * eV();
 
         // He ionizations and heating
         NV_Ith_S(y_dot, 1) -=
             ndotgamma * fhe / element_num_density[recomb_species_element[1]];
         NV_Ith_S(y_dot, 2) +=
             ndotgamma * fhe / element_num_density[recomb_species_element[1]];
-        Edot += ndotgamma * fhe * (40.8 - 24.6) * pconst.eV();
+        Edot += ndotgamma * fhe * (40.8 - 24.6) * eV();
       }
 #endif
     }

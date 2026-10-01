@@ -32,10 +32,10 @@
 /// http://dx.doi.org/10.5281/zenodo.22826
 /// Masses of elements from http://www.ciaaw.org/atomic-weights.htm
 ///
-class constants {
+class nemo_constants {
 public:
-  constants();
-  ~constants();
+  nemo_constants();
+  ~nemo_constants();
 
   //
   // Mathematics
@@ -131,7 +131,6 @@ public:
   );
 };
 
-extern class constants pconst;
 
 //-------------------------------------------------------
 // Defines for different sized numbers.
@@ -160,5 +159,27 @@ inline int exit_nemo(const int i)
   spdlog::shutdown();  // should flush the logfile buffer to file.
   exit(i);
 }
+
+//--------------------------------------------------------
+/// \brief Primitive Variables Enum
+/// The code requires that the velocities follow each other in order,
+/// and the same for the Magnetic Field.  I'm not sure if it will work
+/// without them being in that order, but I'm writing the code assuming
+/// they are in order.
+///
+enum primitive {
+  RO = 0,  ///< Density
+  PG = 1,  ///< Gas pressure
+  VX = 2,  ///< x-velocity
+  VY = 3,  ///< y-velocity
+  VZ = 4,  ///< z-velocity
+  BX = 5,  ///< x-magnetic field
+  BY = 6,  ///< y-magnetic field
+  BZ = 7,  ///< z-magnetic field
+  SI = 8   ///< The GLM scalar field, psi.
+};
+//--------------------------------------------------------
+
+
 
 #endif  // NEMO_CONSTANTS_H
