@@ -9,7 +9,7 @@
 ///
 ///
 /// Modifications:
-/// - 
+/// -
 
 #ifndef NEMO_CONSTANTS_H
 #define NEMO_CONSTANTS_H
@@ -131,7 +131,6 @@ public:
   );
 };
 
-
 //-------------------------------------------------------
 // Defines for different sized numbers.
 //-------------------------------------------------------
@@ -179,7 +178,5 @@ enum primitive {
   SI = 8   ///< The GLM scalar field, psi.
 };
 //--------------------------------------------------------
-
-
 
 #endif  // NEMO_CONSTANTS_H

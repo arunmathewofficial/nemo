@@ -22,7 +22,7 @@
 /// - 2013.02.07 JM: Changed int to long int in Jacobian function for
 ///    compatibility with sundials 2.5.0.
 
-//#include "constants.h"
+// #include "constants.h"
 #include "microphysics/cvode_integrator.h"
 
 #ifdef SPDLOG_FWD
@@ -74,8 +74,8 @@ cvode_solver::~cvode_solver()
 int cvode_solver::setup_cvode_solver()
 {
   if (have_setup_cvodes) {
-    spdlog::debug(
-        ">>>---- Warning! Setting up CVODES solver twice! will delete and re-init. ----<<<\n");
+    spdlog::debug(">>>---- Warning! Setting up CVODES solver twice! will "
+                  "delete and re-init. ----<<<\n");
     if (abstol) {
 #if defined CVODE2
       N_VDestroy_Serial(abstol);
@@ -271,19 +271,13 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
   CVodeSetErrFile(cvode_mem, fp);
 #endif
 
-
-
   // Should be all done now, so return.
   have_setup_cvodes = true;
   return 0;
 }
 
-
-
 // ##################################################################
 // ##################################################################
-
-
 
 int cvode_solver::integrate_cvode_step(
     N_Vector Y_Input,
@@ -361,14 +355,15 @@ int cvode_solver::integrate_cvode_step(
     if (err != CV_SUCCESS) {
 #ifdef CVODE_DEBUG
       spdlog::debug(
-          "FAILED STEP: err={}.\tOld-t={}, returned t={}, dt was = {}.\tFAILED loop_ct={}: Y_Output = [",
+          "FAILED STEP: err={}.\tOld-t={}, returned t={}, dt was = "
+          "{}.\tFAILED loop_ct={}: Y_Output = [",
           err, t_now, t_temp, dt, fail_ct);
       for (int v = 0; v < n_eq - 1; v++)
         spdlog::debug(
             "{}, {}]", NV_Ith_S(Y_Output, v), NV_Ith_S(Y_Output, n_eq - 1));
-      // cout <<"FAILED loop ct="<<fail_ct<<":    y = [";
-      // for (int v=0;v<n_eq-1;v++) cout << NV_Ith_S(Y_Input,v)<<", ";
-      // cout << NV_Ith_S(Y_Input,n_eq-1) <<"]\n";
+        // cout <<"FAILED loop ct="<<fail_ct<<":    y = [";
+        // for (int v=0;v<n_eq-1;v++) cout << NV_Ith_S(Y_Input,v)<<", ";
+        // cout << NV_Ith_S(Y_Input,n_eq-1) <<"]\n";
 #endif
       //
       // step failed, so don't copy yout to y, do shrink the timestep,
@@ -386,14 +381,15 @@ int cvode_solver::integrate_cvode_step(
       //
 #ifdef CVODE_DEBUG
       spdlog::debug(
-          "STEPPER: old-t={}, returned t={}, dt was = {}.\t This_loop_fail_ct={}, step_ct={}: yout = [",
+          "STEPPER: old-t={}, returned t={}, dt was = {}.\t "
+          "This_loop_fail_ct={}, step_ct={}: yout = [",
           t_now, t_temp, dt, fail_ct, step_ct);
       for (int v = 0; v < n_eq - 1; v++)
         spdlog::debug(
             "{}, {}]", NV_Ith_S(Y_Output, v), NV_Ith_S(Y_Output, n_eq - 1));
-      // cout <<"EEEEEE loop ct="<<fail_ct<<":    y = [";
-      // for (int v=0;v<n_eq-1;v++) cout << NV_Ith_S(Y_Input,v)<<", ";
-      // cout << NV_Ith_S(Y_Input,n_eq-1) <<"]\n";
+        // cout <<"EEEEEE loop ct="<<fail_ct<<":    y = [";
+        // for (int v=0;v<n_eq-1;v++) cout << NV_Ith_S(Y_Input,v)<<", ";
+        // cout << NV_Ith_S(Y_Input,n_eq-1) <<"]\n";
 #endif  // CVODE_DEBUG
 
       for (int v = 0; v < n_eq; v++)
@@ -417,13 +413,15 @@ int cvode_solver::integrate_cvode_step(
 
   if (fail_ct > MAX_TRYS) {
     spdlog::debug(
-        "integrate_cvode_step(): Integration failed after bisecting the step {} times.\n",
+        "integrate_cvode_step(): Integration failed after bisecting "
+        "the step {} times.\n",
         MAX_TRYS);
     return fail_ct;
   }
   if (step_ct >= MAX_STEPS) {
     spdlog::debug(
-        "integrate_cvode_step(): Integration took {} and not at end of step.  giving up.\n",
+        "integrate_cvode_step(): Integration took {} and not at end "
+        "of step.  giving up.\n",
         MAX_STEPS);
     return step_ct;
   }
@@ -439,8 +437,6 @@ int cvode_solver::integrate_cvode_step(
   return 0;
 }
 
-
-
 // ##################################################################
 // ##################################################################
 
@@ -449,8 +445,6 @@ int cvode_solver::integrate_cvode_step(
 
 // ##################################################################
 // ##################################################################
-
-
 
 int Ydot_for_cvode(
     double t,     ///< current time

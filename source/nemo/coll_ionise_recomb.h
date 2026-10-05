@@ -50,7 +50,6 @@ struct recomb_datatype {
   ///< Dielectronic recombination E_i coefficients (in units of K)
 };
 
-
 // COLLISIONAL IONISATION AND RECOMBINATION CLASS ############################
 /**
  * \brief Class to generate Ionisation and Recombination LUTs
@@ -114,7 +113,6 @@ public:
       caseA_recombination_slope_table;  ///< Recombination rate slope LUT
   std::vector<double>
       ci_ion_pot;  ///< Ionisation potential vector for ci_tracer_list
-
 
   // PRIVATE METHODS AND VARIABLES *************************
 private:
@@ -209,6 +207,5 @@ private:
   );
 };
 // END OF COLLISIONAL IONISATION AND RECOMBINATION CLASS #####################
-
 
 #endif  // PION_COLL_IONISE_RECOMB_H

@@ -72,8 +72,6 @@ void stellar_atmosphere_models::setup_stellar_atmosphere_models(
   stellar_atmosphere_model_database();
 }
 
-
-
 // GENERATE STELLAR SPECTRUM  ###########################################
 int stellar_atmosphere_models::generate_bin_luminosity(
     const int source_type,                // Source identifier
@@ -93,15 +91,14 @@ int stellar_atmosphere_models::generate_bin_luminosity(
     return 1;
   }
 
-  double L_Stefan_Bolt = 4.0 * M_PI * StefanBoltzmannConst()
-                         * pow(Tstar, 4.0) * Rstar * Rsun() * Rstar
-                         * Rsun();
+  double L_Stefan_Bolt = 4.0 * M_PI * StefanBoltzmannConst() * pow(Tstar, 4.0)
+                         * Rstar * Rsun() * Rstar * Rsun();
   if (fabs(1.0 - L_Stefan_Bolt / Lstar) > 0.05 && !equalD(Lstar, 1.0)) {
     spdlog::warn(
         "Luminosities don't match! Lstar={} and L_Stefan-Bolt={}", Lstar,
         L_Stefan_Bolt);
-    spdlog::warn(
-        "generate stellar spectrum: Ignoring Lstar and using 4.Pi.R^2.sigma.T^4");
+    spdlog::warn("generate stellar spectrum: Ignoring Lstar and using "
+                 "4.Pi.R^2.sigma.T^4");
     Total_luminosity = L_Stefan_Bolt;
     // cerr <<": NOTE Rstar given will be scaled to give the requested
     // Lstar\n";
@@ -180,8 +177,6 @@ int stellar_atmosphere_models::generate_bin_luminosity(
   return 0;
 }
 
-
-
 // CATALOGUING STELLAR ATMOSPHERE  #######################################
 // cataloguing data base
 stellar_model_datatype stellar_atmosphere_models::get_stellar_atmosphere_model(
@@ -197,8 +192,6 @@ stellar_model_datatype stellar_atmosphere_models::get_stellar_atmosphere_model(
   }
   return model;
 }
-
-
 
 // STELLAR ATMOSPHERE MODEL DATABASE  ####################################
 void stellar_atmosphere_models::stellar_atmosphere_model_database()
@@ -1646,7 +1639,6 @@ void stellar_atmosphere_models::stellar_atmosphere_model_database()
        2.063679e-05, 1.703104e-05, 1.404604e-05, 1.157681e-05, 9.535726e-06,
        7.849763e-06, 6.458093e-06, 5.310117e-06, 4.363777e-06, 3.584149e-06},
   };
-
 
   // ###########################################################################
 }

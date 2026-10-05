@@ -22,7 +22,7 @@ endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 
 add_executable(test-nemo test-nemo.cpp)
-target_link_libraries(test-nemo PRIVATE nemo tools microphysics_base constants)
+target_link_libraries(test-nemo PRIVATE nemo tools cvode_int constants)
 target_link_libraries(test-nemo PRIVATE MPI::MPI_CXX)
 target_compile_features(test-nemo PRIVATE cxx_std_14)
 

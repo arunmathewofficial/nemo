@@ -15,7 +15,6 @@
 #include "atomic_physics_database.h"
 #include <map>
 
-
 /**
  * \brief Struct to hold fit parameters of photo-ionisation cross-sections.
  **/ ///< photo-ionisation fit parameter X (dimensionless)
@@ -66,7 +65,6 @@ public:
    * **/
   std::vector<std::vector<double> > bin_weight_table;
 
-
 private:
   ///
   double species_xsection(
@@ -81,19 +79,15 @@ private:
       const std::vector<double> &  ///< Range of particular energy bin
   );
 
-
   /// Map coll_ionise_datatype to the species string (species symbol)
   std::map<std::string, photo_xsection_datatype> photo_xsection_parameters;
 
   ///
   void multi_ion_photo_xsections_database();
 
-
   std::vector<std::string> photo_species_list;  ///<
 
   std::vector<double> photo_threshold;  ///< Ionisation threshold energy vector
 };
-
-
 
 #endif  // PION_MULTI_ION_PHOTO_XSECTIONS_H

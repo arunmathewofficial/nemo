@@ -13,11 +13,12 @@
 /* prevent clang-format reordering */
 #include <fmt/ranges.h>
 
-#include "nemo-constants.h"
 #include "microphysics/interpolate.h"
+#include "nemo-constants.h"
 
-
-class photoionisation : virtual public interpolate_arrays, virtual public nemo_constants {
+class photoionisation :
+    virtual public interpolate_arrays,
+    virtual public nemo_constants {
 public:
   photoionisation();
   ~photoionisation();
@@ -51,7 +52,6 @@ public:
       const double,                ///< ds
       const std::vector<double> &  ///< Optical depth in each energy bin
   );
-
 
 private:
   int bin_size;

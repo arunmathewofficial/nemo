@@ -5,10 +5,8 @@
  **/
 #include "photoionisation.h"
 
-
 photoionisation::photoionisation() {}
 photoionisation::~photoionisation() {}
-
 
 // SETUP PHOTO-IONISATION ################################################
 void photoionisation::setup_photoionisation(
@@ -92,7 +90,6 @@ void photoionisation::setup_photoionisation(
   }  // species loop
 }
 
-
 // CALCULATING PHOTO-IONISATION RATE #####################################
 double photoionisation::calculate_photoionisation_rate(
     const int species,                   // Species_identifier
@@ -151,7 +148,6 @@ double photoionisation::calculate_photoionisation_rate(
   return rate;
 }
 
-
 // CALCULATING PHOTO-HEATING RATE #####################################
 double photoionisation::calculate_photoheating_rate(
     const int species,                   ///< Species_identifier
@@ -184,9 +180,8 @@ double photoionisation::calculate_photoheating_rate(
     bin_heat_rate = bin_spectrum[b] * exponential;
 
     // the fractional excess energy
-    frac_excess_energy = 1.0
-                         - ionisation_thres[species] * eV()
-                               / mean_energy_table[species][b];
+    frac_excess_energy =
+        1.0 - ionisation_thres[species] * eV() / mean_energy_table[species][b];
 
     bin_heat_rate *= frac_excess_energy;
 

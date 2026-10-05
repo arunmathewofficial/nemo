@@ -10,7 +10,6 @@
 // Global instance of class
 class atomic_physics_database atomic_physics_data;
 
-
 // ##################################################################
 // Constructor
 atomic_physics_database::atomic_physics_database()
@@ -18,11 +17,9 @@ atomic_physics_database::atomic_physics_database()
   database();
 }
 
-
 // ##################################################################
 // Destructor
 atomic_physics_database::~atomic_physics_database() {}
-
 
 // ##################################################################
 // Find the species in the database.
@@ -73,7 +70,6 @@ std::vector<std::string> atomic_physics_database::import_species(
   return element_species_set;
 }
 
-
 // ##################################################################
 // Get atomic element from the database
 std::string atomic_physics_database::get_element_name(const std::string species)
@@ -88,15 +84,12 @@ int atomic_physics_database::get_atomic_number(const std::string species)
   return species_attributes[species].atomic_number;
 }
 
-
 // ##################################################################
 // Get atomic mass from the database
 double atomic_physics_database::get_atomic_mass(const std::string species)
 {
   return species_attributes[species].mass;
 }
-
-
 
 // ##################################################################
 // Get the charge of the species
@@ -105,16 +98,12 @@ int atomic_physics_database::get_charge(const std::string species)
   return species_attributes[species].charge;
 }
 
-
-
 // ##################################################################
 // Get number of electron released by the species
 int atomic_physics_database::get_electron_num(const std::string species)
 {
   return species_attributes[species].charge;
 }
-
-
 
 // ##################################################################
 // Get ionisation potential in units of erg
@@ -124,15 +113,12 @@ double atomic_physics_database::get_ionisation_potential(
   return species_attributes[species].ionise_E * eV();
 }
 
-
-
 // ##################################################################
 // Get ionisation potential in units of eV
 double atomic_physics_database::get_ionisation_energy(const std::string species)
 {
   return species_attributes[species].ionise_E;
 }
-
 
 // ##################################################################
 // Atomic physics database
@@ -455,6 +441,5 @@ void atomic_physics_database::database()
   // Entry: Fe26+
   species_attributes["Fe26+"] = species_datatype{"Fe", 26, 26, 0, 1.0e-99};
 }
-
 
 // **************************************************************

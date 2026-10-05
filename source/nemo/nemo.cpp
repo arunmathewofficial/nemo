@@ -54,14 +54,12 @@ void nemo::get_error_tolerances(
 )
 {
   *reltol = NEMO_RELTOL;
-  for (int i = 0; i < N_equations - 1; i++)
-    atol[i] = NEMO_ABSTOL;  ///< minimum neutral fraction I care about.
-  atol[N_equations - 1] = NEMO_MINERG;  ///< E_int: for n=1.0, T=1.0e4, ==>
-                                        ///< E=2.07e-12, so say 1e-17?
+  for (int i = 0; i < N_local - 1; i++)
+    atol[i] = NEMO_ABSTOL;          ///< minimum neutral fraction I care about.
+  atol[N_local - 1] = NEMO_MINERG;  ///< E_int: for n=1.0, T=1.0e4, ==>
+                                    ///< E=2.07e-12, so say 1e-17?
   return;
 }
-
-
 
 // GET PROBLEM SIZE  ######################################################
 void nemo::get_problem_size(
@@ -69,24 +67,21 @@ void nemo::get_problem_size(
     int *n_para  ///< number of parameters in user_data vector.
 )
 {
-  *n_eqn  = N_equations;
+  *n_eqn  = N_local;
   *n_para = N_extradata;
   return;
 }
 
 // CONSTRUCTOR ############################################################
 nemo::nemo(
-    const int nd,    ///< grid dimensions
-    const int csys,  ///< Coordinate System flag
-    const int nv,    ///< Total number of variables in state vector
-    const int ntr,   ///< Number of tracer variables in state vector.
+    const int nv,   ///< Total number of variables in state vector
+    const int ntr,  ///< Number of tracer variables in state vector.
     const std::string *tracers,   ///< List of what the tracer variables mean.
     struct which_physics *ephys,  ///< pointer to extra physics flags.
     struct rad_sources *rsrcs,    ///< radiation sources.
     const double g                ///< EOS Gamma
     ) :
-    microphysics_base(nv, ntr, tracers, ephys, rsrcs), coll_ionise_recomb(),
-    charge_exchange(CX_MaxQ),
+    coll_ionise_recomb(), charge_exchange(CX_MaxQ),
 #ifdef MELLEMA
     mellema_cooling(),
 #elif defined CHIANTI
@@ -94,8 +89,8 @@ nemo::nemo(
 #else
 #error "must define MELLEMA or CHIANTI"
 #endif
-    ndim(nd), eos_gamma(g), coord_sys(csys), T_min(1e1), T_max(1e9),
-    Num_temps(300), Num_ne(100), ne_min(1.0), ne_max(1.0e6),
+    eos_gamma(g), T_min(1e1), T_max(1e9), Num_temps(300), Num_ne(100),
+    ne_min(1.0), ne_max(1.0e6), nv_prim(nv), ntracer(ntr),
     stellar_atmosphere_models(), multi_ion_photo_xsections(), photoionisation()
 {
 
@@ -103,6 +98,42 @@ nemo::nemo(
       "nemo: Setting up tracer variables, assuming tracers"
       " are last {} variables in primitive vector",
       ntracer);
+
+  // ############  from base class - check if needed #########
+  EP = ephys;
+  RS = rsrcs;
+  // set up a map of tracer names to indices in state vec.
+  int offset = nv - ntr;
+  n_el       = 0;
+  for (int i = 0; i < ntr; i++) {
+    // spdlog::warn("tri {} {}",i,tr[i]);
+    tr_map[tracers[i]] = i + offset;
+    tr_index.push_back(i + offset);
+    // second map just for elements.
+    if (tracers[i].substr(0, 2) == "X_") {
+      el_map[tracers[i]] = i + offset;
+      el_index.push_back(i + offset);
+      n_el++;
+    }
+  }
+  // spdlog::warn("el_index {}",el_index);
+  // spdlog::warn("tr_index {}",tr_index);
+
+#ifdef DEBUG_MP
+  // for (auto elem : el_map) { // c++11 only (not working with intel compiler
+  // 2018r4)
+  for (std::map<std::string, int>::iterator it = el_map.begin();
+       it != el_map.end(); ++it) {
+    spdlog::debug("Elements Map: {} {}", it->first, it->second);
+  }
+  // for (auto elem : tr_map) { // c++11 only (not working with intel compiler
+  // 2018r4)
+  for (std::map<std::string, int>::iterator it = tr_map.begin();
+       it != tr_map.end(); ++it) {
+    spdlog::debug("Tracers Map: {} {}", it->first, it->second);
+  }
+#endif
+  // ############  from base class - end  #########
 
   // Setup stellar atmosphere models for stellar luminosity spectrum
   if (EP->phot_ionisation) {
@@ -214,7 +245,6 @@ nemo::nemo(
       for (size_t j = 0; j < recomb_cx_energy[i].size(); j++)
         recomb_cx_energy[i][j] *= eV();
 
-
 #ifdef NEMO_DEBUG
     mkdir("NEMO-Tables", 0777);
     mkdir("NEMO-Tables/charge-exchange-tables", 0777);
@@ -322,7 +352,6 @@ nemo::nemo(
 #endif
   }
 
-
   // Section: Cooling Function *************************************************
 #ifdef MELLEMA
   // MELLEMA COOLING FUNCTION ############
@@ -374,11 +403,9 @@ nemo::nemo(
   cooling_outfile
       << "# Collisional ionisation equilibrium (CIE) cooling function for \n";
   cooling_outfile << "# all species in the cooling species list.\n";
-  cooling_outfile
-      << "# Column-1: Temperature (K), Other columns: Cooling function (erg cm^3/s).\n";
+  cooling_outfile << "# Column-1: Temperature (K), Other columns: Cooling "
+                     "function (erg cm^3/s).\n";
 #endif
-
-
 
   // Initializing other important variables and vectors ************************
   // Set up local variables
@@ -393,12 +420,9 @@ nemo::nemo(
   // Initialise the CVODES solver memory etc.
   setup_cvode_solver_without_Jacobian();
 
-
   // CONSTRUCTOR END MESSAGE **********************************************
   spdlog::debug("nemo: Constructor finished and returning");
 }
-
-
 
 // #######################################################################
 void nemo::setup_local_vectors()
@@ -408,19 +432,16 @@ void nemo::setup_local_vectors()
   //
   N_local     = N_species + 1;  // number of species plus energy
   N_extradata = 0;
-  N_equations = N_local;
 #if defined CVODE6 || defined CVODE7
-  y_in  = N_VNew_Serial(N_equations, sunctx);
-  y_out = N_VNew_Serial(N_equations, sunctx);
+  y_in  = N_VNew_Serial(N_local, sunctx);
+  y_out = N_VNew_Serial(N_local, sunctx);
 #else
-  y_in  = N_VNew_Serial(N_equations);
-  y_out = N_VNew_Serial(N_equations);
+  y_in  = N_VNew_Serial(N_local);
+  y_out = N_VNew_Serial(N_local);
 #endif
   E_index = N_species;
   return;
 }
-
-
 
 // NEMO DESTRUCTOR #########################################################
 nemo::~nemo()
@@ -429,8 +450,6 @@ nemo::~nemo()
   N_VDestroy_Serial(y_in);
   N_VDestroy_Serial(y_out);
 }
-
-
 
 // TRACER SPECIES CATALOGER ################################################
 void nemo::tracer_species_cataloger(
@@ -477,7 +496,6 @@ void nemo::tracer_species_cataloger(
 
   // get total number of chemical elements.
   N_elements = element_tracers.size();
-
 
   // Check if the condition for charge exchange reactions is met, ensuring
   // that the reaction involves exactly two reactants from two different
@@ -600,8 +618,8 @@ void nemo::tracer_species_cataloger(
       });
 
   if (!isSorted) {
-    spdlog::error(
-        " NEMO: Incorrect arrangement of local tracers within the primitive vector.");
+    spdlog::error(" NEMO: Incorrect arrangement of local tracers within the "
+                  "primitive vector.");
     exit_nemo(1);
   }
 
@@ -792,7 +810,6 @@ void nemo::tracer_species_cataloger(
         " NEMO: Recombination top ion boolean {} ", recomb_top_ion_bool);
   }
 
-
   // Charge exchange reaction **************************************************
   if (charge_exchange_enable) {
 
@@ -897,7 +914,6 @@ void nemo::tracer_species_cataloger(
         recomb_cx_second_reactant_charge);
   }
 
-
   // Photo-ionisation species and their related indices. *********************
   if (EP->phot_ionisation) {
     // Calculate number of photo-species
@@ -918,7 +934,6 @@ void nemo::tracer_species_cataloger(
     spdlog::debug(" NEMO: Cooling species {} ", cooling_species);
   }
 }
-
 
 // GET ELECTRON NUMBER DENSITY ################################################
 // Calculates electron number density from primitive vector
@@ -948,11 +963,10 @@ double nemo::get_n_elec(const double *prim  ///< primitive state vector array.
   return prim[RO] * ne_per_density;  // electron number density
 }
 
-
 // GET ION NUMBER DENSITY ##############################################
 // Calculate given ion's number density from the primitive vector.
 double nemo::get_n_ion(
-    string s,             ///< ion name
+    string s,           ///< ion name
     const double *prim  ///< primitive state vector.
 )
 {
@@ -973,7 +987,6 @@ double nemo::get_n_ion(
                                / element_atomic_mass[element_idx];
 }
 
-
 // ##################################################################
 double nemo::get_X_H()
 {
@@ -981,7 +994,6 @@ double nemo::get_X_H()
   exit_nemo(1);
   return 0.0;
 }
-
 
 // GET TEMPERATURE ##################################################
 // Calculate temperature from ion fraction, element number density
@@ -995,8 +1007,6 @@ double nemo::get_temperature(
   return gamma_minus_one * E
          / (kB() * get_ntot(y_species_frac, element_number_density));
 }
-
-
 
 // GET TOTAL NUMBER DENSITY ##################################################
 // Calculate total number density from y_ion fraction and element
@@ -1031,7 +1041,6 @@ void nemo::get_y_species_frac(
   return;
 }
 
-
 // #############################################################################
 // calculate top ion fraction from local species fraction
 void nemo::get_y_top_ion_frac(
@@ -1062,7 +1071,6 @@ void nemo::get_y_top_ion_frac(
   }
   return;
 }
-
 
 // #############################################################################
 // SET ELECTRON NUMBER DENSITY
@@ -1099,12 +1107,11 @@ void nemo::get_ne(const std::vector<double> &y_species_frac, double &ne)
   return;
 }
 
-
 // ##################################################################
 // GET OPTICAL DEPTH
 // Calculate the optical depth of the current cell for individual energy bins
 void nemo::get_dtau(
-    const rad_src_info *, ///< pointer to radiation source struct
+    const rad_src_info *,   ///< pointer to radiation source struct
     const double depth,     ///< ds, thickness of the cell
     const double *prim_in,  ///< input primitive vector
     double *dtau_vec        ///< output dtau vector
@@ -1132,19 +1139,17 @@ void nemo::get_dtau(
   }
 }
 
-
 // #############################################################################
 // CONVERT PRIMITIVE VECTOR TO LOCAL VECTOR
 int nemo::convert_prim2local(
-    const double
-        *prim_in,  ///< primitive vector from grid cell (length N_prim)
+    const double *prim_in,  ///< primitive vector from grid cell (length N_prim)
     std::vector<double> &p_local,  ///< converted local vector.
     int function_flag  /// < flag to say which function called this function
 )
 {
   // function flag 1 -> Set_Temp()
-  // function flag 2 -> TimeUpdateMP_RTnew()
-  // function flag 3 -> timescales_RT()
+  // function flag 2 -> update_single_cell()
+  // function flag 3 -> timescales()
   // function flag 4 -> Temperature()
 
   // Make sure mass fraction in primitive vector is a self-consistent.
@@ -1190,15 +1195,13 @@ int nemo::convert_prim2local(
   return 0;
 }
 
-
-
 // #############################################################################
 // CONVERT LOCAL VECTOR TO PRIMITIVE VECTOR
 int nemo::convert_local2prim(
     const std::vector<double> &p_local,
     const double *prim_in,  ///< input primitive vector
     double *prim_out,       ///< updated primitive vector
-    int function_flag         /// < flag to say which function called me
+    int function_flag       /// < flag to say which function called me
 )
 {
   // copying input primitive vector to output primitive vector.
@@ -1219,7 +1222,6 @@ int nemo::convert_local2prim(
     }
   }
 
-
   double T =
       get_temperature(y_species_frac, element_num_density, p_local[E_index]);
   // cout <<"current temp = " << T << "\n";
@@ -1229,8 +1231,7 @@ int nemo::convert_local2prim(
     spdlog::warn(
         "T = {} K, eint = {} erg/cm^3, ...  limiting to T = {} K", T,
         p_local[E_index], EP->MaxTemperature);
-    spdlog::warn(
-        "prim_in {}", std::vector<double>(prim_in, prim_in + N_prim));
+    spdlog::warn("prim_in {}", std::vector<double>(prim_in, prim_in + N_prim));
   }
   if (T < 0.99 * EP->MinTemperature) {
     spdlog::warn("nemo::convert_local2prim() LOW temperature encountered!!!");
@@ -1242,8 +1243,6 @@ int nemo::convert_local2prim(
 
   return 0;
 }
-
-
 
 // #############################################################################
 // SET LOCAL VARIABLES
@@ -1269,12 +1268,10 @@ void nemo::set_localvariables(
   return;
 }
 
-
-
 // ##################################################################
 double nemo::Temperature(
     const double *prim,  ///< primitive vector
-    const double           ///< eos gamma
+    const double         ///< eos gamma
 )
 {
   //
@@ -1324,11 +1321,9 @@ double nemo::Temperature(
   return get_temperature(y_species_frac, element_num_density, p_local[E_index]);
 }
 
-
-
 // ##################################################################
 int nemo::Set_Temp(
-    double *prim,  ///< primitive vector.
+    double *prim,    ///< primitive vector.
     const double T,  ///< temperature
     const double     ///< eos gamma.
 )
@@ -1367,8 +1362,8 @@ int nemo::Set_Temp(
   }
 
   // Determine internal energy using get_ntot
-  p_local[E_index] = get_ntot(y_species_frac, element_num_density) * kB()
-                     * T / gamma_minus_one;
+  p_local[E_index] = get_ntot(y_species_frac, element_num_density) * kB() * T
+                     / gamma_minus_one;
 
   // Call convert_local2prim with the new local vector; this will
   // generate a new temperature value;
@@ -1376,41 +1371,16 @@ int nemo::Set_Temp(
   return err;
 }
 
-
-
-// ##################################################################
-// TIME UPDATE MP
-int nemo::TimeUpdateMP(
-    const double *p_in,  ///< Primitive Vector to be updated.
-    double *p_out,       ///< Destination Vector for updated values.
-    const double dt,       ///< Time Step to advance by.
-    const double,          ///< EOS gamma.
-    const int,             ///< Switch for what type of integration to use.
-    double *random_stuff   ///< Vector of extra data (column densities, etc.).
-)
-{
-  //
-  // Call the new update function, but with zero radiation sources.
-  //
-  std::vector<struct rt_source_data> temp;
-  int err =
-      TimeUpdateMP_RTnew(p_in, 0, temp, 0, temp, p_out, dt, 0, 0, random_stuff);
-  return err;
-}
-// END OF TIME UPDATE MP ############################################
-
-
-
 // ##################################################################
 // TIME UPDATE MP RT NEW
-int nemo::TimeUpdateMP_RTnew(
+int nemo::update_single_cell(
     const double *p_in,  ///< Primitive Vector to be updated.
-    const int,             ///< unused.
+    const int,           ///< unused.
     const std::vector<struct rt_source_data> &,  ///< unused.
     const int N_ion,  ///< number of ionising radiation sources.
     std::vector<struct rt_source_data> &ion_src,
     ///< list of ionising src column densities and source properties.
-    double *p_out,      ///< Destination Vector for updated values
+    double *p_out,        ///< Destination Vector for updated values
                           ///< (can be same as first Vector.
     const double dt,      ///< Time Step to advance by.
     const double,         ///< EOS gamma.
@@ -1428,7 +1398,7 @@ int nemo::TimeUpdateMP_RTnew(
 
   err = correct_localvector(p_local, 1);
   if (err) {
-    spdlog::error("Bad input vector to TimeUpdateMP_RTnew");
+    spdlog::error("Bad input vector to update_single_cell_RT");
     exit(1);
   }
 
@@ -1449,7 +1419,7 @@ int nemo::TimeUpdateMP_RTnew(
   // err = ydot(0, y_in, y_out, 0);
   // if (err) {
   //  spdlog::error(
-  //      "{}: {}", "dYdt() returned an error in nemo::TimeUpdateMP_RTnew()",
+  //      "{}: {}", "dYdt() returned an error in nemo::update_single_cell_RT()",
   //      err);
   //  exit(1);
   //}
@@ -1458,7 +1428,7 @@ int nemo::TimeUpdateMP_RTnew(
   err = integrate_cvode_step(y_in, 0, 0.0, dt, y_out);
   if (err) {
     spdlog::error(
-        "integration failed: nemo::TimeUpdateMP_RTnew() error {}", err);
+        "integration failed: nemo::update_single_cell_RT() error {}", err);
     for (int v = 0; v < N_local; v++)
       p_local[v] = NV_Ith_S(y_in, v);
     spdlog::error("y_in: {}", p_local);
@@ -1476,12 +1446,10 @@ int nemo::TimeUpdateMP_RTnew(
 
   err = correct_localvector(p_local, 2);
   if (err) {
-    spdlog::error("bad output vector from TimeUpdateMP_RTnew");
+    spdlog::error("bad output vector from update_single_cell_RT");
     exit(2);
   }
   err = convert_local2prim(p_local, p_in, p_out, 2);
-
-
 
 #ifdef TEST_INF
   for (int v = 0; v < N_prim; v++) {
@@ -1499,19 +1467,16 @@ int nemo::TimeUpdateMP_RTnew(
   return err;
 }
 
-
-
 // CORRECT LOCAL VECTOR (CLV) #####################################
 int nemo::correct_localvector(
     std::vector<double> &p_local,  ///< check the local vector
     int function_flag              /// flags the function
 )
 {
-  // function_flag 1 -> towards begining of TimeUpdateMP_RTnew
-  // function_flag 2 -> towards the end of TimeUpdateMP_RTnew
-  // function_flag 3 -> timescales_RT
+  // function_flag 1 -> towards begining of update_single_cell_RT
+  // function_flag 2 -> towards the end of update_single_cell_RT
+  // function_flag 3 -> timescales
   // function_flag 4 -> ydot
-
 
   int flag = 0;
 
@@ -1526,7 +1491,6 @@ int nemo::correct_localvector(
   }
   // *********************************************************************
 
-
   // *********************************************************************
   // Scaling the y_species_frac if the total elemental fraction exceed 1.
 
@@ -1540,7 +1504,6 @@ int nemo::correct_localvector(
     }
   }
 
-
   // 2. Rescale the y_ion_frac if total ion fraction is > 1
   sct = 0;
   for (int e = 0; e < N_elements; e++) {
@@ -1550,7 +1513,8 @@ int nemo::correct_localvector(
       // the neutral fraction must be minumum (say, NEMO_ABSTOL)
       if (y_frac_sum[e] - 1.0 > 1.0e4 * NEMO_RELTOL && function_flag != 4) {
         spdlog::warn(
-            "nemo::CorrLocalVec flag {}: too many species! element {}, y-1 = {:12.3e}",
+            "nemo::CorrLocalVec flag {}: too many species! element "
+            "{}, y-1 = {:12.3e}",
             function_flag, e, y_frac_sum[e] - 1);
         if (e == 7)
           spdlog::warn(
@@ -1590,11 +1554,10 @@ int nemo::correct_localvector(
           function_flag, p_local[E_index], EP->MinTemperature);
 
     // reset the internal energy (requires using y_ion_frac in get_ntot)
-    p_local[E_index] = get_ntot(y_species_frac, element_num_density)
-                       * kB() * EP->MinTemperature / (gamma_minus_one);
+    p_local[E_index] = get_ntot(y_species_frac, element_num_density) * kB()
+                       * EP->MinTemperature / (gamma_minus_one);
   }
   // **************************************************************
-
 
   // **************************************************************
   // if the temperature is below Minimum Temperature, set it back to
@@ -1605,12 +1568,13 @@ int nemo::correct_localvector(
   if (T < 0.95 * EP->MinTemperature) {
     if (function_flag != 4)
       spdlog::debug(
-          "nemo::CorrLocalVec flag: {} - Temperature = {} K, below T_MIN = {} K",
+          "nemo::CorrLocalVec flag: {} - Temperature = {} K, below "
+          "T_MIN = {} K",
           function_flag, T, EP->MinTemperature);
 
     // Resetting the internal energy with Minimum Temperature
-    p_local[E_index] = get_ntot(y_species_frac, element_num_density)
-                       * kB() * EP->MinTemperature / (gamma_minus_one);
+    p_local[E_index] = get_ntot(y_species_frac, element_num_density) * kB()
+                       * EP->MinTemperature / (gamma_minus_one);
   }
   // **************************************************************
 
@@ -1618,40 +1582,15 @@ int nemo::correct_localvector(
 }
 // END OF CORRECT LOCAL VECTOR ######################################
 
-
-
-// ##################################################################
-double nemo::timescales(
-    const double *prim_in,  ///< Current cell state vector.
-    const double,             ///< EOS gamma.
-    const bool,               ///< set to 'true' if including cooling time.
-    const bool,  ///< set to 'true' if including recombination time.
-    const bool   ///< set to 'true' if including photo-ionsation time.
-)
-{
-#ifdef NEMO_DEBUG
-  if (RS->Nsources != 0) {
-    spdlog::debug("WARNING: nemo::timescales() using non-RT version!");
-  }
-#endif  // NEMO_DEBUG
-  std::vector<struct rt_source_data> temp;
-  double tmin = timescales_RT(prim_in, 0, temp, 0, temp, 0.0);
-  temp.clear();
-  return tmin;
-}
-
-
-
 // TIME SCALE RT ###########################################################
 /// This returns the minimum timescale of all microphysical processes,
 /// including reaction times for each species and the total heating/cooling
-/// time for the gas. It requires the radiation field as an input, so it has
-/// substantially greater capability than the other timescales function.
+/// time for the gas. It requires the radiation field as an input, if present.
 /// Default setting is DT02, which limits by 0.25/ydot (and not by E/Edot)
 ///
-double nemo::timescales_RT(
+double nemo::timescales(
     const double *prim_in,  ///< Current cell state vector.
-    const int N_heat,         ///< Number of UV heating sources.
+    const int N_heat,       ///< Number of UV heating sources.
     const std::vector<struct rt_source_data> &heat_src,
     ///< list of UV-heating column densities and source properties.
     const int N_ion,  ///< number of ionising radiation sources.
@@ -1673,7 +1612,7 @@ double nemo::timescales_RT(
   // First convert to local variables.
   err = convert_prim2local(prim_in, p_local, 3);
   if (err) {
-    spdlog::error("{}: {}", "Bad input state to nemo::timescales_RT()", err);
+    spdlog::error("{}: {}", "Bad input state to nemo::timescales()", err);
     exit_nemo(1);
   }
 
@@ -1699,7 +1638,7 @@ double nemo::timescales_RT(
   err = ydot(0, y_in, y_out, 0);
   if (err) {
     spdlog::error(
-        "{}: {}", "dYdt() returned an error in nemo::timescales_RT()", err);
+        "{}: {}", "dYdt() returned an error in nemo::timescales()", err);
     exit_nemo(1);
   }
 
@@ -1716,15 +1655,13 @@ double nemo::timescales_RT(
   for (int v = 0; v < N_local; v++)
     Y_dot[v] = NV_Ith_S(y_out, v);
 
-  for (int v = 0; v < N_equations; v++) {
+  for (int v = 0; v < N_local - 1; v++) {
     // t = min(t, DTFRAC / (fabs(NV_Ith_S(y_out, v)) + TINYVALUE));
     t = min(t, DTFRAC / (fabs(Y_dot[v]) + TINYVALUE));
   }
 
   return t;
 }
-
-
 
 // ##################################################################
 void nemo::sCMA(
@@ -1739,7 +1676,6 @@ void nemo::sCMA(
   // the constraint that the sum of elemental mass fractions must equal unity
   // Similarly the sum of all species fractions of an element must not exceed
   // the total elemental abundance.
-
 
   // bool warn = false;
   std::vector<double> prim(N_prim);
@@ -1775,7 +1711,6 @@ void nemo::sCMA(
     spdlog::warn(
         "renormalisation of element mass fracs failed: {}",
         element_massfrac);  // test
-
 
   // now for each element, ensure species fractions of each ion are within
   // allowed range
@@ -1834,8 +1769,6 @@ void nemo::sCMA(
   return;
 }
 
-
-
 // #######################################################################
 // YDOT FUNCTION
 // This function calculate the RHS of ydot equations.
@@ -1870,14 +1803,13 @@ int nemo::ydot(
   set_localvariables(p_local, y_species_frac, y_top_ion_frac, ne);
   // END OF SECTION ************************************************************
 
-
 #ifdef NEMO_CIE_TEST
   // Restricting ne value not less than 1e-3 to perform CIE test.
   ne = max(1e-3, ne);
 #endif
 
   // Initialise all elements of ydot vector to zero.
-  for (int v = 0; v < N_equations; v++)
+  for (int v = 0; v < N_local; v++)
     NV_Ith_S(y_dot, v) = 0.0;
 
   // Initializing Edot to zero
@@ -1897,7 +1829,6 @@ int nemo::ydot(
     T = T_max;
   else if (T < T_min)
     T = T_min;
-
 
   // SECTION: Species number density *******************************************
   int sct = 0;
@@ -1934,7 +1865,6 @@ int nemo::ydot(
   }
   // END OF SECTION: Species number density ************************************
 
-
   // SECTION: Cosmic-ray Ionisation ********************************************
   if (EP->coll_ionisation) {
     double cosmicray_ydot = 0.0;
@@ -1955,7 +1885,6 @@ int nemo::ydot(
     }
   }
   // END OF SECTION: Cosmic-ray Ionisation *************************************
-
 
   // SECTION: Collisional Ionisation *******************************************
   if (EP->coll_ionisation) {
@@ -2283,7 +2212,6 @@ int nemo::ydot(
   }
   // END OF SECTION: Photoionisation *******************************************
 
-
   // SECTION: Cooling Function *************************************************
   // Edot source term associated with Cooling Function is calculated.
   double Lambda         = 0.0;
@@ -2335,7 +2263,6 @@ int nemo::ydot(
 
   // END OF SECTION: Cooling Function ******************************************
 
-
   //
   // We want to limit cooling as we approach the minimum temperature, so we
   // scale the rate to linearly approach zero as we reach T_min.
@@ -2366,8 +2293,6 @@ int nemo::ydot(
 }
 // END OF YDOT FUNCTION ####################################################
 
-
-
 // GET COLLISIONAL IONISATION RATE FROM LUT ################################
 double nemo::collisional_ionisation_rate(
     const int species_index,  // species index (first index)
@@ -2383,8 +2308,6 @@ double nemo::collisional_ionisation_rate(
 
   return rate;
 }
-
-
 
 // GET RECOMBINATION RATE ###################################################
 double nemo::recombination_rate(
@@ -2418,7 +2341,6 @@ double nemo::ionise_charge_exchange_rate(
                 + dT * ionise_cx_slope_table[element][reaction][T_index];
   return rate;
 }
-
 
 // GET RECOMBINING CHARGE EXCHANGE RATE ########################################
 double nemo::recomb_charge_exchange_rate(
@@ -2459,8 +2381,6 @@ double nemo::photoheating_rate(
   return calculate_photoheating_rate(
       species_index, species_num_density, vshell, ds, tau_bins);
 }
-
-
 
 #ifdef MELLEMA
 // GET MELLEMA COOLING RATE #################################################
@@ -2510,7 +2430,6 @@ double nemo::mellema_cooling_rate(
   return L;
 }
 #endif
-
 
 #ifdef CHIANTI
 // GET CHIANTI COOLING RATE ###################################################
@@ -2562,7 +2481,6 @@ double nemo::chianti_cooling_rate(
 }
 #endif
 
-
 // SET RADIATION SOURCE PARAMETERS ############################################
 void nemo::setup_radiation_source_parameters(
     const int N_ion, const std::vector<struct rt_source_data> &ion_src
@@ -2593,13 +2511,9 @@ void nemo::setup_radiation_source_parameters(
   // spdlog::debug("ds {:12.6e}, Vsh {:12.6e}, col {}", ds, vshell, tau_bins);
 }
 
-
-
 // ############################################################################
 // ***************************** END OF NEMO *********************************
 // ############################################################################
-
-
 
 // ############################################################################
 //  DEBUG  FUNCTIONS
@@ -2614,7 +2528,6 @@ void nemo::print_CIR_LUT(
     const std::vector<std::vector<double> > &Fx_slope,
     const std::string filename)
 {
-
 
   std::ofstream outfile(filename + ".txt");
   outfile << info;
@@ -2772,16 +2685,13 @@ void nemo::print_to_file_photoionisation(
   size_t found = info.find("cross-section");
   if (found != std::string::npos) {
     for (int j = 0; j < species_list.size(); j++)
-      outfile << "\t"
-              << "cm^2";
+      outfile << "\t" << "cm^2";
   }
   else {
     for (int j = 0; j < species_list.size(); j++)
-      outfile << "\t"
-              << "1";
+      outfile << "\t" << "1";
   }
   outfile << "\n";
-
 
   outfile.setf(ios_base::scientific);
   outfile.precision(4);
@@ -2816,14 +2726,12 @@ void nemo::print_cooling_table(
   outfile << "#ATTRIBUTE LABEL: Temperature";  // Column names
 
   for (int j = 0; j < logne.size(); j++) {
-    outfile << "\t"
-            << "Rate";
+    outfile << "\t" << "Rate";
   }
   outfile << endl;
   outfile << "#UNIT: K";
   for (int j = 0; j < logne.size(); j++) {
-    outfile << "\t"
-            << "ergs cm^3/s";
+    outfile << "\t" << "ergs cm^3/s";
   }
   outfile << endl;
 
@@ -2848,7 +2756,6 @@ void nemo::print_cooling_table(
 
   outfile.close();
 }
-
 
 // #########################################################################
 // Print stellar attributes and binned luminosity to file

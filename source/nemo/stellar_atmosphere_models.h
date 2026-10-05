@@ -17,12 +17,11 @@
 
 // std lib
 #include <fstream>
+#include <string>
 #include <sys/stat.h>
 #include <variant>
-#include <string>
 
 // nemo
-#include "microphysics/microphysics_base.h"
 #include "nemo-constants.h"
 
 struct stellar_model_datatype {
@@ -30,9 +29,7 @@ struct stellar_model_datatype {
   std::vector<std::vector<double> > data;
 };
 
-
-class stellar_atmosphere_models :
-  virtual public nemo_constants {
+class stellar_atmosphere_models : virtual public nemo_constants {
 
 public:
   stellar_atmosphere_models();
@@ -72,7 +69,5 @@ private:
   stellar_model_datatype powr_mw_wne;      ///< WNE
   stellar_model_datatype blackbody;        ///< BLACKBODY
 };
-
-
 
 #endif  // PION_STELLAR_ATMOSPHERE_MODELS_H

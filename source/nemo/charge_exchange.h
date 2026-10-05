@@ -41,8 +41,6 @@ struct AR_parameters {
   double dE;      ///< Energy-defect of reactions (eV)
 };
 
-
-
 class charge_exchange : virtual public atomic_physics_database {
 public:
   /** \brief Constructor: Setup charge exchange database. **/
@@ -79,7 +77,6 @@ public:
   std::pair<std::string, std::string> get_actual_key(
       const std::pair<std::string, std::string> &);
 
-
   /** \brief  **/
   std::vector<std::vector<std::string> > import_reactions_id(
       std::vector<std::vector<std::pair<std::string, std::string> > > &);
@@ -92,8 +89,6 @@ public:
       ionise_reactions;
   std::vector<std::vector<std::pair<std::string, std::string> > >
       recomb_reactions;
-
-
 
   std::vector<std::vector<std::vector<double> > >
       ionise_cx_rate_table;  ///< Charge exchange rate LUT
@@ -115,7 +110,6 @@ private:
   /// Map reaction parameters to the reactants (species symbols).
   std::map<std::pair<std::string, std::string>, UMIST_datatype>
       UMIST_reaction_parameters;
-
 
   std::map<std::pair<std::string, std::string>, AR_parameters> AR_reaction;
 

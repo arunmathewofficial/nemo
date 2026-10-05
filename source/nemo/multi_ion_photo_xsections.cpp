@@ -11,8 +11,6 @@
 
 #include "multi_ion_photo_xsections.h"
 
-
-
 // ##################################################################
 // Constructor
 multi_ion_photo_xsections::multi_ion_photo_xsections()
@@ -20,12 +18,9 @@ multi_ion_photo_xsections::multi_ion_photo_xsections()
   multi_ion_photo_xsections_database();
 }
 
-
 // ##################################################################
 // Destructor
 multi_ion_photo_xsections::~multi_ion_photo_xsections() {}
-
-
 
 // ##################################################################
 //
@@ -52,7 +47,6 @@ std::vector<double> multi_ion_photo_xsections::setup_photo_xsections(
   // returning ionisation threshold of photo tracer species
   return photo_threshold;
 }
-
 
 // ##################################################################
 // Calculate cross-section of a species for a specific energy.
@@ -84,8 +78,6 @@ double multi_ion_photo_xsections::species_xsection(
   return sigmaE;
 }
 
-
-
 // ##################################################################
 void multi_ion_photo_xsections::generate_ebin_mean_xsection(
     const std::vector<std::vector<double> > &ebins  // energy bins
@@ -107,7 +99,6 @@ void multi_ion_photo_xsections::generate_ebin_mean_xsection(
     }
   }
 }
-
 
 // MEAN BIN CROSS-SECTION ###############################################
 std::vector<double> multi_ion_photo_xsections::mean_bin_xsection(
@@ -175,8 +166,6 @@ std::vector<double> multi_ion_photo_xsections::mean_bin_xsection(
   // the integration is carried out.
   return {mean_xsection, bin_fraction};
 }
-
-
 
 // ##################################################################
 // Database for photo-ionisation cross-section
@@ -486,7 +475,6 @@ void multi_ion_photo_xsections::multi_ion_photo_xsections_database()
   photo_xsection_parameters["S16+"] =
       photo_xsection_datatype{0.000E+00, 0.000E+00, 0.000E+00, 0.000E+00,
                               0.000E+00, 0.000E+00, 0.000E+00, 0.000E+00};
-
 
   // IRON *******************************************
   photo_xsection_parameters["Fe"] =

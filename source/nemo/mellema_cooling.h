@@ -17,7 +17,6 @@
 
 #include "microphysics/interpolate.h"
 
-
 // USER DEFINED DATATYPE #################################################
 
 /**
@@ -42,8 +41,6 @@ struct LUT_datatype {
       ne_rateslope;  /// Mellema rate slope along ne-axis
 };
 // END OF USER DEFINED DATATYPE #########################################
-
-
 
 // MELLEMA COOLING CLASS ####################################################
 /** \brief Class to generate Mellema cooling LUTs

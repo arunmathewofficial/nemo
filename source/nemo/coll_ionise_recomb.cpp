@@ -8,7 +8,6 @@
 #include "coll_ionise_recomb.h"
 #include <iostream>
 
-
 // ##################################################################
 // Constructor
 coll_ionise_recomb::coll_ionise_recomb()
@@ -19,14 +18,10 @@ coll_ionise_recomb::coll_ionise_recomb()
 }
 // End of constructor ###############################################
 
-
-
 // ##################################################################
 // Destructor
 coll_ionise_recomb::~coll_ionise_recomb() {}
 // End of destructor ################################################
-
-
 
 // ##################################################################
 // SETUP COLLISIONAL IONISATION AND RECOMBINATION CLASS
@@ -50,8 +45,6 @@ void coll_ionise_recomb::setup_collisional_ionisation(
 }
 // END OF SETUP COLLISIONAL IONISATION  ##############################
 
-
-
 // ##################################################################
 // SETUP RECOMBINATION
 void coll_ionise_recomb::setup_recombination(
@@ -70,7 +63,6 @@ void coll_ionise_recomb::setup_recombination(
 }
 // END OF SETUP RECOMBINATION #######################################
 
-
 // ##################################################################
 // Generate LUT for collisional ionisation rate and rate slope
 void coll_ionise_recomb::generate_collisional_ionisation_LUT(
@@ -87,7 +79,6 @@ void coll_ionise_recomb::generate_collisional_ionisation_LUT(
     }
   }
 
-
   // Generate collisional ionisation  rate slope table for all
   // species in the species list.
   for (int s = 0; s < collisional_slope_table.size(); s++) {
@@ -100,7 +91,6 @@ void coll_ionise_recomb::generate_collisional_ionisation_LUT(
   }
 }
 // End of generate LUT for CI rate and rate slope ##################
-
 
 // ##################################################################
 // Generate LUT for recombination rate and rate slope
@@ -138,8 +128,6 @@ void coll_ionise_recomb::generate_recombination_LUT(
 }
 // End of generate LUT for recombination rate and rate slope #######
 
-
-
 // ##################################################################
 // Calculate collisional ionisation rate of a species for a given
 // temperature T.
@@ -159,7 +147,6 @@ double coll_ionise_recomb::get_collisional_ionisation_rate(
 }
 // End of get collisional ionisation rate ***************************
 
-
 // ##################################################################
 // Calculate recombination rate of a species for a given temperature.
 double coll_ionise_recomb::get_recombination_rate(
@@ -176,7 +163,6 @@ double coll_ionise_recomb::get_recombination_rate(
             * exp(-recomb_parameters[species].E_coefs[i] / T);
   }
   rate *= pow(T, -1.5);
-
 
   // Calculating radiative recombination rate all other ions.
   double B_new = recomb_parameters[species].B;
@@ -242,8 +228,6 @@ double coll_ionise_recomb::get_recombination_rate(
   return rate;
 }
 // End of get recombination rate ###################################
-
-
 
 // ##################################################################
 // Database for collisional ionisation fitting parameters
@@ -467,7 +451,6 @@ void coll_ionise_recomb::collisional_ionisation_database()
 
   coll_ionise_parameters["S16+"] = coll_ionise_datatype{0, 0.0, 0.0, 0.0};
 
-
   // IRON ###################################################
   coll_ionise_parameters["Fe"] =
       coll_ionise_datatype{0, 0.252E-06, 0.701, 0.25};
@@ -550,8 +533,6 @@ void coll_ionise_recomb::collisional_ionisation_database()
   coll_ionise_parameters["Fe26+"] = coll_ionise_datatype{0, 0.0, 0.0, 0.0};
 }
 // END OF COLLISIONAL IONISATION DATABASE ################################
-
-
 
 // ##################################################################
 // Database for recombination fitting parameters
@@ -755,7 +736,6 @@ void coll_ionise_recomb::recombination_database()
       {3.084E+03, 1.332E+04, 6.475E+04, 1.181E+05, 6.687E+05, 4.778E+06, 0.0,
        0.0, 0.0}};
 
-
   recomb_parameters["N5+"] = recomb_datatype{
       6.245E-11,
       0.4985,
@@ -765,7 +745,6 @@ void coll_ionise_recomb::recombination_database()
       0.0,
       {5.761E-03, 3.434E-02, -1.660E-03, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
       {3.860E+06, 4.883E+06, 6.259E+06, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-
 
   recomb_parameters["N6+"] = recomb_datatype{
       2.388E-10,
@@ -1607,7 +1586,6 @@ void coll_ionise_recomb::recombination_database()
        7.325E-01, 0.0, 0.0},
       {6.553E+03, 4.351E+04, 2.059E+05, 9.250E+05, 4.610E+06, 1.019E+07,
        1.019E+07, 0.0, 0.0}};
-
 
   recomb_parameters["Fe21+"] = recomb_datatype{
       2.199E-09,

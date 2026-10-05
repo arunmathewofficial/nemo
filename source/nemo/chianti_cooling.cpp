@@ -10,7 +10,6 @@
 
 #include "chianti_cooling.h"
 
-
 // ##################################################################
 // CONSTRUCTOR
 chianti_cooling::chianti_cooling()
@@ -20,7 +19,6 @@ chianti_cooling::chianti_cooling()
 }
 // END OF CONSTRUCTOR ###############################################
 
-
 // ##################################################################
 // DESTRUCTOR
 chianti_cooling::~chianti_cooling()
@@ -29,7 +27,6 @@ chianti_cooling::~chianti_cooling()
   spdlog::debug("chianti cooling destructor: Done");
 }
 // END OF DESTRUCTOR ################################################
-
 
 // ##################################################################
 // CONSTRUCTOR
@@ -113,7 +110,6 @@ void chianti_cooling::generate_chianti_table(
       chianti_table.push_back(LUT_datatype());
       chianti_table[chianti_species_index].Name = species[location].Name;
 
-
       // Chianti cooling rate tables in the database are created for the
       // following points in Axes (x-axis: Log Temperature, y-axis:
       // Log Electron Number Density)
@@ -193,8 +189,6 @@ void chianti_cooling::generate_chianti_table(
   // END OF CHIANTI COOLING LOOKUP TABLES **************************************
 }
 // END OF GENERATE CHIANTI COOLING LOOKUP TABLES ###############################
-
-
 
 // ##################################################################
 // DATABASE
@@ -3405,7 +3399,6 @@ void chianti_cooling::cooling_table_database()
       {-19.188, -19.188, -19.188, -19.188, -19.188, -19.188, -19.188, -19.188,
        -19.188, -19.188, -19.188, -19.188, -19.188}};
 
-
   // Entry No.19, species : N7+ ================================================
   species.push_back(database_datatype());
   species[19].Name = "N7+";
@@ -3574,7 +3567,6 @@ void chianti_cooling::cooling_table_database()
       {-20.609, -20.609, -20.609, -20.609, -20.609, -20.609, -20.609, -20.609,
        -20.609, -20.609, -20.609, -20.609, -20.609}};
 
-
   // Entry No.20, species : O ==================================================
   species.push_back(database_datatype());
   species[20].Name = "O";
@@ -3742,7 +3734,6 @@ void chianti_cooling::cooling_table_database()
        -19.963, -19.963, -19.964, -19.965, -19.967},
       {-20.001, -20.001, -20.001, -20.001, -20.001, -20.001, -20.001, -20.001,
        -20.001, -20.001, -20.002, -20.003, -20.005}};
-
 
   // Entry No.21, species : O1+ ================================================
   species.push_back(database_datatype());
@@ -4751,7 +4742,6 @@ void chianti_cooling::cooling_table_database()
        -18.683, -18.683, -18.683, -18.683, -18.683},
       {-18.712, -18.712, -18.712, -18.712, -18.712, -18.712, -18.712, -18.712,
        -18.712, -18.712, -18.712, -18.712, -18.712}};
-
 
   // Entry No.27, species : O7+ ================================================
   species.push_back(database_datatype());
@@ -6936,7 +6926,6 @@ void chianti_cooling::cooling_table_database()
        -20.349, -20.349, -20.349, -20.349, -20.349},
       {-20.299, -20.299, -20.299, -20.299, -20.299, -20.299, -20.299, -20.299,
        -20.299, -20.299, -20.299, -20.299, -20.299}};
-
 
   // Entry No.40, species : Si =================================================
   species.push_back(database_datatype());
@@ -9291,7 +9280,6 @@ void chianti_cooling::cooling_table_database()
       {-19.259, -19.259, -19.259, -19.259, -19.259, -19.259, -19.259, -19.259,
        -19.259, -19.259, -19.259, -19.259, -19.259}};
 
-
   // Entry No.54, species : Si14+ ==============================================
   species.push_back(database_datatype());
   species[54].Name = "Si14+";
@@ -9459,7 +9447,6 @@ void chianti_cooling::cooling_table_database()
        -20.050, -20.050, -20.050, -20.050, -20.050},
       {-20.003, -20.003, -20.003, -20.003, -20.003, -20.003, -20.003, -20.003,
        -20.003, -20.003, -20.003, -20.003, -20.003}};
-
 
   // Entry No.55, species : S =================================================
   species.push_back(database_datatype());
@@ -9796,7 +9783,6 @@ void chianti_cooling::cooling_table_database()
        -18.230, -18.230, -18.231, -18.233, -18.235},
       {-18.268, -18.268, -18.268, -18.268, -18.268, -18.268, -18.268, -18.268,
        -18.268, -18.268, -18.269, -18.271, -18.272}};
-
 
   // Entry No.57, species : S2+ ================================================
   species.push_back(database_datatype());
@@ -10301,7 +10287,6 @@ void chianti_cooling::cooling_table_database()
        -18.396, -18.396, -18.396, -18.396, -18.396},
       {-18.435, -18.435, -18.435, -18.435, -18.435, -18.435, -18.435, -18.435,
        -18.435, -18.435, -18.435, -18.435, -18.435}};
-
 
   // Entry No.60, species : S5+ ================================================
   species.push_back(database_datatype());
@@ -11647,7 +11632,6 @@ void chianti_cooling::cooling_table_database()
       {-18.726, -18.726, -18.726, -18.726, -18.726, -18.726, -18.726, -18.726,
        -18.726, -18.726, -18.726, -18.726, -18.726}};
 
-
   // Entry No.68, species : S13+ ===============================================
   species.push_back(database_datatype());
   species[68].Name = "S13+";
@@ -12488,7 +12472,6 @@ void chianti_cooling::cooling_table_database()
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
 
-
   // Entry No.73, species : Fe1+ ===============================================
   species.push_back(database_datatype());
   species[73].Name = "Fe1+";
@@ -12656,7 +12639,6 @@ void chianti_cooling::cooling_table_database()
        -50.0, -50.0, -50.0},
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
-
 
   // Entry No.74, species : Fe2+ ===============================================
   species.push_back(database_datatype());
@@ -12826,7 +12808,6 @@ void chianti_cooling::cooling_table_database()
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
 
-
   // Entry No.75, species : Fe3+ ===============================================
   species.push_back(database_datatype());
   species[75].Name = "Fe3+";
@@ -12994,7 +12975,6 @@ void chianti_cooling::cooling_table_database()
        -50.0, -50.0, -50.0},
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
-
 
   // Entry No.76, species : Fe4+ ===============================================
   species.push_back(database_datatype());

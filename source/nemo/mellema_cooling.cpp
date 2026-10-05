@@ -10,9 +10,8 @@
  *  + 2022.12.30: Rewrote the entire class.
  **/
 
-#include "nemo-constants.h"
 #include "mellema_cooling.h"
-
+#include "nemo-constants.h"
 
 // ##################################################################
 // CONSTRUCTOR
@@ -23,7 +22,6 @@ mellema_cooling::mellema_cooling()
 }
 // END OF CONSTRUCTOR ###############################################
 
-
 // ##################################################################
 // DESTRUCTOR
 mellema_cooling::~mellema_cooling()
@@ -32,7 +30,6 @@ mellema_cooling::~mellema_cooling()
   spdlog::debug("Mellema cooling: Destructor done");
 }
 // END OF DESTRUCTOR ################################################
-
 
 // ##################################################################
 // CONSTRUCTOR
@@ -119,14 +116,14 @@ void mellema_cooling::generate_mellema_table(
       if (log10(ne.front()) < species[location].logne.front()
           || log10(ne.back()) > species[location].logne.back()) {
         spdlog::error(
-            "Mellema cooling: Electron density outside the specified range for {:s}",
+            "Mellema cooling: Electron density outside the specified "
+            "range for {:s}",
             species[location].Name);
         exit_nemo(1);
       }
     }
   }
   // END OF CHECK **************************************************************
-
 
   // MAKING LOGARITHMIC ARRAY OF INDEPENDENT VARIABLES
   // size of T arraya and ne array.
@@ -142,7 +139,6 @@ void mellema_cooling::generate_mellema_table(
   for (size_t i = 0; i < Nne; i++)
     logne[i] = log10(ne[i]);
 
-
   // MELLEMA COOLING LOOKUP TABLES *********************************************
   // tracer species loop.
   int mellema_species_index = 0;
@@ -155,7 +151,6 @@ void mellema_cooling::generate_mellema_table(
       // species.
       mellema_table.push_back(LUT_datatype());
       mellema_table[mellema_species_index].Name = species[location].Name;
-
 
       // Resizing the mellema cooling rate lookup table
       mellema_table[mellema_species_index].rate.resize(NT);
@@ -200,7 +195,6 @@ void mellema_cooling::generate_mellema_table(
         }
       }
 
-
       // setting up rate slope tables in T and ne directions.
       for (size_t i = 0;
            i < mellema_table[mellema_species_index].rate.size() - 1; i++) {
@@ -226,8 +220,6 @@ void mellema_cooling::generate_mellema_table(
 }
 // END OF GENERATE MELLEMA COOLING LOOKUP TABLES ###############################
 
-
-
 // ##################################################################
 // DATABASE
 void mellema_cooling::cooling_table_database()
@@ -245,8 +237,8 @@ void mellema_cooling::cooling_table_database()
 
   // Entry No.0, species : H ===================================================
   species.push_back(
-      database_datatype());  // Push back memory for database_datatype for a
-                             // new species
+      database_datatype());  // Push back memory for
+                             // database_datatype for a new species
   species[0].Name = "H";     // Name of the species (Element symbol together
                              // with the charge of the species)
   // Mellema Cooling Rate : Axes (x-axis: Log Temperature, y-axis: Log Electron
@@ -423,7 +415,6 @@ void mellema_cooling::cooling_table_database()
        -19.455, -19.455, -19.455, -19.455, -19.455},
       {-19.485, -19.485, -19.485, -19.485, -19.485, -19.485, -19.485, -19.485,
        -19.485, -19.485, -19.485, -19.485, -19.485}};
-
 
   // Entry No.1, species: H1+
   // ===================================================
@@ -604,7 +595,6 @@ void mellema_cooling::cooling_table_database()
       {-22.3565, -22.3565, -22.3565, -22.3565, -22.3565, -22.3565, -22.3565,
        -22.3565, -22.3565, -22.3565, -22.3565, -22.3565, -22.3565}};
 
-
   // Entry No.2, species : He ==================================================
   species.push_back(database_datatype());
   species[2].Name = "He";
@@ -783,7 +773,6 @@ void mellema_cooling::cooling_table_database()
        -20.577, -20.563, -20.534, -20.49, -20.455},
       {-20.634, -20.634, -20.634, -20.634, -20.634, -20.634, -20.633, -20.632,
        -20.627, -20.615, -20.587, -20.545, -20.508}};
-
 
   // Entry No.3, species : He1+
   // =================================================
@@ -965,7 +954,6 @@ void mellema_cooling::cooling_table_database()
       {-19.18, -19.18, -19.18, -19.18, -19.18, -19.18, -19.18, -19.18, -19.18,
        -19.18, -19.18, -19.18, -19.18}};
 
-
   // Entry No.4, species : He2+
   // =================================================
   species.push_back(database_datatype());
@@ -1146,7 +1134,6 @@ void mellema_cooling::cooling_table_database()
       {-21.7231, -21.7231, -21.7231, -21.7231, -21.7231, -21.7231, -21.7231,
        -21.7231, -21.7231, -21.7231, -21.7231, -21.7231, -21.7231}};
 
-
   // Entry No.5, species : C ===================================================
   species.push_back(database_datatype());
   species[5].Name = "C";
@@ -1325,7 +1312,6 @@ void mellema_cooling::cooling_table_database()
        -50.0, -50.0, -50.0},
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
-
 
   // Entry No.6, species : C1+
   // ==================================================
@@ -1507,7 +1493,6 @@ void mellema_cooling::cooling_table_database()
       {-18.84, -18.84, -18.84, -18.84, -18.84, -18.84, -18.84, -18.84, -18.84,
        -18.84, -18.84, -18.84, -18.84}};
 
-
   // Entry No.7, species : C2+
   // ==================================================
   species.push_back(database_datatype());
@@ -1687,7 +1672,6 @@ void mellema_cooling::cooling_table_database()
        -19.1512, -19.1512, -19.1512, -19.1512, -19.1512, -19.1512},
       {-19.1917, -19.1917, -19.1917, -19.1917, -19.1917, -19.1917, -19.1917,
        -19.1917, -19.1917, -19.1917, -19.1917, -19.1917, -19.1917}};
-
 
   // Entry No.8, species : C3+
   // ==================================================
@@ -1869,7 +1853,6 @@ void mellema_cooling::cooling_table_database()
       {-19.3074, -19.3074, -19.3074, -19.3074, -19.3074, -19.3074, -19.3074,
        -19.3074, -19.3074, -19.3074, -19.3074, -19.3074, -19.3074}};
 
-
   // Entry No.9, species : C4+
   // ==================================================
   species.push_back(database_datatype());
@@ -2050,7 +2033,6 @@ void mellema_cooling::cooling_table_database()
       {-19.2973, -19.2973, -19.2973, -19.2973, -19.2973, -19.2973, -19.2973,
        -19.2973, -19.2973, -19.2973, -19.2973, -19.2973, -19.2973}};
 
-
   // Entry No.10, species : C5+
   // =================================================
   species.push_back(database_datatype());
@@ -2230,7 +2212,6 @@ void mellema_cooling::cooling_table_database()
        -19.624, -19.624, -19.624, -19.624, -19.624},
       {-19.658, -19.658, -19.658, -19.658, -19.658, -19.658, -19.658, -19.658,
        -19.658, -19.658, -19.658, -19.658, -19.658}};
-
 
   // Entry No.11, species : C6+
   // =================================================
@@ -2771,7 +2752,6 @@ void mellema_cooling::cooling_table_database()
       {-19.53, -19.53, -19.53, -19.53, -19.53, -19.53, -19.53, -19.53, -19.53,
        -19.53, -19.53, -19.53, -19.53}};
 
-
   // Entry No.14, species : N2+
   // =================================================
   species.push_back(database_datatype());
@@ -2951,7 +2931,6 @@ void mellema_cooling::cooling_table_database()
        -19.0846, -19.0846, -19.0846, -19.0846, -19.0846, -19.0846},
       {-19.1164, -19.1164, -19.1164, -19.1164, -19.1164, -19.1164, -19.1164,
        -19.1164, -19.1164, -19.1164, -19.1164, -19.1164, -19.1164}};
-
 
   // Entry No.15, species : N3+
   // =================================================
@@ -3133,7 +3112,6 @@ void mellema_cooling::cooling_table_database()
       {-18.9446, -18.9446, -18.9446, -18.9446, -18.9446, -18.9446, -18.9446,
        -18.9446, -18.9446, -18.9446, -18.9446, -18.9446, -18.9446}};
 
-
   // Entry No.16, species : N4+
   // =================================================
   species.push_back(database_datatype());
@@ -3313,7 +3291,6 @@ void mellema_cooling::cooling_table_database()
        -19.3286, -19.3286, -19.3286, -19.3286, -19.3286, -19.3286},
       {-19.3663, -19.3663, -19.3663, -19.3663, -19.3663, -19.3663, -19.3663,
        -19.3663, -19.3663, -19.3663, -19.3663, -19.3663, -19.3663}};
-
 
   // Entry No.17, species : N5+
   // =================================================
@@ -3495,7 +3472,6 @@ void mellema_cooling::cooling_table_database()
       {-20.3863, -20.3863, -20.3863, -20.3863, -20.3863, -20.3863, -20.3863,
        -20.3863, -20.3863, -20.3863, -20.3863, -20.3863, -20.3863}};
 
-
   // Entry No.18, species : N6+
   // =================================================
   species.push_back(database_datatype());
@@ -3675,7 +3651,6 @@ void mellema_cooling::cooling_table_database()
        -19.6381, -19.6381, -19.6381, -19.6381, -19.6381, -19.6381},
       {-19.6702, -19.6702, -19.6702, -19.6702, -19.6702, -19.6702, -19.6702,
        -19.6702, -19.6702, -19.6702, -19.6702, -19.6702, -19.6702}};
-
 
   // Entry No.19, species : N7+
   // =================================================
@@ -4036,7 +4011,6 @@ void mellema_cooling::cooling_table_database()
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
 
-
   // Entry No.21, species : O1+
   // =================================================
   species.push_back(database_datatype());
@@ -4216,7 +4190,6 @@ void mellema_cooling::cooling_table_database()
        -19.0844, -19.0844, -19.0844, -19.0844, -19.0844, -19.0844},
       {-19.1053, -19.1053, -19.1053, -19.1053, -19.1053, -19.1053, -19.1053,
        -19.1053, -19.1053, -19.1053, -19.1053, -19.1053, -19.1053}};
-
 
   // Entry No.22, species : O2+
   // =================================================
@@ -4398,7 +4371,6 @@ void mellema_cooling::cooling_table_database()
       {-18.9149, -18.9149, -18.9149, -18.9149, -18.9149, -18.9149, -18.9149,
        -18.9149, -18.9149, -18.9149, -18.9149, -18.9149, -18.9149}};
 
-
   // Entry No.23, species : O3+
   // =================================================
   species.push_back(database_datatype());
@@ -4578,7 +4550,6 @@ void mellema_cooling::cooling_table_database()
        -18.8749, -18.8749, -18.8749, -18.8749, -18.8749, -18.8749},
       {-18.9074, -18.9074, -18.9074, -18.9074, -18.9074, -18.9074, -18.9074,
        -18.9074, -18.9074, -18.9074, -18.9074, -18.9074, -18.9074}};
-
 
   // Entry No.24, species : O4+
   // =================================================
@@ -4760,7 +4731,6 @@ void mellema_cooling::cooling_table_database()
       {-19.3208, -19.3208, -19.3208, -19.3208, -19.3208, -19.3208, -19.3208,
        -19.3208, -19.3208, -19.3208, -19.3208, -19.3208, -19.3208}};
 
-
   // Entry No.25, species : O5+
   // =================================================
   species.push_back(database_datatype());
@@ -4940,7 +4910,6 @@ void mellema_cooling::cooling_table_database()
        -19.2913, -19.2913, -19.2913, -19.2913, -19.2913, -19.2913},
       {-19.3292, -19.3292, -19.3292, -19.3292, -19.3292, -19.3292, -19.3292,
        -19.3292, -19.3292, -19.3292, -19.3292, -19.3292, -19.3292}};
-
 
   // Entry No.26, species : O6+
   // =================================================
@@ -5122,7 +5091,6 @@ void mellema_cooling::cooling_table_database()
       {-19.3034, -19.3034, -19.3034, -19.3034, -19.3034, -19.3034, -19.3034,
        -19.3034, -19.3034, -19.3034, -19.3034, -19.3034, -19.3034}};
 
-
   // Entry No.27, species : O7+
   // =================================================
   species.push_back(database_datatype());
@@ -5302,7 +5270,6 @@ void mellema_cooling::cooling_table_database()
        -20.3142, -20.3142, -20.3142, -20.3142, -20.3142, -20.3142},
       {-20.3138, -20.3138, -20.3138, -20.3138, -20.3138, -20.3138, -20.3138,
        -20.3138, -20.3138, -20.3138, -20.3138, -20.3138, -20.3138}};
-
 
   // Entry No.28, species : O8+
   // =================================================
@@ -5668,8 +5635,6 @@ void mellema_cooling::cooling_table_database()
       {-21.4775, -21.4775, -21.4775, -21.4775, -21.4775, -21.4775, -21.4775,
        -21.4775, -21.4775, -21.4775, -21.4775, -21.4775, -21.4775}};
 
-
-
   // Entry No.30, species : Ne2+
   // =================================================
   species.push_back(database_datatype());
@@ -6030,7 +5995,6 @@ void mellema_cooling::cooling_table_database()
       {-21.0093, -21.0093, -21.0093, -21.0093, -21.0093, -21.0093, -21.0093,
        -21.0093, -21.0093, -21.0093, -21.0093, -21.0093, -21.0093}};
 
-
   // Entry No.32, species : Ne4+
   // =================================================
   species.push_back(database_datatype());
@@ -6210,7 +6174,6 @@ void mellema_cooling::cooling_table_database()
        -18.9352, -18.9352, -18.9352, -18.9352, -18.9352, -18.9352},
       {-18.9647, -18.9647, -18.9647, -18.9647, -18.9647, -18.9647, -18.9647,
        -18.9647, -18.9647, -18.9647, -18.9647, -18.9647, -18.9647}};
-
 
   // Entry No.33, species : Ne5+
   // =================================================
@@ -6572,8 +6535,6 @@ void mellema_cooling::cooling_table_database()
       {-19.3601, -19.3601, -19.3601, -19.3601, -19.3601, -19.3601, -19.3601,
        -19.3601, -19.3601, -19.3601, -19.3601, -19.3601, -19.3601}};
 
-
-
   // Entry No.35, species : Ne7+
   // =================================================
   species.push_back(database_datatype());
@@ -6934,7 +6895,6 @@ void mellema_cooling::cooling_table_database()
       {-19.3645, -19.3645, -19.3645, -19.3645, -19.3645, -19.3645, -19.3645,
        -19.3645, -19.3645, -19.3645, -19.3645, -19.3645, -19.3645}};
 
-
   // Entry No.37, species : Ne9+
   // =================================================
   species.push_back(database_datatype());
@@ -7114,7 +7074,6 @@ void mellema_cooling::cooling_table_database()
        -19.5537, -19.5537, -19.5537, -19.5537, -19.5537, -19.5537},
       {-19.5765, -19.5765, -19.5765, -19.5765, -19.5765, -19.5765, -19.5765,
        -19.5765, -19.5765, -19.5765, -19.5765, -19.5765, -19.5765}};
-
 
   // Entry No.38, species : Ne10+
   // =================================================
@@ -7296,7 +7255,6 @@ void mellema_cooling::cooling_table_database()
       {-20.2511, -20.2511, -20.2511, -20.2511, -20.2511, -20.2511, -20.2511,
        -20.2511, -20.2511, -20.2511, -20.2511, -20.2511, -20.2511}};
 
-
   // Entry No.39, species : S =================================================
   species.push_back(database_datatype());
   species[39].Name = "S";
@@ -7475,7 +7433,6 @@ void mellema_cooling::cooling_table_database()
        -50.0, -50.0, -50.0},
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
-
 
   // Entry No.40, species : S1+
   // =================================================
@@ -7657,7 +7614,6 @@ void mellema_cooling::cooling_table_database()
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
 
-
   // Entry No.41, species : S2+
   // =================================================
   species.push_back(database_datatype());
@@ -7837,7 +7793,6 @@ void mellema_cooling::cooling_table_database()
        -50.0, -50.0, -50.0},
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
-
 
   // Entry No.42, species : S3+
   // =================================================
@@ -8198,7 +8153,6 @@ void mellema_cooling::cooling_table_database()
        -50.0, -50.0, -50.0},
       {-50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0, -50.0,
        -50.0, -50.0, -50.0}};
-
 
   // Entry No.44, species : default entry =====================================
   species.push_back(database_datatype());

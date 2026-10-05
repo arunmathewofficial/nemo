@@ -17,7 +17,6 @@
 
 #include "microphysics/interpolate.h"
 
-
 // USER DEFINED DATATYPE #################################################
 
 /**
@@ -42,8 +41,6 @@ struct LUT_datatype {
   std::vector<std::vector<double> > ne_rateslope;
 };
 // END OF USER DEFINED DATATYPE #########################################
-
-
 
 // CHIANTI COOLING CLASS ####################################################
 /** \brief Class to generate Chianti cooling LUTs

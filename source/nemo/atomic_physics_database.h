@@ -14,7 +14,6 @@
 #include <map>
 #include <spdlog/spdlog.h>
 
-
 /** \brief
  * Struct to hold atomic physics species attributes.
  **/
@@ -26,7 +25,6 @@ struct species_datatype {
   double ionise_E;  ///< Ionisation energy of species (in the units of ergs).
 };
 
-
 // ATOMIC PHYSICS DATABASE CLASS #########################################
 /**
  * \brief Class for atomic physics data repository
@@ -34,8 +32,7 @@ struct species_datatype {
  * of neutral atoms and their ions. The attributes include element name, charge,
  * mass, ionisation potential energy.
  **/
-class atomic_physics_database :
-  virtual public nemo_constants {
+class atomic_physics_database : virtual public nemo_constants {
 
   // PUBLIC METHODS AND VARIABLE ***********************
 public:
@@ -50,7 +47,6 @@ public:
 
   /** \brief This will export all the species of an element in a vector. **/
   std::vector<std::string> import_species(const std::string element);
-
 
   /** \brief Returns the element name string of the species. **/
   std::string get_element_name(const std::string species);

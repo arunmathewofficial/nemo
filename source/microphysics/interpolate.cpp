@@ -13,9 +13,8 @@
 /// - 2021.04.09 JM: switched GSL for Boost library.
 /// - 2026.09.30 JM: adapted for NEMO
 
-
-#include "nemo-constants.h"
 #include "microphysics/interpolate.h"
+#include "nemo-constants.h"
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
@@ -42,12 +41,8 @@ interpolate_arrays::~interpolate_arrays()
   // cout <<"timers.size: "<<timers.size()<<"\n";
 }
 
-
-
 // ##################################################################
 // ##################################################################
-
-
 
 void interpolate_arrays::spline(
     const double *x,
@@ -69,12 +64,8 @@ void interpolate_arrays::spline(
   return;
 }
 
-
-
 // ##################################################################
 // ##################################################################
-
-
 
 void interpolate_arrays::splint(
     const double[],
@@ -92,12 +83,8 @@ void interpolate_arrays::splint(
   return;
 }
 
-
-
 // ##################################################################
 // ##################################################################
-
-
 
 void interpolate_arrays::spline_vec(
     vector<double> x,
@@ -116,12 +103,8 @@ void interpolate_arrays::spline_vec(
   return;
 }
 
-
-
 // ##################################################################
 // ##################################################################
-
-
 
 void interpolate_arrays::splint_vec(
     const int id,  ///< reference id for this spline interpolation.
@@ -136,12 +119,8 @@ void interpolate_arrays::splint_vec(
   return;
 }
 
-
-
 // ##################################################################
 // ##################################################################
-
-
 
 void interpolate_arrays::root_find_linear_vec(
     const vector<double> &xarr,  ///< Array of x values.

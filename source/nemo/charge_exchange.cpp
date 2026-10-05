@@ -24,7 +24,6 @@ charge_exchange::charge_exchange(const int max_reactant_charge)
 // Destructor
 charge_exchange::~charge_exchange() {}
 
-
 // #############################################################################
 void charge_exchange::setup_charge_exchange(
     const std::vector<std::vector<std::pair<std::string, std::string> > >
@@ -57,7 +56,6 @@ void charge_exchange::setup_charge_exchange(
   ionise_reactions = ionise_reaction_list;
   recomb_reactions = recomb_reaction_list;
 }
-
 
 // #############################################################################
 std::vector<std::vector<double> > charge_exchange::import_energy_defect(
@@ -118,7 +116,6 @@ charge_exchange::get_cx_reactions(
   }
   return species_reactions;
 }
-
 
 // #############################################################################
 std::pair<std::string, std::string> charge_exchange::get_actual_key(
@@ -232,8 +229,6 @@ double charge_exchange::get_charge_exchange_rate(
   return rate;
 }
 
-
-
 // #############################################################################
 void charge_exchange::generate_charge_exchange_LUT(
     const std::vector<double> &T_table)
@@ -241,11 +236,9 @@ void charge_exchange::generate_charge_exchange_LUT(
 
   spdlog::info("Generating charge-exchange LUTs");
 
-
   // std::pair<std::string, std::string> key = std::make_pair("C1+", "H");
   // spdlog::debug("rate = {}", get_charge_exchange_rate(key, 5.0E+6));
   // exit(1);
-
 
   // SECTION: LUT for Ionisation charge-exchange reactions *********************
   // 1. Generate ionisation charge-exchange reaction rate tables.
@@ -297,8 +290,6 @@ void charge_exchange::generate_charge_exchange_LUT(
   }
   // END OF SECTION: LUT for recombination charge-exchange reactions ***********
 }
-
-
 
 // #############################################################################
 void charge_exchange::charge_exchange_database()
@@ -456,7 +447,6 @@ void charge_exchange::charge_exchange_database()
       "ar-fe3+h", 0, 3.42e-9, 0.51, -2.06, -8.99, 1.00e3, 1.00e5, 0.0, 0.00};
   //****************************************************************************
 
-
   // [IONISATION REACTION WITH H1+ ********************************************]
   // The fit parameters and energy defect for the ionization charge exchange
   // reaction with H1+ are obtained from J. B. Kingdon and G. J. Ferland
@@ -495,7 +485,6 @@ void charge_exchange::charge_exchange_database()
       AR_parameters{"ar-fe1+h1", 1,      2.10e-9, 7.72e-2, -0.41,
                     -7.31,       1.00e4, 1.00e5,  2.590,   0.00};
   //****************************************************************************
-
 
   // [RECOMBINATION REACTIONS WITH He *****************************************]
   // The fit parameters for the recombination charge exchange reaction with He
@@ -597,7 +586,6 @@ void charge_exchange::charge_exchange_database()
                     -5.25E+00,  1.00E+03, 3.00E+04, 0.0,      0.00};
   //****************************************************************************
 
-
   // [IONISATION REACTIONS WITH He1+ ******************************************]
   // The fit parameters and energy defect for the ionisation charge exchange
   // reaction with He1+ are taken from https://www.pa.uky.edu/~verner/chtr.html.
@@ -645,8 +633,6 @@ void charge_exchange::charge_exchange_database()
                     0.00,        1.00E+04, 3.00E+05, 10.47,    0.00};
   // ***************************************************************************
 
-
-
   /** The following reactions are not included **/
   // HYDROGEN ################################################################
   UMIST_reaction_parameters[{"H", "He1+"}] = UMIST_datatype{
@@ -664,7 +650,6 @@ void charge_exchange::charge_exchange_database()
   UMIST_reaction_parameters[{"H1+", "O"}] = UMIST_datatype{
       "UMIST-H1++O", 6.86e-10, 0.26, 224.30, 10, 41000, -0.02};  // #417, [3]
 
-
   // Reaction: H + Ne1+ -> H1+ + Ne, Not in Database
   // Reaction: H1+ + Ne -> H + Ne1+, Not in Database
 
@@ -679,7 +664,6 @@ void charge_exchange::charge_exchange_database()
   // Reaction: H + Fe1+ -> H1+ + Fe, Not in Database
   UMIST_reaction_parameters[{"H1+", "Fe"}] = UMIST_datatype{
       "UMIST-H1++Fe", 7.40e-9, 0.00, 0.00, 10, 41000};  // #385, [6]
-
 
   // HELIUM ##################################################################
   // Reaction: He + H1+ -> He1+ + H, Already in Database.
@@ -706,7 +690,6 @@ void charge_exchange::charge_exchange_database()
 
   // Reaction: He + Fe1+ -> He1+ + Fe, Not in Database
   // Reaction: He1+ + Fe -> He + Fe1+, Not in Database
-
 
   // CARBON ##################################################################
   // Reaction: C + H1+ -> C1+ + H, Not in Database
@@ -737,7 +720,6 @@ void charge_exchange::charge_exchange_database()
   // Reaction: C + Fe1+ -> C1+ + Fe, Not in Database
   UMIST_reaction_parameters[{"C1+", "Fe"}] = UMIST_datatype{
       "UMIST-C1++Fe", 2.60e-9, 0.00, 0.00, 10, 41000};  // #184 [11]
-
 
   // NITROGEN ################################################################
   // Reaction: N + H1+ - > N1+ + H,  Not in Database
@@ -868,7 +850,6 @@ void charge_exchange::charge_exchange_database()
   // Reaction: S + Fe1+ -> S1+ + Fe, Not in Database
   UMIST_reaction_parameters[{"S1+", "Fe"}] = UMIST_datatype{
       "UMIST-S1++Fe", 1.80e-10, 0.00, 0.00, 10, 41000};  // #714, [14]
-
 
   // IRON ####################################################################
   // Reaction: Fe + H1+ -> Fe1+ + H, Already in Database
