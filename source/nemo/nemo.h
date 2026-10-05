@@ -35,6 +35,7 @@
 #include "nemo/charge_exchange.h"
 #include "nemo/coll_ionise_recomb.h"
 #include "nemo-constants.h"
+#include "nemo-datastructs.h"
 #include "microphysics/cvode_integrator.h"
 #ifdef MELLEMA
 #include "mellema_cooling.h"
