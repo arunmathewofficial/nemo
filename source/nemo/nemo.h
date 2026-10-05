@@ -36,7 +36,7 @@
 #include "nemo/coll_ionise_recomb.h"
 #include "nemo-constants.h"
 #include "microphysics/cvode_integrator.h"
-#include "microphysics/microphysics_base.h"
+//#include "microphysics/microphysics_base.h"
 #ifdef MELLEMA
 #include "mellema_cooling.h"
 #elif defined CHIANTI
@@ -62,7 +62,6 @@
 /// fraction of various ions, and for the internal energy density.
 ///
 class nemo :
-    public microphysics_base,
     public cvode_solver,
     public coll_ionise_recomb,
     public charge_exchange,
@@ -77,10 +76,8 @@ class nemo :
 public:
   // ****** CONSTRUCTOR ******
   nemo(
-      const int,               ///< grid dimensions
-      const int,               ///< Coordinate System flag
       const int,               ///< Total number of variables in state vector
-      const int,               ///< Number of tracer variables in state vector.
+      const int,               ///< Number of passive-tracer vars in state vector.
       const std::string *,     ///< List of what the tracer variables mean.
       struct which_physics *,  ///< pointer to extra physics flags.
       struct rad_sources *,    ///< radiation sources.
@@ -116,6 +113,23 @@ public:
       element_species_count;  ///< number of species belong to same elements.
   std::vector<int> species_element;  ///< species' element positions.
   std::unordered_map<std::string, int> species_prim_index_map;
+  // --------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------
+  // imported from base class
+  /// Struct with flags for which extra physics we are (not) doing.
+  struct which_physics *EP;
+  /// Struct with list of radiation sources
+  struct rad_sources *RS;
+  /// map tracer names to state-vec index
+  std::map<std::string, int> tr_map;
+  /// map element names to state-vec index
+  std::map<std::string, int> el_map;
+  std::vector<int> el_index;  ///< indices of elements
+  std::vector<int> tr_index;  ///< indices of tracers
+  int n_el;                   ///< number of element tracers
+  int nv_prim;  ///< number of vars in state vec
+  int ntracer;  ///< number of tracer variables
   // --------------------------------------------------------------------------
 
 
@@ -308,7 +322,6 @@ protected:
 
 
   // ############################################################################
-  //  FUNCTIONS DERIVED FROM BASE CLASS FOLLOW
 public:
   N_Vector y_in,    ///< current y-vector
       y_out;        ///< output y-vector
@@ -371,49 +384,9 @@ protected:
 
   public:
   ///
-  /// Function for updating vectors according to species found in tracer list.
-  ///
-  // species_tracer_initialise
-
-  ///
-  /// A primitive vector is input, and lots of optional extra data in
-  /// the last argument, and the ion fraction(s) and internal energy
-  /// are updated by the requested timestep.  Results are saved to
-  /// the destination vector, which can be the same pointer as the
-  /// input vector.
-  ///
-  int TimeUpdateMP(
-      const double *,  ///< Primitive Vector to be updated.
-      double *,        ///< Destination Vector for updated values.
-      const double,      ///< Time Step to advance by.
-      const double,      ///< EOS gamma.
-      const int,         ///< Switch for what type of integration to use.
-      double *           ///< Vector of extra data (column densities, etc.).
-  );
-
-  ///
-  ///
-  ///
-  int TimeUpdate_RTsinglesrc(
-      const double *,  ///< Primitive Vector to be updated.
-      double *,        ///< Destination Vector for updated values.
-      const double,      ///< Time Step to advance by.
-      const double,      ///< EOS gamma.
-      const int,         ///< Switch for what type of integration to use.
-      const double,      ///< flux in per unit length along ray (F/ds or L/dV)
-      const double,      ///< path length ds through cell.
-      const double,      ///< Optical depth to entry point of ray into cell.
-      double *  ///< return optical depth through cell in this variable.
-  )
-  {
-    spdlog::info("NEMO::TimeUpdate_RTsinglesrc() not implemented");
-    return 1;
-  }
-
-  ///
   /// Update microphysics including photoionization and photoheating
   ///
-  virtual int TimeUpdateMP_RTnew(
+  virtual int update_single_cell(
       const double *,  ///< Primitive Vector to be updated.
       const int,         ///< unused
       const std::vector<struct rt_source_data> &,  ///< unused
@@ -426,18 +399,6 @@ protected:
       const int,     ///< unused
       double *       ///< any returned data (final temperature?).
   );
-
-  /*
-  ///
-  /// Set the properties of a multifrequency ionising radiation source.
-  ///
-  int set_multifreq_source_properties(
-      // int tempin,
-      // double *
-      const struct rad_src_info *,  ///< source data
-      double *  ///< O/P source strength in different energy bins.
-  );
-   */
 
   ///
   /// Returns the gas temperature.  This is only needed for data output, so
@@ -460,25 +421,12 @@ protected:
   );
 
   ///
-  /// This returns the minimum timescale of the times flagged in the
-  /// arguments.
-  ///
-  virtual double timescales(
-      const double *,  ///< Current cell.
-      const double,      ///< EOS gamma.
-      const bool,        ///< set to 'true' if including cooling time.
-      const bool,        ///< set to 'true' if including recombination time.
-      const bool         ///< set to 'true' if including photo-ionsation time.
-  );
-
-  ///
   /// This returns the minimum timescale of all microphysical
   /// processes, including reaction times for each species and the
   /// total heating/cooling time for the gas.
-  /// It requires the radiation field as an input, but this is not
-  /// used for now so the vectors can be null.
+  /// It requires the radiation field as an input, but the vectors can be null.
   ///
-  virtual double timescales_RT(
+  virtual double timescales(
       const double *,  ///< Current cell.
       const int,         ///< Number of UV heating sources.
       const std::vector<struct rt_source_data> &,
@@ -488,27 +436,6 @@ protected:
       ///< list of ionising src column densities and source properties.
       const double  ///< EOS gamma.
   );
-
-  ///
-  /// Initialise microphysics ionisation fractions to an equilibrium
-  /// value. This is optionally used in the initial condition
-  /// generator.  Not implemented here.
-  ///
-  int Init_ionfractions(
-      double *,    ///< Primitive vector to be updated.
-      const double,  ///< eos gamma.
-      const double   ///< optional gas temperature to end up at.
-  )
-  {
-    spdlog::info("NEMO::Init_ionfractions() not implemented");
-    return 1;
-  }
-
-  ///
-  /// Return index of tracer for a given string.
-  ///
-  // int Tr(const string  ///< name of tracer we are looking for.
-  // );
 
   ///
   /// Get the total cooling rate.  This is for postprocessing the
@@ -680,9 +607,7 @@ protected:
       const double *  ///< input primitive vector.
   );
 
-  const int ndim;          ///< Number of dimensions in grid.
   const double eos_gamma;  ///< EOS gamma for ideal gas.
-  const int coord_sys;     ///< Coordinate System flag
   double gamma_minus_one;  ///< as named.
   double Min_NeutralFrac;  ///< minimum H0 fraction allowed (eps=1.0e-12)
   double Max_NeutralFrac;  ///< Maximum H0 fraction allowed (1-eps)

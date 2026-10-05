@@ -59,7 +59,7 @@ int main(int argc, char **argv)
   rs.src_data.resize(0);
 
   // nemo(ndim, coord-sys, Nel(state vec), Ntracer, tracers, extra-physics, rad-sources, gamma)
-  class nemo MP(1,1,15,5, tr, &wp, &rs, 5.0/3.0); 
+  class nemo MP(15,5, tr, &wp, &rs, 5.0/3.0); 
 
   std::vector<double> input(15,0.0);
   input[0]=1.0e-22; // density
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
   std::vector<double> output(15,0.0);
   double x=0.0;
 
-  MP.TimeUpdateMP_RTnew(
+  MP.update_single_cell(
                 input.data(), 0, rs.src_data, 0, rs.src_data, output.data(), 1e10,
                 5./3., 0, &x);
 

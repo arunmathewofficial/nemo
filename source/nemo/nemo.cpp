@@ -76,8 +76,6 @@ void nemo::get_problem_size(
 
 // CONSTRUCTOR ############################################################
 nemo::nemo(
-    const int nd,    ///< grid dimensions
-    const int csys,  ///< Coordinate System flag
     const int nv,    ///< Total number of variables in state vector
     const int ntr,   ///< Number of tracer variables in state vector.
     const std::string *tracers,   ///< List of what the tracer variables mean.
@@ -85,7 +83,7 @@ nemo::nemo(
     struct rad_sources *rsrcs,    ///< radiation sources.
     const double g                ///< EOS Gamma
     ) :
-    microphysics_base(nv, ntr, tracers, ephys, rsrcs), coll_ionise_recomb(),
+    coll_ionise_recomb(),
     charge_exchange(CX_MaxQ),
 #ifdef MELLEMA
     mellema_cooling(),
@@ -94,8 +92,9 @@ nemo::nemo(
 #else
 #error "must define MELLEMA or CHIANTI"
 #endif
-    ndim(nd), eos_gamma(g), coord_sys(csys), T_min(1e1), T_max(1e9),
+    eos_gamma(g), T_min(1e1), T_max(1e9),
     Num_temps(300), Num_ne(100), ne_min(1.0), ne_max(1.0e6),
+    nv_prim(nv), ntracer(ntr),
     stellar_atmosphere_models(), multi_ion_photo_xsections(), photoionisation()
 {
 
@@ -103,6 +102,42 @@ nemo::nemo(
       "nemo: Setting up tracer variables, assuming tracers"
       " are last {} variables in primitive vector",
       ntracer);
+
+  // ############  from base class - check if needed #########
+  EP = ephys;
+  RS = rsrcs;
+  // set up a map of tracer names to indices in state vec.
+  int offset = nv - ntr;
+  n_el       = 0;
+  for (int i = 0; i < ntr; i++) {
+    // spdlog::warn("tri {} {}",i,tr[i]);
+    tr_map[tracers[i]] = i + offset;
+    tr_index.push_back(i + offset);
+    // second map just for elements.
+    if (tracers[i].substr(0, 2) == "X_") {
+      el_map[tracers[i]] = i + offset;
+      el_index.push_back(i + offset);
+      n_el++;
+    }
+  }
+  // spdlog::warn("el_index {}",el_index);
+  // spdlog::warn("tr_index {}",tr_index);
+
+#ifdef DEBUG_MP
+  // for (auto elem : el_map) { // c++11 only (not working with intel compiler
+  // 2018r4)
+  for (std::map<std::string, int>::iterator it = el_map.begin();
+       it != el_map.end(); ++it) {
+    spdlog::debug("Elements Map: {} {}", it->first, it->second);
+  }
+  // for (auto elem : tr_map) { // c++11 only (not working with intel compiler
+  // 2018r4)
+  for (std::map<std::string, int>::iterator it = tr_map.begin();
+       it != tr_map.end(); ++it) {
+    spdlog::debug("Tracers Map: {} {}", it->first, it->second);
+  }
+#endif
+  // ############  from base class - end  #########
 
   // Setup stellar atmosphere models for stellar luminosity spectrum
   if (EP->phot_ionisation) {
@@ -1143,8 +1178,8 @@ int nemo::convert_prim2local(
 )
 {
   // function flag 1 -> Set_Temp()
-  // function flag 2 -> TimeUpdateMP_RTnew()
-  // function flag 3 -> timescales_RT()
+  // function flag 2 -> update_single_cell()
+  // function flag 3 -> timescales()
   // function flag 4 -> Temperature()
 
   // Make sure mass fraction in primitive vector is a self-consistent.
@@ -1378,32 +1413,10 @@ int nemo::Set_Temp(
 
 
 
-// ##################################################################
-// TIME UPDATE MP
-int nemo::TimeUpdateMP(
-    const double *p_in,  ///< Primitive Vector to be updated.
-    double *p_out,       ///< Destination Vector for updated values.
-    const double dt,       ///< Time Step to advance by.
-    const double,          ///< EOS gamma.
-    const int,             ///< Switch for what type of integration to use.
-    double *random_stuff   ///< Vector of extra data (column densities, etc.).
-)
-{
-  //
-  // Call the new update function, but with zero radiation sources.
-  //
-  std::vector<struct rt_source_data> temp;
-  int err =
-      TimeUpdateMP_RTnew(p_in, 0, temp, 0, temp, p_out, dt, 0, 0, random_stuff);
-  return err;
-}
-// END OF TIME UPDATE MP ############################################
-
-
 
 // ##################################################################
 // TIME UPDATE MP RT NEW
-int nemo::TimeUpdateMP_RTnew(
+int nemo::update_single_cell(
     const double *p_in,  ///< Primitive Vector to be updated.
     const int,             ///< unused.
     const std::vector<struct rt_source_data> &,  ///< unused.
@@ -1428,7 +1441,7 @@ int nemo::TimeUpdateMP_RTnew(
 
   err = correct_localvector(p_local, 1);
   if (err) {
-    spdlog::error("Bad input vector to TimeUpdateMP_RTnew");
+    spdlog::error("Bad input vector to update_single_cell_RT");
     exit(1);
   }
 
@@ -1449,7 +1462,7 @@ int nemo::TimeUpdateMP_RTnew(
   // err = ydot(0, y_in, y_out, 0);
   // if (err) {
   //  spdlog::error(
-  //      "{}: {}", "dYdt() returned an error in nemo::TimeUpdateMP_RTnew()",
+  //      "{}: {}", "dYdt() returned an error in nemo::update_single_cell_RT()",
   //      err);
   //  exit(1);
   //}
@@ -1458,7 +1471,7 @@ int nemo::TimeUpdateMP_RTnew(
   err = integrate_cvode_step(y_in, 0, 0.0, dt, y_out);
   if (err) {
     spdlog::error(
-        "integration failed: nemo::TimeUpdateMP_RTnew() error {}", err);
+        "integration failed: nemo::update_single_cell_RT() error {}", err);
     for (int v = 0; v < N_local; v++)
       p_local[v] = NV_Ith_S(y_in, v);
     spdlog::error("y_in: {}", p_local);
@@ -1476,7 +1489,7 @@ int nemo::TimeUpdateMP_RTnew(
 
   err = correct_localvector(p_local, 2);
   if (err) {
-    spdlog::error("bad output vector from TimeUpdateMP_RTnew");
+    spdlog::error("bad output vector from update_single_cell_RT");
     exit(2);
   }
   err = convert_local2prim(p_local, p_in, p_out, 2);
@@ -1507,9 +1520,9 @@ int nemo::correct_localvector(
     int function_flag              /// flags the function
 )
 {
-  // function_flag 1 -> towards begining of TimeUpdateMP_RTnew
-  // function_flag 2 -> towards the end of TimeUpdateMP_RTnew
-  // function_flag 3 -> timescales_RT
+  // function_flag 1 -> towards begining of update_single_cell_RT
+  // function_flag 2 -> towards the end of update_single_cell_RT
+  // function_flag 3 -> timescales
   // function_flag 4 -> ydot
 
 
@@ -1620,36 +1633,14 @@ int nemo::correct_localvector(
 
 
 
-// ##################################################################
-double nemo::timescales(
-    const double *prim_in,  ///< Current cell state vector.
-    const double,             ///< EOS gamma.
-    const bool,               ///< set to 'true' if including cooling time.
-    const bool,  ///< set to 'true' if including recombination time.
-    const bool   ///< set to 'true' if including photo-ionsation time.
-)
-{
-#ifdef NEMO_DEBUG
-  if (RS->Nsources != 0) {
-    spdlog::debug("WARNING: nemo::timescales() using non-RT version!");
-  }
-#endif  // NEMO_DEBUG
-  std::vector<struct rt_source_data> temp;
-  double tmin = timescales_RT(prim_in, 0, temp, 0, temp, 0.0);
-  temp.clear();
-  return tmin;
-}
-
-
 
 // TIME SCALE RT ###########################################################
 /// This returns the minimum timescale of all microphysical processes,
 /// including reaction times for each species and the total heating/cooling
-/// time for the gas. It requires the radiation field as an input, so it has
-/// substantially greater capability than the other timescales function.
+/// time for the gas. It requires the radiation field as an input, if present.
 /// Default setting is DT02, which limits by 0.25/ydot (and not by E/Edot)
 ///
-double nemo::timescales_RT(
+double nemo::timescales(
     const double *prim_in,  ///< Current cell state vector.
     const int N_heat,         ///< Number of UV heating sources.
     const std::vector<struct rt_source_data> &heat_src,
@@ -1673,7 +1664,7 @@ double nemo::timescales_RT(
   // First convert to local variables.
   err = convert_prim2local(prim_in, p_local, 3);
   if (err) {
-    spdlog::error("{}: {}", "Bad input state to nemo::timescales_RT()", err);
+    spdlog::error("{}: {}", "Bad input state to nemo::timescales()", err);
     exit_nemo(1);
   }
 
@@ -1699,7 +1690,7 @@ double nemo::timescales_RT(
   err = ydot(0, y_in, y_out, 0);
   if (err) {
     spdlog::error(
-        "{}: {}", "dYdt() returned an error in nemo::timescales_RT()", err);
+        "{}: {}", "dYdt() returned an error in nemo::timescales()", err);
     exit_nemo(1);
   }
 
@@ -1716,7 +1707,7 @@ double nemo::timescales_RT(
   for (int v = 0; v < N_local; v++)
     Y_dot[v] = NV_Ith_S(y_out, v);
 
-  for (int v = 0; v < N_equations; v++) {
+  for (int v = 0; v < N_equations-1; v++) {
     // t = min(t, DTFRAC / (fabs(NV_Ith_S(y_out, v)) + TINYVALUE));
     t = min(t, DTFRAC / (fabs(Y_dot[v]) + TINYVALUE));
   }
