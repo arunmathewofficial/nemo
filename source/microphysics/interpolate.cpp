@@ -36,7 +36,8 @@ interpolate_arrays::interpolate_arrays() {}
 // ##################################################################
 // ##################################################################
 
-interpolate_arrays::~interpolate_arrays() {
+interpolate_arrays::~interpolate_arrays()
+{
   // cout <<"timers.size: "<<timers.size()<<"\n";
 }
 
@@ -44,14 +45,19 @@ interpolate_arrays::~interpolate_arrays() {
 // ##################################################################
 
 void interpolate_arrays::spline(
-    const double *x, const double *y, const int n, double yp1, double ypn,
-    int &id ///< reference id for this spline interpolation.
-) {
+    const double *x,
+    const double *y,
+    const int n,
+    double yp1,
+    double ypn,
+    int &id  ///< reference id for this spline interpolation.
+)
+{
   vector<double> vx(x, x + n);
   vector<double> vy(y, y + n);
   using boost::math::interpolators::makima;
-  class makima<vector<double>> *data =
-      new makima<std::vector<double>>(std::move(vx), std::move(vy), yp1, ypn);
+  class makima<vector<double> > *data =
+      new makima<std::vector<double> >(std::move(vx), std::move(vy), yp1, ypn);
   id = slist.size();
   slist.push_back(data);
 
@@ -62,14 +68,18 @@ void interpolate_arrays::spline(
 // ##################################################################
 
 void interpolate_arrays::splint(
-    const double[], const double[],
-    const int id, ///< reference id for this spline interpolation.
-    const int, const double x, double *y) {
+    const double[],
+    const double[],
+    const int id,  ///< reference id for this spline interpolation.
+    const int,
+    const double x,
+    double *y)
+{
   if (id >= static_cast<int>(slist.size()))
     spdlog::error("{}: {}", "bad splint request", id);
   using boost::math::interpolators::makima;
-  class makima<vector<double>> data = *(slist[id]);
-  *y = data(x);
+  class makima<vector<double> > data = *(slist[id]);
+  *y                                 = data(x);
   return;
 }
 
@@ -77,12 +87,16 @@ void interpolate_arrays::splint(
 // ##################################################################
 
 void interpolate_arrays::spline_vec(
-    vector<double> x, vector<double> y, double, double,
-    int &id ///< reference id for this spline interpolation.
-) {
+    vector<double> x,
+    vector<double> y,
+    double,
+    double,
+    int &id  ///< reference id for this spline interpolation.
+)
+{
   using boost::math::interpolators::makima;
-  class makima<vector<double>> *data =
-      new makima<std::vector<double>>(std::move(x), std::move(y));
+  class makima<vector<double> > *data =
+      new makima<std::vector<double> >(std::move(x), std::move(y));
 
   id = slist.size();
   slist.push_back(data);
@@ -93,13 +107,15 @@ void interpolate_arrays::spline_vec(
 // ##################################################################
 
 void interpolate_arrays::splint_vec(
-    const int id, ///< reference id for this spline interpolation.
-    const double x, double *y) {
+    const int id,  ///< reference id for this spline interpolation.
+    const double x,
+    double *y)
+{
   if (id >= static_cast<int>(slist.size()))
     spdlog::error("{}: {}", "bad splint request", id);
   using boost::math::interpolators::makima;
-  class makima<vector<double>> data = *(slist[id]);
-  *y = data(x);
+  class makima<vector<double> > data = *(slist[id]);
+  *y                                 = data(x);
   return;
 }
 
@@ -107,11 +123,12 @@ void interpolate_arrays::splint_vec(
 // ##################################################################
 
 void interpolate_arrays::root_find_linear_vec(
-    const vector<double> &xarr, ///< Array of x values.
-    const vector<double> &yarr, ///< Array of y values.
-    const double xreq,          ///< x we are searching for.
-    double &yreq                ///< pointer to result.
-) {
+    const vector<double> &xarr,  ///< Array of x values.
+    const vector<double> &yarr,  ///< Array of y values.
+    const double xreq,           ///< x we are searching for.
+    double &yreq                 ///< pointer to result.
+)
+{
   //
   // Given a vector of x-values, and corresponding y-values, and an input
   // x value, find the corresponding y-value by bisection and then linear
@@ -121,9 +138,9 @@ void interpolate_arrays::root_find_linear_vec(
   // x-value, with bisection.
   //
   size_t len = xarr.size();
-  size_t ihi = len - 1, // upper bracketing value
-      ilo = 0,          // lower bracketing value
-      imid = 0;         // midpoint
+  size_t ihi = len - 1,  // upper bracketing value
+      ilo    = 0,        // lower bracketing value
+      imid   = 0;        // midpoint
   do {
     imid = ilo + floor((ihi - ilo) / 2.0);
     if (xarr[imid] < xreq)
@@ -148,8 +165,9 @@ void interpolate_arrays::root_find_linear_vec(
   // Now we linearly interpolate the y value between the two adjacent
   // bracketing points.
   //
-  yreq = yarr[ilo] +
-         (yarr[ihi] - yarr[ilo]) * (xval - xarr[ilo]) / (xarr[ihi] - xarr[ilo]);
+  yreq =
+      yarr[ilo]
+      + (yarr[ihi] - yarr[ilo]) * (xval - xarr[ilo]) / (xarr[ihi] - xarr[ilo]);
   return;
 }
 
@@ -157,12 +175,13 @@ void interpolate_arrays::root_find_linear_vec(
 // ##################################################################
 
 void interpolate_arrays::root_find_linear(
-    const double *xarr, ///< Array of x values.
-    const double *yarr, ///< Array of y values.
-    const size_t len,   ///< Array sizes
-    const double xreq,  ///< x we are searching for.
-    double *yreq        ///< pointer to result.
-) {
+    const double *xarr,  ///< Array of x values.
+    const double *yarr,  ///< Array of y values.
+    const size_t len,    ///< Array sizes
+    const double xreq,   ///< x we are searching for.
+    double *yreq         ///< pointer to result.
+)
+{
   //
   // Given a vector of x-values, and corresponding y-values, and an input
   // x value, find the corresponding y-value by bisection and then linear
@@ -171,9 +190,9 @@ void interpolate_arrays::root_find_linear(
   // First we find the two x-points in the array which bracket the requested
   // x-value, with bisection.
   //
-  size_t ihi = len - 1, // upper bracketing value
-      ilo = 0,          // lower bracketing value
-      imid = 0;         // midpoint
+  size_t ihi = len - 1,  // upper bracketing value
+      ilo    = 0,        // lower bracketing value
+      imid   = 0;        // midpoint
   do {
     imid = ilo + floor((ihi - ilo) / 2.0);
     if (xarr[imid] < xreq)
@@ -198,8 +217,9 @@ void interpolate_arrays::root_find_linear(
   // Now we linearly interpolate the y value between the two adjacent
   // bracketing points.
   //
-  *yreq = yarr[ilo] + (yarr[ihi] - yarr[ilo]) * (xval - xarr[ilo]) /
-                          (xarr[ihi] - xarr[ilo]);
+  *yreq =
+      yarr[ilo]
+      + (yarr[ihi] - yarr[ilo]) * (xval - xarr[ilo]) / (xarr[ihi] - xarr[ilo]);
   return;
 }
 
@@ -207,13 +227,14 @@ void interpolate_arrays::root_find_linear(
 // ##################################################################
 
 void interpolate_arrays::root_find_bilinear(
-    const double *x,    ///< Array of x values.
-    const double *y,    ///< Array of y values.
-    double **f,         ///< Array of function values
-    const size_t *len,  ///< Array sizes
-    const double *xreq, ///< (x,y) we are searching for.
-    double *res         ///< pointer to result.
-) {
+    const double *x,     ///< Array of x values.
+    const double *y,     ///< Array of y values.
+    double **f,          ///< Array of function values
+    const size_t *len,   ///< Array sizes
+    const double *xreq,  ///< (x,y) we are searching for.
+    double *res          ///< pointer to result.
+)
+{
   //
   // Given a vector of (x,y)-values, and corresponding f-values,
   // and an input (x,y) value, find the corresponding f-value by
@@ -222,10 +243,10 @@ void interpolate_arrays::root_find_bilinear(
   // First we find the two x/y-points in the array which bracket the requested
   // x/y-value, with bisection.
   //
-  size_t ihi = len[0] - 1, jhi = len[1] - 1, // upper bracketing value
-      ilo = 0, jlo = 0,                      // lower bracketing value
-      imid = 0, jmid = 0;                    // midpoint
-  int count = 0;
+  size_t ihi = len[0] - 1, jhi = len[1] - 1,  // upper bracketing value
+      ilo = 0, jlo = 0,                       // lower bracketing value
+      imid = 0, jmid = 0;                     // midpoint
+  int count   = 0;
   double xval = 0.0, yval = 0.0;
 
   do {
@@ -248,13 +269,13 @@ void interpolate_arrays::root_find_bilinear(
   } while (jhi - jlo > 1);
 
   if (ihi - ilo != 1) {
-    spdlog::error("root_find_bilinear: Couldn't bracket root i: {}, {}", ihi,
-                  ilo);
+    spdlog::error(
+        "root_find_bilinear: Couldn't bracket root i: {}, {}", ihi, ilo);
   }
 
   if (jhi - jlo != 1) {
-    spdlog::error("root_find_bilinear: Couldn't bracket root j: {}, {}", jhi,
-                  jlo);
+    spdlog::error(
+        "root_find_bilinear: Couldn't bracket root j: {}, {}", jhi, jlo);
   }
 
   //
@@ -281,10 +302,11 @@ void interpolate_arrays::root_find_bilinear(
   //          f(lo,hi)(xhi-x)(y-ylo)+
   //          f(hi,hi)(x-xlo)(y-ylo) )/(dx*dy)
   //
-  *res = (f[ilo][jlo] * (x[ihi] - xval) * (y[jhi] - yval) +
-          f[ihi][jlo] * (xval - x[ilo]) * (y[jhi] - yval) +
-          f[ilo][jhi] * (x[ihi] - xval) * (yval - y[jlo]) +
-          f[ihi][jhi] * (xval - x[ilo]) * (yval - y[jlo]));
+  *res =
+      (f[ilo][jlo] * (x[ihi] - xval) * (y[jhi] - yval)
+       + f[ihi][jlo] * (xval - x[ilo]) * (y[jhi] - yval)
+       + f[ilo][jhi] * (x[ihi] - xval) * (yval - y[jlo])
+       + f[ihi][jhi] * (xval - x[ilo]) * (yval - y[jlo]));
   *res /= ((x[ihi] - x[ilo]) * (y[jhi] - y[jlo]));
   return;
 }
@@ -293,12 +315,13 @@ void interpolate_arrays::root_find_bilinear(
 // ##################################################################
 
 double interpolate_arrays::root_find_bilinear_vec(
-    const vector<double> &x,         ///< Array of x values.
-    const vector<double> &y,         ///< Array of y values.
-    const vector<vector<double>> &f, ///< Array of function values
-    const vector<size_t> &len,       ///< Array sizes
-    const vector<double> &xreq       ///< (x,y) we are searching for.
-) {
+    const vector<double> &x,           ///< Array of x values.
+    const vector<double> &y,           ///< Array of y values.
+    const vector<vector<double> > &f,  ///< Array of function values
+    const vector<size_t> &len,         ///< Array sizes
+    const vector<double> &xreq         ///< (x,y) we are searching for.
+)
+{
   //
   // Given a vector of (x,y)-values, and corresponding f-values,
   // and an input (x,y) value, find the corresponding f-value by
@@ -307,10 +330,10 @@ double interpolate_arrays::root_find_bilinear_vec(
   // First we find the two x/y-points in the array which bracket the requested
   // x/y-value, with bisection.
   //
-  size_t ihi = len[0] - 1, jhi = len[1] - 1, // upper bracketing value
-      ilo = 0, jlo = 0,                      // lower bracketing value
-      imid = 0, jmid = 0;                    // midpoint
-  int count = 0;
+  size_t ihi = len[0] - 1, jhi = len[1] - 1,  // upper bracketing value
+      ilo = 0, jlo = 0,                       // lower bracketing value
+      imid = 0, jmid = 0;                     // midpoint
+  int count   = 0;
   double xval = 0.0, yval = 0.0, result = 0.0;
 
   do {
@@ -337,13 +360,13 @@ double interpolate_arrays::root_find_bilinear_vec(
   // cout <<y[jhi]<<" and y[jlo]="<<y[jlo]<<" and yreq="<<xreq[1]<<"\n";
 
   if (ihi - ilo != 1) {
-    spdlog::error("root_find_bilinear: Couldn't bracket root i: {}, {}", ihi,
-                  ilo);
+    spdlog::error(
+        "root_find_bilinear: Couldn't bracket root i: {}, {}", ihi, ilo);
   }
 
   if (jhi - jlo != 1) {
-    spdlog::error("root_find_bilinear: Couldn't bracket root j: {}, {}", jhi,
-                  jlo);
+    spdlog::error(
+        "root_find_bilinear: Couldn't bracket root j: {}, {}", jhi, jlo);
   }
 
   //
@@ -371,10 +394,11 @@ double interpolate_arrays::root_find_bilinear_vec(
   //          f(lo,hi)(xhi-x)(y-ylo)+
   //          f(hi,hi)(x-xlo)(y-ylo) )/(dx*dy)
   //
-  result = (f[ilo][jlo] * (x[ihi] - xval) * (y[jhi] - yval) +
-            f[ihi][jlo] * (xval - x[ilo]) * (y[jhi] - yval) +
-            f[ilo][jhi] * (x[ihi] - xval) * (yval - y[jlo]) +
-            f[ihi][jhi] * (xval - x[ilo]) * (yval - y[jlo]));
+  result =
+      (f[ilo][jlo] * (x[ihi] - xval) * (y[jhi] - yval)
+       + f[ihi][jlo] * (xval - x[ilo]) * (y[jhi] - yval)
+       + f[ilo][jhi] * (x[ihi] - xval) * (yval - y[jlo])
+       + f[ihi][jhi] * (xval - x[ilo]) * (yval - y[jlo]));
   result /= ((x[ihi] - x[ilo]) * (y[jhi] - y[jlo]));
   return result;
 }
@@ -383,14 +407,15 @@ double interpolate_arrays::root_find_bilinear_vec(
 // ##################################################################
 
 double interpolate_arrays::root_find_trilinear_vec(
-    const vector<double> &x_vec, ///< Array of x values
-    const vector<double> &y_vec, ///< Array of y values
-    const vector<double> &z_vec, ///< Array of z values
-    const vector<vector<vector<double>>>
-        &f,                         ///< Array of function values f(x,y,z)
-    const vector<size_t> &vec_size, ///< Array sizes
-    const vector<double> &input     ///< (x,y,z) we want f for.
-) {
+    const vector<double> &x_vec,  ///< Array of x values
+    const vector<double> &y_vec,  ///< Array of y values
+    const vector<double> &z_vec,  ///< Array of z values
+    const vector<vector<vector<double> > >
+        &f,                          ///< Array of function values f(x,y,z)
+    const vector<size_t> &vec_size,  ///< Array sizes
+    const vector<double> &input      ///< (x,y,z) we want f for.
+)
+{
   //
   // Determine (x0,y0,z0) and (x1,y1,z1) - nearest neighbours to input (x,y,z)
   //
@@ -422,8 +447,8 @@ double interpolate_arrays::root_find_trilinear_vec(
     exit_nemo(1);
   }
   if (y_index <= 0 || y_index >= vec_size[1]) {
-    spdlog::error("y out of range: y_index={}, y={}, {}", y_index, y,
-                  vec_size[1]);
+    spdlog::error(
+        "y out of range: y_index={}, y={}, {}", y_index, y, vec_size[1]);
     spdlog::error("yvec {}", y_vec);
     spdlog::error("Bug {}", 2);
     exit_nemo(2);
@@ -441,14 +466,14 @@ double interpolate_arrays::root_find_trilinear_vec(
   double dz = (z - z0) / (z1 - z0);
 
   // Calculate f000, f001 etc. terms for coefficients
-  double f000 = f[x_index - 1][y_index - 1][z_index - 1]; // f(x0, y0, z0)
-  double f001 = f[x_index - 1][y_index - 1][z_index];     // f(x0, y0, z1)
-  double f010 = f[x_index - 1][y_index][z_index - 1];     // f(x0, y1, z0)
-  double f100 = f[x_index][y_index - 1][z_index - 1];     // f(x1, y0, z0)
-  double f110 = f[x_index][y_index][z_index - 1];         // f(x1, y1, z0)
-  double f011 = f[x_index - 1][y_index][z_index];         // f(x0, y1, z1)
-  double f101 = f[x_index][y_index - 1][z_index];         // f(x1, y0, z1)
-  double f111 = f[x_index][y_index][z_index];             // f(x1, y1, z1)
+  double f000 = f[x_index - 1][y_index - 1][z_index - 1];  // f(x0, y0, z0)
+  double f001 = f[x_index - 1][y_index - 1][z_index];      // f(x0, y0, z1)
+  double f010 = f[x_index - 1][y_index][z_index - 1];      // f(x0, y1, z0)
+  double f100 = f[x_index][y_index - 1][z_index - 1];      // f(x1, y0, z0)
+  double f110 = f[x_index][y_index][z_index - 1];          // f(x1, y1, z0)
+  double f011 = f[x_index - 1][y_index][z_index];          // f(x0, y1, z1)
+  double f101 = f[x_index][y_index - 1][z_index];          // f(x1, y0, z1)
+  double f111 = f[x_index][y_index][z_index];              // f(x1, y1, z1)
 
   // Calculate c coefficients for trilinear interpolation
   double c0 = f000;
@@ -461,8 +486,8 @@ double interpolate_arrays::root_find_trilinear_vec(
   double c7 = f111 - f011 - f101 - f110 + f100 + f001 + f010 - f000;
 
   // Return f(x,y,z)
-  return c0 + c1 * dx + c2 * dy + c3 * dz + c4 * dx * dy + c5 * dy * dz +
-         c6 * dz * dx + c7 * dx * dy * dz;
+  return c0 + c1 * dx + c2 * dy + c3 * dz + c4 * dx * dy + c5 * dy * dz
+         + c6 * dz * dx + c7 * dx * dy * dz;
 }
 
 // ##################################################################

@@ -13,29 +13,31 @@ stellar_atmosphere_models::~stellar_atmosphere_models() {}
 
 // SETTING UP STELLAR ATMOSPHERE MODELS ###################################
 void stellar_atmosphere_models::setup_stellar_atmosphere_models(
-    std::vector<std::vector<double>> &Ebins, // Energy bins
-    int &N_ebins,                            // Number of energy bins
-    double &Emax                             // Maximum photo-ionisation energy
-) {
+    std::vector<std::vector<double> > &Ebins,  // Energy bins
+    int &N_ebins,                              // Number of energy bins
+    double &Emax  // Maximum photo-ionisation energy
+)
+{
 
   spdlog::info("Setting up stellar atmosphere module");
 
   // Define Energy bins here.
-  energy_bins = {{7.902470e+00, 1.359840e+01},
-                 {1.359840e+01, 2.438310e+01},
-                 {2.438310e+01, 5.441780e+01},
-                 {5.441780e+01, 7.700000e+01}};
+  energy_bins = {
+      {7.902470e+00, 1.359840e+01},
+      {1.359840e+01, 2.438310e+01},
+      {2.438310e+01, 5.441780e+01},
+      {5.441780e+01, 7.700000e+01}};
 
   // Get number of energy bins
   N_energy_bins = energy_bins.size();
 
   // passing energy bin info
-  Ebins = energy_bins;
+  Ebins   = energy_bins;
   N_ebins = N_energy_bins;
 
   // Get photoionisation maximum energy
   const std::vector<double> &last_bin = energy_bins.back();
-  Emax = last_bin.back();
+  Emax                                = last_bin.back();
 
   // Initializing stellar atmosphere models database
   stellar_atmosphere_model_database();
@@ -43,13 +45,14 @@ void stellar_atmosphere_models::setup_stellar_atmosphere_models(
 
 // GENERATE STELLAR SPECTRUM  ###########################################
 int stellar_atmosphere_models::generate_bin_luminosity(
-    const int source_type,               // Source identifier
-    const double Tstar,                  // Effective temperature of the star
-    const double Rstar,                  // Stellar radius
-    const double Lstar,                  // Total luminosity
-    std::vector<double> &bin_luminosity, //
-    std::string &SED_info                //
-) {
+    const int source_type,                // Source identifier
+    const double Tstar,                   // Effective temperature of the star
+    const double Rstar,                   // Stellar radius
+    const double Lstar,                   // Total luminosity
+    std::vector<double> &bin_luminosity,  //
+    std::string &SED_info                 //
+)
+{
 
   double Total_luminosity = Lstar;
   // Check that the total luminosity is close to the luminosity
@@ -59,11 +62,12 @@ int stellar_atmosphere_models::generate_bin_luminosity(
     return 1;
   }
 
-  double L_Stefan_Bolt = 4.0 * M_PI * StefanBoltzmannConst() * pow(Tstar, 4.0) *
-                         Rstar * Rsun() * Rstar * Rsun();
+  double L_Stefan_Bolt = 4.0 * M_PI * StefanBoltzmannConst() * pow(Tstar, 4.0)
+                         * Rstar * Rsun() * Rstar * Rsun();
   if (fabs(1.0 - L_Stefan_Bolt / Lstar) > 0.05 && !equalD(Lstar, 1.0)) {
-    spdlog::warn("Luminosities don't match! Lstar={} and L_Stefan-Bolt={}",
-                 Lstar, L_Stefan_Bolt);
+    spdlog::warn(
+        "Luminosities don't match! Lstar={} and L_Stefan-Bolt={}", Lstar,
+        L_Stefan_Bolt);
     spdlog::warn("generate stellar spectrum: Ignoring Lstar and using "
                  "4.Pi.R^2.sigma.T^4");
     Total_luminosity = L_Stefan_Bolt;
@@ -83,25 +87,27 @@ int stellar_atmosphere_models::generate_bin_luminosity(
 
   stellar_model_datatype model;
   // Invoke the stellar atmosphere model for the given source type
-  model = get_stellar_atmosphere_model(source_type); // source type
+  model = get_stellar_atmosphere_model(source_type);  // source type
 
   // check if the Tstar temperature is within the temperature range
   // of the model data.
-  std::vector<std::vector<double>> model_data = model.data;
-  std::vector<double> &first_model_entry = model_data.front();
-  std::vector<double> &last_model_entry = model_data.back();
-  double min_stellar_effective_temperature = first_model_entry.front();
-  double max_stellar_effective_temperature = last_model_entry.front();
+  std::vector<std::vector<double> > model_data = model.data;
+  std::vector<double> &first_model_entry       = model_data.front();
+  std::vector<double> &last_model_entry        = model_data.back();
+  double min_stellar_effective_temperature     = first_model_entry.front();
+  double max_stellar_effective_temperature     = last_model_entry.front();
 
   if (Tstar < min_stellar_effective_temperature) {
-    spdlog::error("SED: Tstar fall short of min SED temperature {} K",
-                  min_stellar_effective_temperature);
+    spdlog::error(
+        "SED: Tstar fall short of min SED temperature {} K",
+        min_stellar_effective_temperature);
     return 1;
   }
 
   if (Tstar > max_stellar_effective_temperature) {
-    spdlog::error("SED: Tstar exceeds max SED temperature {} K",
-                  max_stellar_effective_temperature);
+    spdlog::error(
+        "SED: Tstar exceeds max SED temperature {} K",
+        max_stellar_effective_temperature);
     return 1;
   }
 
@@ -109,8 +115,9 @@ int stellar_atmosphere_models::generate_bin_luminosity(
   // are interested in.
   int N_spectral_bins = model_data[0].size() - 1;
   if (N_spectral_bins != N_energy_bins) {
-    spdlog::error("SED: Energy bin count doesn't match spectral bin size {}",
-                  N_spectral_bins);
+    spdlog::error(
+        "SED: Energy bin count doesn't match spectral bin size {}",
+        N_spectral_bins);
     return 1;
   }
 
@@ -118,7 +125,7 @@ int stellar_atmosphere_models::generate_bin_luminosity(
   // star temperature in the stellar model.
   double T_lower = 0.0;
   double T_upper = 0.0;
-  int T_index = 0;
+  int T_index    = 0;
   for (; T_index < model_data.size() && Tstar > model_data[T_index][0];
        T_index++)
     ;
@@ -127,10 +134,10 @@ int stellar_atmosphere_models::generate_bin_luminosity(
 
   double frac_luminosity = 0.0;
   for (int j = 1; j < model_data[0].size(); j++) {
-    frac_luminosity =
-        model_data[T_index - 1][j] *
-            (1 - (Tstar - T_lower) / (T_upper - T_lower)) +
-        model_data[T_index][j] * (1 - (T_upper - Tstar) / (T_upper - T_lower));
+    frac_luminosity = model_data[T_index - 1][j]
+                          * (1 - (Tstar - T_lower) / (T_upper - T_lower))
+                      + model_data[T_index][j]
+                            * (1 - (T_upper - Tstar) / (T_upper - T_lower));
     // multiply by the total luminosity to get erg/s/bin:
     bin_luminosity.push_back(frac_luminosity * Total_luminosity);
   }
@@ -143,15 +150,13 @@ int stellar_atmosphere_models::generate_bin_luminosity(
 
 // CATALOGUING STELLAR ATMOSPHERE  #######################################
 // cataloguing data base
-stellar_model_datatype
-stellar_atmosphere_models::get_stellar_atmosphere_model(int source_type) {
+stellar_model_datatype stellar_atmosphere_models::get_stellar_atmosphere_model(
+    int source_type)
+{
   stellar_model_datatype model;
-  if (source_type == RT_EFFECT_MP10_ATLAS_O3V)
-    model = atlas_ckp00_g45;
-  if (source_type == RT_EFFECT_MP10_POWR_WC)
-    model = powr_mw_wc;
-  if (source_type == RT_EFFECT_MP10_POWR_WNE)
-    model = powr_mw_wne;
+  if (source_type == RT_EFFECT_MP10_ATLAS_O3V) model = atlas_ckp00_g45;
+  if (source_type == RT_EFFECT_MP10_POWR_WC) model = powr_mw_wc;
+  if (source_type == RT_EFFECT_MP10_POWR_WNE) model = powr_mw_wne;
   if (source_type == RT_EFFECT_MP10_BLACKBODY) {
     spdlog::info("Setting up Blackbody SED");
     model = blackbody;
@@ -160,7 +165,8 @@ stellar_atmosphere_models::get_stellar_atmosphere_model(int source_type) {
 }
 
 // STELLAR ATMOSPHERE MODEL DATABASE  ####################################
-void stellar_atmosphere_models::stellar_atmosphere_model_database() {
+void stellar_atmosphere_models::stellar_atmosphere_model_database()
+{
   // This is binned flux divided by total flux. This basically give the
   // distribution of flux as the function of frequency. Here it
 

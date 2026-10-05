@@ -13,7 +13,8 @@
 
 // ##################################################################
 // Constructor
-multi_ion_photo_xsections::multi_ion_photo_xsections() {
+multi_ion_photo_xsections::multi_ion_photo_xsections()
+{
   multi_ion_photo_xsections_database();
 }
 
@@ -24,8 +25,9 @@ multi_ion_photo_xsections::~multi_ion_photo_xsections() {}
 // ##################################################################
 //
 std::vector<double> multi_ion_photo_xsections::setup_photo_xsections(
-    const std::vector<std::string> &photo_tracer_list // photo tracer species
-) {
+    const std::vector<std::string> &photo_tracer_list  // photo tracer species
+)
+{
   spdlog::info("Setting up multi-ion photoionisation cross-section module");
 
   // Resize photo cross-section table based on photo tracer list.
@@ -49,26 +51,28 @@ std::vector<double> multi_ion_photo_xsections::setup_photo_xsections(
 // ##################################################################
 // Calculate cross-section of a species for a specific energy.
 double multi_ion_photo_xsections::species_xsection(
-    const std::string species, // Name of the species
-    const double &E            // Energy of photons
-) {
-  if (E < atomic_physics_data.get_ionisation_energy(species))
-    return 0.0;
+    const std::string species,  // Name of the species
+    const double &E             // Energy of photons
+)
+{
+  if (E < atomic_physics_data.get_ionisation_energy(species)) return 0.0;
 
   // show error if the energy is larger than emax
   if (E > 1.2 * photo_xsection_parameters[species].fit_emax) {
-    spdlog::warn("multi-ion photo-xsection: energy exceeds fit range"
-                 " for {}, E: {} eV",
-                 species, E);
+    spdlog::warn(
+        "multi-ion photo-xsection: energy exceeds fit range"
+        " for {}, E: {} eV",
+        species, E);
   }
 
-  double x = E / photo_xsection_parameters[species].E0 -
-             photo_xsection_parameters[species].y0;
+  double x = E / photo_xsection_parameters[species].E0
+             - photo_xsection_parameters[species].y0;
   double y = sqrt(x * x + pow(photo_xsection_parameters[species].y1, 2.0));
   double Fy =
-      (pow(x - 1.0, 2.0) + pow(photo_xsection_parameters[species].yw, 2.0)) *
-      pow(y, 0.5 * photo_xsection_parameters[species].P - 5.5) *
-      pow(1.0 + sqrt(y / photo_xsection_parameters[species].ya),
+      (pow(x - 1.0, 2.0) + pow(photo_xsection_parameters[species].yw, 2.0))
+      * pow(y, 0.5 * photo_xsection_parameters[species].P - 5.5)
+      * pow(
+          1.0 + sqrt(y / photo_xsection_parameters[species].ya),
           -photo_xsection_parameters[species].P);
   double sigmaE = photo_xsection_parameters[species].sigma0 * 1e-18 * Fy;
   return sigmaE;
@@ -76,15 +80,17 @@ double multi_ion_photo_xsections::species_xsection(
 
 // ##################################################################
 void multi_ion_photo_xsections::generate_ebin_mean_xsection(
-    const std::vector<std::vector<double>> &ebins // energy bins
-) {
+    const std::vector<std::vector<double> > &ebins  // energy bins
+)
+{
   spdlog::info("Generating mean photo-xsection tables");
 
   std::vector<double> get_bin_mean_xsection_fraction = {0.0, 0.0};
   for (int s = 0; s < photo_species_list.size(); s++) {
-    spdlog::debug("multi-ion photo-xsection: generating"
-                  " mean-photo-xsection {:s}",
-                  photo_species_list[s]);
+    spdlog::debug(
+        "multi-ion photo-xsection: generating"
+        " mean-photo-xsection {:s}",
+        photo_species_list[s]);
     for (int b = 0; b < ebins.size(); b++) {
       get_bin_mean_xsection_fraction = mean_bin_xsection(
           photo_species_list[s], photo_threshold[s], ebins[b]);
@@ -96,10 +102,11 @@ void multi_ion_photo_xsections::generate_ebin_mean_xsection(
 
 // MEAN BIN CROSS-SECTION ###############################################
 std::vector<double> multi_ion_photo_xsections::mean_bin_xsection(
-    const std::string species,      // Name of the species
-    const double &Eth,              //
-    const std::vector<double> &Ebin // Range of particular energy bin
-) {
+    const std::string species,       // Name of the species
+    const double &Eth,               //
+    const std::vector<double> &Ebin  // Range of particular energy bin
+)
+{
   // This function returns a vector with two elements. The first element
   // represents the mean cross-section for the given energy bin, while
   // the last element indicates the proportion of the energy bin that
@@ -108,16 +115,14 @@ std::vector<double> multi_ion_photo_xsections::mean_bin_xsection(
   // If the ionization threshold exceeds the upper energy limit of the bin,
   // the function return a zero mean cross-section.
   // double set_precision  = 0.3; || Ebin[1] - Eth < set_precision
-  if (Ebin[1] - Eth <= 0.0)
-    return {0.0, 0.0};
+  if (Ebin[1] - Eth <= 0.0) return {0.0, 0.0};
 
   // Calculate the bin_fraction for the given bin
   double bin_fraction = 0.0;
-  double bin_width = Ebin[1] - Ebin[0];
+  double bin_width    = Ebin[1] - Ebin[0];
   // if the lower bin edge is larger than ionisation threshold of the species,
   // then return bin fraction as 1.0
-  if ((Ebin[1] - Eth) / bin_width > 1)
-    bin_fraction = 1.0;
+  if ((Ebin[1] - Eth) / bin_width > 1) bin_fraction = 1.0;
   // if ionisation threshold of the species lies within the bin width, then
   // calculate the bin fraction
   else
@@ -125,14 +130,13 @@ std::vector<double> multi_ion_photo_xsections::mean_bin_xsection(
 
   // if the bin fraction is less than 1.0, resetting the lower bin edge
   // to ionisation threshold of the species
-  double lower_edge = Ebin[0];
+  double lower_edge  = Ebin[0];
   double higher_edge = Ebin[1];
-  if (bin_fraction < 1.0)
-    lower_edge = Eth;
+  if (bin_fraction < 1.0) lower_edge = Eth;
 
   // Calculating the mean cross-section for the given bin
   double mean_xsection = 0.0;
-  double mean_energy = 0.5 * (higher_edge + lower_edge);
+  double mean_energy   = 0.5 * (higher_edge + lower_edge);
   // for Composite Simpson's 3/8 rule, the number of sub-intervals must be
   // a multiple of 3. Here we choose this value as 99.
   int n = 999;
@@ -142,15 +146,16 @@ std::vector<double> multi_ion_photo_xsections::mean_bin_xsection(
   // Inverse of the cross-section for mean energy of the bin (inverse area)
   double IA = 1.0 / species_xsection(species, mean_energy);
 
-  double sum = exp(-IA * species_xsection(species, lower_edge)) +
-               exp(-IA * species_xsection(species, higher_edge));
+  double sum = exp(-IA * species_xsection(species, lower_edge))
+               + exp(-IA * species_xsection(species, higher_edge));
 
   for (int i = 1; i < n; i++) {
     double E = lower_edge + i * h;
 
     if (i % 3 == 0) {
       sum += 2 * exp(-IA * species_xsection(species, E));
-    } else {
+    }
+    else {
       sum += 3 * exp(-IA * species_xsection(species, E));
     }
   }
@@ -164,7 +169,8 @@ std::vector<double> multi_ion_photo_xsections::mean_bin_xsection(
 
 // ##################################################################
 // Database for photo-ionisation cross-section
-void multi_ion_photo_xsections::multi_ion_photo_xsections_database() {
+void multi_ion_photo_xsections::multi_ion_photo_xsections_database()
+{
 
   spdlog::info("Setting up photo-ionisation cross-section database");
 

@@ -23,22 +23,22 @@
  * \brief Struct to hold original Mellema table attributes.
  **/
 struct database_datatype {
-  std::string Name;          ///< Species name
-  std::vector<double> logT;  ///< Original temperature table (log10)
-  std::vector<double> logne; ///< Electron number density table (log10)
-  std::vector<std::vector<double>> rate; ///< Org Mellema cooling rate table
+  std::string Name;           ///< Species name
+  std::vector<double> logT;   ///< Original temperature table (log10)
+  std::vector<double> logne;  ///< Electron number density table (log10)
+  std::vector<std::vector<double> > rate;  ///< Org Mellema cooling rate table
 };
 
 /**
  * \brief Struct to hold Mellema cooling LUT attributes.
  **/
 struct LUT_datatype {
-  std::string Name;                      /// Name of the species
-  std::vector<std::vector<double>> rate; /// New Mellema cooling rate LUT
-  std::vector<std::vector<double>>
-      T_rateslope; /// Mellema rate slope along T-axis
-  std::vector<std::vector<double>>
-      ne_rateslope; /// Mellema rate slope along ne-axis
+  std::string Name;                        /// Name of the species
+  std::vector<std::vector<double> > rate;  /// New Mellema cooling rate LUT
+  std::vector<std::vector<double> >
+      T_rateslope;  /// Mellema rate slope along T-axis
+  std::vector<std::vector<double> >
+      ne_rateslope;  /// Mellema rate slope along ne-axis
 };
 // END OF USER DEFINED DATATYPE #########################################
 
@@ -70,8 +70,8 @@ public:
    * function will record the location (integer value) of the species in the
    * tracer list in the database into 2D vector mc_tracer_locator.
    **/
-  void setup_mellema_cooling(const std::vector<std::vector<std::string>>
-                                 & ///< MP tracer list for cooling.
+  void setup_mellema_cooling(const std::vector<std::vector<std::string> >
+                                 &  ///< MP tracer list for cooling.
   );
 
   /**
@@ -83,14 +83,14 @@ public:
    * along temperature and electron number density.
    **/
   void generate_mellema_table(
-      const std::vector<double> &, ///< Temperature table
-      const std::vector<double> &  ///< Electron number density table
+      const std::vector<double> &,  ///< Temperature table
+      const std::vector<double> &   ///< Electron number density table
   );
 
-  std::vector<std::vector<int>>
-      cooling_species_identifier; ///< Location of tracer species in the
-                                  ///< database.
-  std::vector<LUT_datatype> mellema_table; ///< LUT datatype variable
+  std::vector<std::vector<int> >
+      cooling_species_identifier;  ///< Location of tracer species in the
+                                   ///< database.
+  std::vector<LUT_datatype> mellema_table;  ///< LUT datatype variable
 
   // PRIVATE METHODS AND VARIABLES *************************
 private:
@@ -110,7 +110,8 @@ private:
    **/
   void cooling_table_database();
 
-  std::vector<database_datatype> species; ///< Cooling table database data type.
+  std::vector<database_datatype>
+      species;  ///< Cooling table database data type.
 };
 // END OF MELLEMA COOLING CLASS #############################################
-#endif // MELLEMA_COOLING_H
+#endif  // MELLEMA_COOLING_H

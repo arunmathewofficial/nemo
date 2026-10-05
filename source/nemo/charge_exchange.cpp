@@ -6,13 +6,14 @@
  **/
 
 #include "charge_exchange.h"
-#include <algorithm> // for std::find
-#include <string>    // for std::string
-#include <vector>    // for std::vector
+#include <algorithm>  // for std::find
+#include <string>     // for std::string
+#include <vector>     // for std::vector
 
 // #############################################################################
 // Constructor
-charge_exchange::charge_exchange(const int max_reactant_charge) {
+charge_exchange::charge_exchange(const int max_reactant_charge)
+{
   // assigning the maximum reactant charge.
   q_max = max_reactant_charge;
   // initializing charge exchange database.
@@ -25,10 +26,11 @@ charge_exchange::~charge_exchange() {}
 
 // #############################################################################
 void charge_exchange::setup_charge_exchange(
-    const std::vector<std::vector<std::pair<std::string, std::string>>>
+    const std::vector<std::vector<std::pair<std::string, std::string> > >
         &ionise_reaction_list,
-    const std::vector<std::vector<std::pair<std::string, std::string>>>
-        &recomb_reaction_list) {
+    const std::vector<std::vector<std::pair<std::string, std::string> > >
+        &recomb_reaction_list)
+{
   // Number of ionisation and recombination species
   // Note: The outer size of the 2D array gives the number of species
   N_ionise_species = ionise_reaction_list.size();
@@ -56,13 +58,14 @@ void charge_exchange::setup_charge_exchange(
 }
 
 // #############################################################################
-std::vector<std::vector<double>> charge_exchange::import_energy_defect(
-    const std::vector<std::vector<std::pair<std::string, std::string>>>
-        &reaction_list) {
+std::vector<std::vector<double> > charge_exchange::import_energy_defect(
+    const std::vector<std::vector<std::pair<std::string, std::string> > >
+        &reaction_list)
+{
   // Export the energy defect of each reaction in the reaction list to the
   // NEMO module.
   int N_species = reaction_list.size();
-  std::vector<std::vector<double>> charge_exchange_energies(N_species);
+  std::vector<std::vector<double> > charge_exchange_energies(N_species);
   for (size_t s = 0; s < N_species; s++) {
     for (const auto &species_reaction : reaction_list[s]) {
       // Retrieve the reaction energy defect, however get actual key to find
@@ -77,32 +80,35 @@ std::vector<std::vector<double>> charge_exchange::import_energy_defect(
 
 // #############################################################################
 bool charge_exchange::reactant_exists_in_reference(
-    const std::string &species, const std::vector<std::string> &reference) {
-  return std::find(reference.begin(), reference.end(), species) !=
-         reference.end();
+    const std::string &species, const std::vector<std::string> &reference)
+{
+  return std::find(reference.begin(), reference.end(), species)
+         != reference.end();
 }
 
 // #############################################################################
-std::vector<std::pair<std::string, std::string>>
+std::vector<std::pair<std::string, std::string> >
 charge_exchange::get_cx_reactions(
-    const std::string &species, const bool type,
-    const std::vector<std::string> &reference // reference species list
-) {
+    const std::string &species,
+    const bool type,
+    const std::vector<std::string> &reference  // reference species list
+)
+{
   // All reactions corresponding to the given species
-  std::vector<std::pair<std::string, std::string>> species_reactions;
+  std::vector<std::pair<std::string, std::string> > species_reactions;
   // Search for all reactions with the given species as the first reactant,
   // specific type, and the first reactant charge less than or equal to qmax.
   for (const auto &reaction : AR_reaction) {
-    if (reaction.first.first == species && reaction.second.type == type &&
-        atomic_physics_data.get_charge(reaction.first.first) <= q_max &&
-        reactant_exists_in_reference(reaction.first.second, reference)) {
+    if (reaction.first.first == species && reaction.second.type == type
+        && atomic_physics_data.get_charge(reaction.first.first) <= q_max
+        && reactant_exists_in_reference(reaction.first.second, reference)) {
       species_reactions.push_back(reaction.first);
     }
     // Search for all reactions with the given species as the second reactant,
     // specific type, and the first reactant charge less than or equal to qmax.
-    if (reaction.first.second == species && reaction.second.type == !type &&
-        atomic_physics_data.get_charge(reaction.first.first) <= q_max &&
-        reactant_exists_in_reference(reaction.first.first, reference)) {
+    if (reaction.first.second == species && reaction.second.type == !type
+        && atomic_physics_data.get_charge(reaction.first.first) <= q_max
+        && reactant_exists_in_reference(reaction.first.first, reference)) {
       std::pair<std::string, std::string> swapped_key =
           std::make_pair(reaction.first.second, reaction.first.first);
       species_reactions.push_back(swapped_key);
@@ -113,7 +119,8 @@ charge_exchange::get_cx_reactions(
 
 // #############################################################################
 std::pair<std::string, std::string> charge_exchange::get_actual_key(
-    const std::pair<std::string, std::string> &reaction_key) {
+    const std::pair<std::string, std::string> &reaction_key)
+{
   // This function returns the actual key of the reaction. The bookkeeping
   // process for the charge exchange reaction flips the key position, if
   // necessary, to calculate the ionization and recombination rates. However,
@@ -146,12 +153,13 @@ std::pair<std::string, std::string> charge_exchange::get_actual_key(
 }
 
 // #############################################################################
-std::vector<std::vector<std::string>> charge_exchange::import_reactions_id(
-    std::vector<std::vector<std::pair<std::string, std::string>>>
-        &reaction_list) {
+std::vector<std::vector<std::string> > charge_exchange::import_reactions_id(
+    std::vector<std::vector<std::pair<std::string, std::string> > >
+        &reaction_list)
+{
   // The outer size of the 2D array gives the number of species
   int N_species = reaction_list.size();
-  std::vector<std::vector<std::string>> reactions_identifier(N_species);
+  std::vector<std::vector<std::string> > reactions_identifier(N_species);
   // loop over collisional/recombination species
   for (size_t s = 0; s < N_species; s++) {
     // loop over reactions of each species
@@ -167,8 +175,9 @@ std::vector<std::vector<std::string>> charge_exchange::import_reactions_id(
 
 // #############################################################################
 double charge_exchange::get_charge_exchange_rate(
-    const std::pair<std::string, std::string> &reaction_key, const double T) {
-  double rate = 0.0;
+    const std::pair<std::string, std::string> &reaction_key, const double T)
+{
+  double rate             = 0.0;
   const auto &reaction_it = AR_reaction.find(reaction_key);
   if (reaction_it != AR_reaction.end()) {
     const auto &reaction = reaction_it->second;
@@ -192,22 +201,22 @@ double charge_exchange::get_charge_exchange_rate(
 
     // SECTION 1: Charge-exchange recombination reaction with H and He
     if (!reaction.type) {
-      rate = reaction.a * pow(T * 1.00E-04, reaction.b) *
-             (1.00 + reaction.c * exp(reaction.d * T * 1.00E-04));
+      rate = reaction.a * pow(T * 1.00E-04, reaction.b)
+             * (1.00 + reaction.c * exp(reaction.d * T * 1.00E-04));
     }
 
     // SECTION 2:. Charge-exchange ionization reaction with H1+
     if (reaction_key.second == "H1+" && reaction.type) {
-      rate = reaction.a * pow(T * 1.00E-04, reaction.b) *
-             (1.00 + reaction.c * exp(reaction.d * T * 1.00E-04)) *
-             exp(-reaction.dE_fit * eV() / (T * kB()));
+      rate = reaction.a * pow(T * 1.00E-04, reaction.b)
+             * (1.00 + reaction.c * exp(reaction.d * T * 1.00E-04))
+             * exp(-reaction.dE_fit * eV() / (T * kB()));
     }
 
     // SECTION 3: Charge-exchange ionisation reaction with He1+
     if (reaction_key.second == "He1+" && reaction.type) {
-      rate = reaction.a * pow(T * 1.00E-04, reaction.b) *
-             exp(-reaction.c * T * 1.00E-04) *
-             exp(-reaction.dE_fit * eV() / (T * kB()));
+      rate = reaction.a * pow(T * 1.00E-04, reaction.b)
+             * exp(-reaction.c * T * 1.00E-04)
+             * exp(-reaction.dE_fit * eV() / (T * kB()));
     }
 
     // Note: To ensure rates have acceptable values, we modify the rate
@@ -222,7 +231,8 @@ double charge_exchange::get_charge_exchange_rate(
 
 // #############################################################################
 void charge_exchange::generate_charge_exchange_LUT(
-    const std::vector<double> &T_table) {
+    const std::vector<double> &T_table)
+{
 
   spdlog::info("Generating charge-exchange LUTs");
 
@@ -247,9 +257,8 @@ void charge_exchange::generate_charge_exchange_LUT(
     for (size_t r = 0; r < ionise_reactions[s].size(); r++) {
       for (int k = 0; k < T_table.size() - 1; k++) {
         ionise_cx_slope_table[s][r].push_back(
-            (ionise_cx_rate_table[s][r][k + 1] -
-             ionise_cx_rate_table[s][r][k]) /
-            (T_table[k + 1] - T_table[k]));
+            (ionise_cx_rate_table[s][r][k + 1] - ionise_cx_rate_table[s][r][k])
+            / (T_table[k + 1] - T_table[k]));
       }
       ionise_cx_slope_table[s][r].push_back(0.0);
     }
@@ -273,9 +282,8 @@ void charge_exchange::generate_charge_exchange_LUT(
     for (size_t r = 0; r < recomb_reactions[s].size(); r++) {
       for (int k = 0; k < T_table.size() - 1; k++) {
         recomb_cx_slope_table[s][r].push_back(
-            (recomb_cx_rate_table[s][r][k + 1] -
-             recomb_cx_rate_table[s][r][k]) /
-            (T_table[k + 1] - T_table[k]));
+            (recomb_cx_rate_table[s][r][k + 1] - recomb_cx_rate_table[s][r][k])
+            / (T_table[k + 1] - T_table[k]));
       }
       recomb_cx_slope_table[s][r].push_back(0.0);
     }
@@ -284,7 +292,8 @@ void charge_exchange::generate_charge_exchange_LUT(
 }
 
 // #############################################################################
-void charge_exchange::charge_exchange_database() {
+void charge_exchange::charge_exchange_database()
+{
 
   spdlog::info("Setting up charge exchange database");
 
@@ -627,7 +636,7 @@ void charge_exchange::charge_exchange_database() {
   /** The following reactions are not included **/
   // HYDROGEN ################################################################
   UMIST_reaction_parameters[{"H", "He1+"}] = UMIST_datatype{
-      "UMIST-H+He1+", 1.20e-15, 0.25, 0.00, 10, 41000, 10.99}; // #502 [1]
+      "UMIST-H+He1+", 1.20e-15, 0.25, 0.00, 10, 41000, 10.99};  // #502 [1]
   // Reaction: H1+ + He -> H + He1+, Not in Database
 
   // Reaction: H + C1+ - > H1+ + C,  Not in Database
@@ -637,31 +646,31 @@ void charge_exchange::charge_exchange_database() {
   // Reaction: H1+ + N - > H + N1+,  Not in Database
 
   UMIST_reaction_parameters[{"H", "O1+"}] = UMIST_datatype{
-      "UMIST-H+O1+", 5.66e-10, 0.36, -8.60, 10, 41000, 0.02}; // 503, [2]
+      "UMIST-H+O1+", 5.66e-10, 0.36, -8.60, 10, 41000, 0.02};  // 503, [2]
   UMIST_reaction_parameters[{"H1+", "O"}] = UMIST_datatype{
-      "UMIST-H1++O", 6.86e-10, 0.26, 224.30, 10, 41000, -0.02}; // #417, [3]
+      "UMIST-H1++O", 6.86e-10, 0.26, 224.30, 10, 41000, -0.02};  // #417, [3]
 
   // Reaction: H + Ne1+ -> H1+ + Ne, Not in Database
   // Reaction: H1+ + Ne -> H + Ne1+, Not in Database
 
   // Reaction: H + Si1+ -> H1+ + Si, Not in Database
   UMIST_reaction_parameters[{"H1+", "Si"}] = UMIST_datatype{
-      "UMIST-H1++Si", 9.90e-10, 0.00, 0.00, 10, 41000, 0.12}; // #429, [4]
+      "UMIST-H1++Si", 9.90e-10, 0.00, 0.00, 10, 41000, 0.12};  // #429, [4]
 
   // Reaction: H + S1+ - > H1+ + S,  Not in Database
   UMIST_reaction_parameters[{"H1+", "S"}] = UMIST_datatype{
-      "UMIST-H1++S", 1.30e-9, 0.00, 0.00, 10, 41000}; // #426, [5]
+      "UMIST-H1++S", 1.30e-9, 0.00, 0.00, 10, 41000};  // #426, [5]
 
   // Reaction: H + Fe1+ -> H1+ + Fe, Not in Database
   UMIST_reaction_parameters[{"H1+", "Fe"}] = UMIST_datatype{
-      "UMIST-H1++Fe", 7.40e-9, 0.00, 0.00, 10, 41000}; // #385, [6]
+      "UMIST-H1++Fe", 7.40e-9, 0.00, 0.00, 10, 41000};  // #385, [6]
 
   // HELIUM ##################################################################
   // Reaction: He + H1+ -> He1+ + H, Already in Database.
 
   // Reaction: He + C1+ -> He1+ + C, Not in Database
   UMIST_reaction_parameters[{"He1+", "C"}] = UMIST_datatype{
-      "UMIST-He1++C", 6.30e-15, 0.75, 0.00, 10, 300}; // #524, [7]
+      "UMIST-He1++C", 6.30e-15, 0.75, 0.00, 10, 300};  // #524, [7]
 
   // Reaction: He + N1+ - > He1+ + N,  Not in Database
   // Reaction: He1+ + N - > He + N1+,  Not in Database
@@ -674,7 +683,7 @@ void charge_exchange::charge_exchange_database() {
 
   // Reaction: He + Si1+ -> He1+ + Si, Not in Database
   UMIST_reaction_parameters[{"He1+", "Si"}] = UMIST_datatype{
-      "UMIST-He1++Si", 3.30e-9, 0.00, 0.00, 10, 41000}; // #539 [8]
+      "UMIST-He1++Si", 3.30e-9, 0.00, 0.00, 10, 41000};  // #539 [8]
 
   // Reaction: He + S1+ - > He1+ + S,  Not in Database
   // Reaction: He1+ + S ->  He + S1+,  Not in Database
@@ -700,17 +709,17 @@ void charge_exchange::charge_exchange_database() {
 
   // Reaction: C + Si1+ -> C1+ + Si, Not in Database
   UMIST_reaction_parameters[{"C1+", "Si"}] = UMIST_datatype{
-      "UMIST-C1++Si", 2.10e-9, 0.00, 0.00, 10, 41000}; // #203, [9]
+      "UMIST-C1++Si", 2.10e-9, 0.00, 0.00, 10, 41000};  // #203, [9]
 
   // Reaction: C + S1+ -> C1+ + S, Not in Database
   UMIST_reaction_parameters[{"C1+", "S"}] = UMIST_datatype{
-      "UMIST-C1++S", 5.00e-11, 0.00, 0.00, 10, 4999}; // #717, [10]
+      "UMIST-C1++S", 5.00e-11, 0.00, 0.00, 10, 4999};  // #717, [10]
   UMIST_reaction_parameters[{"C1+", "S"}] = UMIST_datatype{
-      "UMIST-C1++S", 5.54e-11, 0.86, 680.70, 5000, 50000}; // #717, [10]
+      "UMIST-C1++S", 5.54e-11, 0.86, 680.70, 5000, 50000};  // #717, [10]
 
   // Reaction: C + Fe1+ -> C1+ + Fe, Not in Database
   UMIST_reaction_parameters[{"C1+", "Fe"}] = UMIST_datatype{
-      "UMIST-C1++Fe", 2.60e-9, 0.00, 0.00, 10, 41000}; // #184 [11]
+      "UMIST-C1++Fe", 2.60e-9, 0.00, 0.00, 10, 41000};  // #184 [11]
 
   // NITROGEN ################################################################
   // Reaction: N + H1+ - > N1+ + H,  Not in Database
@@ -736,7 +745,7 @@ void charge_exchange::charge_exchange_database() {
 
   // Reaction: N + Fe1+ -> N1+ + Fe, Not in Database
   UMIST_reaction_parameters[{"N1+", "Fe"}] = UMIST_datatype{
-      "UMIST-N1++Fe", 1.50e-9, 0.00, 0.00, 10, 41000}; // #561, [12]
+      "UMIST-N1++Fe", 1.50e-9, 0.00, 0.00, 10, 41000};  // #561, [12]
 
   // OXYGEN ##################################################################
   // Reaction: O + H1+ -> O+ + H, Already in Database
@@ -762,7 +771,7 @@ void charge_exchange::charge_exchange_database() {
 
   // Reaction: O + Fe1+ -> O1+ + Fe, Not in Database
   UMIST_reaction_parameters[{"O1+", "Fe"}] = UMIST_datatype{
-      "UMIST-O1++Fe", 2.90e-9, 0.00, 0.00, 10, 41000}; // #665, [13]
+      "UMIST-O1++Fe", 2.90e-9, 0.00, 0.00, 10, 41000};  // #665, [13]
 
   // NEON ####################################################################
   // Reaction: Ne + H1+ -> Ne1+ + H, Not in Database
@@ -809,12 +818,12 @@ void charge_exchange::charge_exchange_database() {
   // Reaction: Si1+ + Ne -> Si + Ne1+, Not in Database
 
   UMIST_reaction_parameters[{"Si", "S1+"}] = UMIST_datatype{
-      "UMIST-Si+S1+", 1.60e-9, 0.00, 0.00, 10, 41000}; // #733, [8]
+      "UMIST-Si+S1+", 1.60e-9, 0.00, 0.00, 10, 41000};  // #733, [8]
   // Reaction: Si1+ + S - > Si + S1+,  Not in Database
 
   // Reaction: Si + Fe1+ -> Si1+ + Fe,  Not in Database
   UMIST_reaction_parameters[{"Si1+", "Fe"}] = UMIST_datatype{
-      "UMIST-Si1++Fe", 1.90e-9, 0.00, 0.00, 10, 41000}; // #725, [9]
+      "UMIST-Si1++Fe", 1.90e-9, 0.00, 0.00, 10, 41000};  // #725, [9]
 
   // SULFUR ##################################################################
   // Reaction: S + H1+ -> S+ + H, Already in Database.
@@ -840,7 +849,7 @@ void charge_exchange::charge_exchange_database() {
 
   // Reaction: S + Fe1+ -> S1+ + Fe, Not in Database
   UMIST_reaction_parameters[{"S1+", "Fe"}] = UMIST_datatype{
-      "UMIST-S1++Fe", 1.80e-10, 0.00, 0.00, 10, 41000}; // #714, [14]
+      "UMIST-S1++Fe", 1.80e-10, 0.00, 0.00, 10, 41000};  // #714, [14]
 
   // IRON ####################################################################
   // Reaction: Fe + H1+ -> Fe1+ + H, Already in Database
