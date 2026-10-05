@@ -54,9 +54,9 @@ void nemo::get_error_tolerances(
 )
 {
   *reltol = NEMO_RELTOL;
-  for (int i = 0; i < N_equations - 1; i++)
+  for (int i = 0; i < N_local - 1; i++)
     atol[i] = NEMO_ABSTOL;  ///< minimum neutral fraction I care about.
-  atol[N_equations - 1] = NEMO_MINERG;  ///< E_int: for n=1.0, T=1.0e4, ==>
+  atol[N_local - 1] = NEMO_MINERG;  ///< E_int: for n=1.0, T=1.0e4, ==>
                                         ///< E=2.07e-12, so say 1e-17?
   return;
 }
@@ -69,7 +69,7 @@ void nemo::get_problem_size(
     int *n_para  ///< number of parameters in user_data vector.
 )
 {
-  *n_eqn  = N_equations;
+  *n_eqn  = N_local;
   *n_para = N_extradata;
   return;
 }
@@ -443,13 +443,12 @@ void nemo::setup_local_vectors()
   //
   N_local     = N_species + 1;  // number of species plus energy
   N_extradata = 0;
-  N_equations = N_local;
 #if defined CVODE6 || defined CVODE7
-  y_in  = N_VNew_Serial(N_equations, sunctx);
-  y_out = N_VNew_Serial(N_equations, sunctx);
+  y_in  = N_VNew_Serial(N_local, sunctx);
+  y_out = N_VNew_Serial(N_local, sunctx);
 #else
-  y_in  = N_VNew_Serial(N_equations);
-  y_out = N_VNew_Serial(N_equations);
+  y_in  = N_VNew_Serial(N_local);
+  y_out = N_VNew_Serial(N_local);
 #endif
   E_index = N_species;
   return;
@@ -1707,7 +1706,7 @@ double nemo::timescales(
   for (int v = 0; v < N_local; v++)
     Y_dot[v] = NV_Ith_S(y_out, v);
 
-  for (int v = 0; v < N_equations-1; v++) {
+  for (int v = 0; v < N_local-1; v++) {
     // t = min(t, DTFRAC / (fabs(NV_Ith_S(y_out, v)) + TINYVALUE));
     t = min(t, DTFRAC / (fabs(Y_dot[v]) + TINYVALUE));
   }
@@ -1868,7 +1867,7 @@ int nemo::ydot(
 #endif
 
   // Initialise all elements of ydot vector to zero.
-  for (int v = 0; v < N_equations; v++)
+  for (int v = 0; v < N_local; v++)
     NV_Ith_S(y_dot, v) = 0.0;
 
   // Initializing Edot to zero

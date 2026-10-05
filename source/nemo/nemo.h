@@ -36,7 +36,6 @@
 #include "nemo/coll_ionise_recomb.h"
 #include "nemo-constants.h"
 #include "microphysics/cvode_integrator.h"
-//#include "microphysics/microphysics_base.h"
 #ifdef MELLEMA
 #include "mellema_cooling.h"
 #elif defined CHIANTI
@@ -73,8 +72,10 @@ class nemo :
     public stellar_atmosphere_models,
     public multi_ion_photo_xsections,
     public photoionisation {
+
+  // The public interface to NEMO    
 public:
-  // ****** CONSTRUCTOR ******
+  /// CONSTRUCTOR: sets up the machinery for fast execution
   nemo(
       const int,               ///< Total number of variables in state vector
       const int,               ///< Number of passive-tracer vars in state vector.
@@ -84,12 +85,136 @@ public:
       const double             ///< EOS Gamma
   );
 
-  // ****** DESTRUCTOR ******
+  /// DESTRUCTOR: removes all local data
   ~nemo();
 
-  // ****** CATALOGER ******
+  // ############################################################################
+  // ############################################################################
+
+  public:
+  ///
+  /// Update microphysics including photoionization and photoheating
+  ///
+  virtual int update_single_cell(
+      const double *,  ///< Primitive Vector to be updated.
+      const int,         ///< unused
+      const std::vector<struct rt_source_data> &,  ///< unused
+      const int,                                   ///< unused
+      std::vector<struct rt_source_data> &,
+      ///< list of ionising src column densities and source properties.
+      double *,    ///< Destination Vector for updated values
+      const double,  ///< Time Step to advance by.
+      const double,  ///< EOS gamma.
+      const int,     ///< unused
+      double *       ///< any returned data (final temperature?).
+  );
+
+  ///
+  /// Returns the gas temperature.  This is only needed for data output, so
+  /// there is no need to make it highly optimized.
+  /// - Is threadsafe.
+  ///
+  double Temperature(
+      const double *,  ///< primitive vector
+      const double       ///< eos gamma
+  );
+
+  ///
+  /// Set the gas temperature to a specified value.
+  /// Needed if you want this feature to set initial conditions.
+  ///
+  int Set_Temp(
+      double *,    ///< primitive vector.
+      const double,  ///< temperature
+      const double   ///< eos gamma.
+  );
+
+  ///
+  /// This returns the minimum timescale of all microphysical
+  /// processes, including reaction times for each species and the
+  /// total heating/cooling time for the gas.
+  /// It requires the radiation field as an input, but the vectors can be null.
+  /// Used for setting a simulation timestep, together with CFL condition.
+  ///
+  virtual double timescales(
+      const double *,  ///< Current cell.
+      const int,         ///< Number of UV heating sources.
+      const std::vector<struct rt_source_data> &,
+      ///< list of UV-heating column densities and source properties.
+      const int,  ///< number of ionising radiation sources.
+      const std::vector<struct rt_source_data> &,
+      ///< list of ionising src column densities and source properties.
+      const double  ///< EOS gamma.
+  );
+
+  /// Return the H mass fraction
+  virtual double get_X_H();
+
+  /// Get electron number density (cm^{-3})
+  double get_n_elec(const double *  ///< primitive state vector.
+  );
+
+  /// Get electron number density (cm^{-3})
+  double get_n_ion(
+      std::string,      ///< ion name
+      const double *  ///< primitive state vector.
+  );
+
+  /// Calculates the change in optical depth over the cell
+  /// for use in the Raytracing module
+  virtual void get_dtau(
+      const rad_src_info *,  ///< not used in NEMO
+      const double,       ///< ds, thickness of the cell
+      const double *,     ///< input primitive vector from grid cell (length nv_prim)
+      double *  ///< output dtau vector
+  );
+
+  ///
+  /// calculate dy/dt for the vector of y-values.
+  ///
+  virtual int ydot(
+      double,  ///< current time (probably not needed for rate equations)
+      const N_Vector,  ///< current Y-value
+      N_Vector,        ///< vector for Y-dot values
+      const double *  ///< extra user-data vector, P, for evaluating ydot(y,t,p)
+  );
+
+  ///
+  /// Calculate the Jacobian matrix d(dy_i/dt)/dy_j for a vector of y-values.
+  ///
+  virtual int Jacobian(
+#if defined CVODE2
+      int,  ///< N (not sure what this is for!)
+#endif
+      double,          ///< time, t
+      const N_Vector,  ///< current Y-value
+      const N_Vector,  ///< vector for Y-dot values
+      const double
+          *,    ///< extra user-data vector, P, for evaluating ydot(y,t,p)
+      CVMatrix  ///< Jacobian matrix
+  )
+  {
+    spdlog::info("Jacobian not yet implemented in NEMO!");
+    return 1;
+  }
+
+  ///
+  /// Get the number of extra parameters and the number of equations.
+  ///
+  virtual void get_problem_size(
+      int *,  ///< number of equations
+      int *   ///< number of parameters in user_data vector.
+  );
+
+  // ############################################################################
+  // ############################################################################
 
 
+
+
+
+
+  protected:
   // --------------------------------------------------------------------------
   // static variables for book-keeping
   std::vector<string> tracers_replica;  ///< microphysics tracers replica.
@@ -138,6 +263,7 @@ public:
       neutral_species_local_idx;  ///< neutral species idx in local_vec.
   double cosmicray_ionise_rate;
   double cosmic_ray_energy;
+  // --------------------------------------------------------------------------
 
   /// Collisional ionisation ===================================================
 
@@ -147,6 +273,7 @@ public:
       upper_ion_local_idx;  /// local index of upper ionisation state if exist.
   std::vector<double>
       collion_species_IE;  /// coll-ionisation species ionisation energy (egs)
+  // --------------------------------------------------------------------------
 
 
   /// Recombination ============================================================
@@ -156,6 +283,7 @@ public:
       recomb_species_element;  ///< recomb species element position.
   std::vector<int> recomb_species_charge;
   std::vector<int> recomb_top_ion_bool;
+  // --------------------------------------------------------------------------
 
   /// Charge exchange reaction =================================================
   bool charge_exchange_enable;
@@ -178,6 +306,7 @@ public:
       ionise_cx_energy;  ///< Charge exchange ionising reaction energy defect
   std::vector<std::vector<double> >
       recomb_cx_energy;  ///< Charge exchange recombining reaction energy defect
+  // --------------------------------------------------------------------------
 
 
   /// Photo-ionisation =========================================================
@@ -210,11 +339,13 @@ public:
   };
 
   star_properties_datatype stellar_properties;
+  // --------------------------------------------------------------------------
 
 
   /// Cooling ==================================================================
   std::vector<vector<string> > cooling_species;  ///< cooling species.
   std::ofstream cooling_outfile;                 /// CIE cooling function
+  // --------------------------------------------------------------------------
 
 
   // --------------------------------------------------------------------------
@@ -236,12 +367,12 @@ public:
 
   // --------------------------------------------------------------------------
 
-
-
-
-  int N_local;
+  // --------------------------------------------------------------------------
+  int N_local;      ///< number of variables to solve for: N_species + 1 (Eint)
   int E_index;
-
+  int N_extradata;  ///< number of elements in user-data array.
+  N_Vector y_in;    ///< current y-vector
+  N_Vector y_out;   ///< output y-vector
 
 
   /// Uses this steps to generate lookup tables
@@ -258,6 +389,7 @@ public:
   const int Num_ne;
   const double ne_min;
   const double ne_max;
+  // --------------------------------------------------------------------------
 
 
 
@@ -321,51 +453,6 @@ protected:
 
 
 
-  // ############################################################################
-public:
-  N_Vector y_in,    ///< current y-vector
-      y_out;        ///< output y-vector
-  int N_equations;  ///< number of equations i.e. number of species in Y.
-  int N_extradata;  ///< number of elements in user-data array.
-
-  ///
-  /// calculate dy/dt for the vector of y-values.
-  ///
-  virtual int ydot(
-      double,  ///< current time (probably not needed for rate equations)
-      const N_Vector,  ///< current Y-value
-      N_Vector,        ///< vector for Y-dot values
-      const double *  ///< extra user-data vector, P, for evaluating ydot(y,t,p)
-  );
-
-  ///
-  /// Calculate the Jacobian matrix d(dy_i/dt)/dy_j for a vector of y-values.
-  ///
-  virtual int Jacobian(
-#if defined CVODE2
-      int,  ///< N (not sure what this is for!)
-#endif
-      double,          ///< time, t
-      const N_Vector,  ///< current Y-value
-      const N_Vector,  ///< vector for Y-dot values
-      const double
-          *,    ///< extra user-data vector, P, for evaluating ydot(y,t,p)
-      CVMatrix  ///< Jacobian matrix
-  )
-  {
-    spdlog::info("Jacobian not implemented in NEMO!");
-    return 1;
-  }
-
-  ///
-  /// Get the number of extra parameters and the number of equations.
-  ///
-  virtual void get_problem_size(
-      int *,  ///< number of equations
-      int *   ///< number of parameters in user_data vector.
-  );
-
-
 protected:
   ///
   /// set the relative and absolute error tolerances
@@ -377,128 +464,6 @@ protected:
   // END OF FUNCTIONS DERIVED FROM BASE CLASS
   // ***************************************************************************
 
-
-
-  // ############################################################################
-  // ############################################################################
-
-  public:
-  ///
-  /// Update microphysics including photoionization and photoheating
-  ///
-  virtual int update_single_cell(
-      const double *,  ///< Primitive Vector to be updated.
-      const int,         ///< unused
-      const std::vector<struct rt_source_data> &,  ///< unused
-      const int,                                   ///< unused
-      std::vector<struct rt_source_data> &,
-      ///< list of ionising src column densities and source properties.
-      double *,    ///< Destination Vector for updated values
-      const double,  ///< Time Step to advance by.
-      const double,  ///< EOS gamma.
-      const int,     ///< unused
-      double *       ///< any returned data (final temperature?).
-  );
-
-  ///
-  /// Returns the gas temperature.  This is only needed for data output, so
-  /// there is no need to make it highly optimized.
-  /// - Is threadsafe.
-  ///
-  double Temperature(
-      const double *,  ///< primitive vector
-      const double       ///< eos gamma
-  );
-
-  ///
-  /// Set the gas temperature to a specified value.
-  /// Needed if you want this feature to set initial conditions.
-  ///
-  int Set_Temp(
-      double *,    ///< primitive vector.
-      const double,  ///< temperature
-      const double   ///< eos gamma.
-  );
-
-  ///
-  /// This returns the minimum timescale of all microphysical
-  /// processes, including reaction times for each species and the
-  /// total heating/cooling time for the gas.
-  /// It requires the radiation field as an input, but the vectors can be null.
-  ///
-  virtual double timescales(
-      const double *,  ///< Current cell.
-      const int,         ///< Number of UV heating sources.
-      const std::vector<struct rt_source_data> &,
-      ///< list of UV-heating column densities and source properties.
-      const int,  ///< number of ionising radiation sources.
-      const std::vector<struct rt_source_data> &,
-      ///< list of ionising src column densities and source properties.
-      const double  ///< EOS gamma.
-  );
-
-  ///
-  /// Get the total cooling rate.  This is for postprocessing the
-  /// simulation data only -- IT IS NOT OPTIMISED FOR SPEED.
-  ///
-  virtual double total_cooling_rate(
-      const double *,  ///< Current cell values.
-      const int,         ///< Number of UV heating sources.
-      const std::vector<struct rt_source_data> &,
-      ///< list of UV-heating column densities and source properties.
-      const int,  ///< number of ionising radiation sources.
-      const std::vector<struct rt_source_data> &,
-      ///< list of ionising src column densities and source properties.
-      const double  ///< EOS gamma.
-  )
-  {
-    spdlog::info("NEMO::total_cooling_rate() not implemented");
-    return 1;
-  }
-
-  ///
-  /// Get the total recombination rate for an ion, given the input
-  /// state vector.
-  ///
-  virtual double get_recombination_rate(
-      const int,         ///< ion index in tracer array (optional).
-      const double *,  ///< input state vector (primitive).
-      const double       ///< EOS gamma (optional)
-  )
-  {
-    spdlog::info("NEMO::get_recombination_rate() not implemented");
-    return 1;
-  }
-
-  ///
-  /// Return the H mass fraction
-  ///
-  virtual double get_X_H();
-
-  ///
-  /// Get electron number density (cm^{-3})
-  ///
-  double get_n_elec(const double *  ///< primitive state vector.
-  );
-
-  ///
-  /// Get electron number density (cm^{-3})
-  ///
-  double get_n_ion(
-      std::string,      ///< ion name
-      const double *  ///< primitive state vector.
-  );
-
-  ///
-  /// Calculates the change in optical depth over the cell
-  /// for use in the Raytracing module
-  ///
-  virtual void get_dtau(
-      const rad_src_info *,  ///< not used in NEMO
-      const double,       ///< ds, thickness of the cell
-      const double *,     ///< input primitive vector from grid cell (length nv_prim)
-      double *  ///< output dtau vector
-  );
 
 
   // ###########################################################################

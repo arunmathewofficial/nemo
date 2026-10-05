@@ -22,7 +22,6 @@
 #include <string>
 
 // nemo
-#include "microphysics/microphysics_base.h"
 #include "nemo-constants.h"
 
 struct stellar_model_datatype {
