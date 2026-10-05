@@ -8,7 +8,8 @@ add_library(
   nemo-constants.cpp
 )
 
-target_link_libraries(constants PRIVATE Boost::boost)
+
+target_link_libraries(constants PRIVATE units)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 

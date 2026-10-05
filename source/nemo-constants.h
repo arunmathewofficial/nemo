@@ -27,12 +27,43 @@
 #include <mathimf.h>
 #endif
 
+#include <units/units.hpp>
+
 ///
 /// Physical constants are from CODATA 2014, converted to CGS units.
 /// http://dx.doi.org/10.5281/zenodo.22826
 /// Masses of elements from http://www.ciaaw.org/atomic-weights.htm
 ///
 class nemo_constants {
+private:
+  // Cached CGS values for efficiency
+  const double c_cgs;           ///< Speed of light in cm/s
+  const double kB_cgs;          ///< Boltzmann constant in erg/K
+  const double h_cgs;           ///< Planck constant in erg*s
+  const double StefanBoltzmann_cgs; ///< Stefan-Boltzmann constant in erg/(cm^3*K^4)
+  const double eV_cgs;          ///< Electron volt in erg
+  const double ThomsonXSection_cgs; ///< Thomson cross section in cm^2
+  const double uamu_cgs;        ///< Unified atomic mass unit in g
+  const double m_e_cgs;         ///< Electron mass in g
+  const double m_p_cgs;         ///< Proton mass in g
+  const double m_H_cgs;         ///< Hydrogen mass in g
+  const double m_He_cgs;        ///< Helium mass in g
+  const double m_C_cgs;         ///< Carbon mass in g
+  const double m_N_cgs;         ///< Nitrogen mass in g
+  const double m_O_cgs;         ///< Oxygen mass in g
+  const double G_cgs;           ///< Gravitational constant in cm^3/(g*s^2)
+  const double Eth_H_cgs;       ///< Ionization potential of H in erg
+  const double NuTh_H_cgs;      ///< Ionization potential of H in Hz
+  const double K_per_eV_cgs;    ///< Kelvin per eV
+  const double year_cgs;        ///< Year in seconds
+  const double asec_per_rad_cgs;///< Arcseconds per radian
+  const double sqasec_per_sr_cgs;///< Square arcseconds per steradian
+  const double Msun_cgs;        ///< Solar mass in g
+  const double Lsun_cgs;        ///< Solar luminosity in erg/s
+  const double Rsun_cgs;        ///< Solar radius in cm
+  const double AU_cgs;          ///< Astronomical unit in cm
+  const double parsec_cgs;      ///< Parsec in cm
+
 public:
   nemo_constants(
   );
@@ -49,77 +80,77 @@ public:
   //
   // Physics
   //
-  inline double c() { return 2.99792458e+10; }
-  inline double kB() { return 1.38064852e-16; }
-  inline double h() { return 6.62606957e-27; }
-  inline double StefanBoltzmannConst() { return 5.670367e-5; }
-  inline double eV() { return 1.6021766208e-12; }
-  inline double ThomsonXSection() { return 6.6524587321e-25; }
+  inline double c() { return c_cgs; }
+  inline double kB() { return kB_cgs; }
+  inline double h() { return h_cgs; }
+  inline double StefanBoltzmannConst() { return StefanBoltzmann_cgs; }
+  inline double eV() { return eV_cgs; }
+  inline double ThomsonXSection() { return ThomsonXSection_cgs; }
   ///
   /// Unified atomic mass unit.
   ///
-  inline double uamu() { return 1.660539040e-24; }
+  inline double uamu() { return uamu_cgs; }
   ///
   /// Electron mass (CODATA 2018) in grams
   ///
-  inline double m_e() { return 9.1093837015e-28; }
+  inline double m_e() { return m_e_cgs; }
   ///
   /// proton mass (CODATA 2014) in grams
   ///
-  inline double m_p() { return 1.672621898e-24; }
+  inline double m_p() { return m_p_cgs; }
   ///
   /// Hydrogen mass (IUPAC value is 1.0080+/-0.0002 * uamu).  in grams
   ///
-  inline double m_H() { return 1.6738e-24; }
+  inline double m_H() { return m_H_cgs; }
   ///
   /// Helium mass (CIAWW online table) in grams
   ///
-  inline double m_He() { return 6.6464768e-24; }
+  inline double m_He() { return m_He_cgs; }
 
   ///
   /// Carbon mass (CIAWW online table) in grams
   /// 0.5*(12.0096 + 12.0116) uamu
   ///
-  inline double m_C() { return 1.994374e-23; }
+  inline double m_C() { return m_C_cgs; }
 
   ///
   /// Nitrogen mass 0.5*(14.00643 + 14.00728) uamu in grams
   /// (CIAWW online table)
   ///
-  inline double m_N() { return 2.325892e-23; }
+  inline double m_N() { return m_N_cgs; }
 
   ///
   /// Oxygen mass (CIAWW online table) in grams
   /// 0.5*(15.99903 + 15.99977) uamu
   ///
-  inline double m_O() { return 2.6567628e-23; }
+  inline double m_O() { return m_O_cgs; }
 
   /// Gravitational constant (CODATA 2014)
   ///
-  inline double G() { return 6.67408e-8; }
+  inline double G() { return G_cgs; }
   ///
   /// Ionization potential of H (erg)
   ///
-  inline double Eth_H() { return 2.178710264e-11; }
+  inline double Eth_H() { return Eth_H_cgs; }
   ///
   /// Ionization potential of H, in Hertz.
   ///
-  inline double NuTh_H() { return 3.28808819e+15; }
+  inline double NuTh_H() { return NuTh_H_cgs; }
   //
   // Unit conversion
   //
-  inline double K_per_eV() { return 1.16045221e4; }
-  inline double year() { return 3.1558150e7; }
-  inline double asec_per_rad() { return 206264.806; }
-  inline double sqasec_per_sr() { return 4.2545250225e10; }
+  inline double K_per_eV() { return K_per_eV_cgs; }
+  inline double year() { return year_cgs; }
+  inline double asec_per_rad() { return asec_per_rad_cgs; }
+  inline double sqasec_per_sr() { return sqasec_per_sr_cgs; }
   //
   // Astronomy
   //
-  inline double Msun() { return 1.9891e33; }
-  inline double Lsun() { return 3.839e33; }
-  inline double Rsun() { return 6.955e10; }
-  inline double AU() { return 1.49597870700e+13; }
-  inline double parsec() { return 3.0856776e18; }
+  inline double Msun() { return Msun_cgs; }
+  inline double Lsun() { return Lsun_cgs; }
+  inline double Rsun() { return Rsun_cgs; }
+  inline double AU() { return AU_cgs; }
+  inline double parsec() { return parsec_cgs; }
 
   ///
   /// tests if two doubles are equal to an accuracy of 1e-8.

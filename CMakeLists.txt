@@ -80,6 +80,17 @@ execute_process(
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
 )
 
+#set(USER_HOME_DIRECTORY $ENV{HOME})
+#message(STATUS "User Home Directory: ${USER_HOME_DIRECTORY}")
+
+#add_subdirectory(${USER_HOME_DIRECTORY}/.local/)
+#find_package(units REQUIRED)
+#find_library(LLNL_UNITS_LIBRARIES 
+#    NAMES units 
+#    PATHS /Users/jm/.local/
+#)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LLNL_UNITS REQUIRED units)
 
 message(STATUS "Build options:")
 message(STATUS "    CMAKE_BUILD_TYPE         = ${CMAKE_BUILD_TYPE}")

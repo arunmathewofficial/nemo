@@ -7,7 +7,7 @@ build_dir="${script_dir}/build"
 mkdir -p ${build_dir}
 pushd ${build_dir}
 
-CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}"
+CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};/Users/jm/.local/"
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_COMPILER=g++ \
