@@ -74,7 +74,11 @@ class nemo :
     public multi_ion_photo_xsections,
     public photoionisation {
 
+
+  // ############################################################################
+  // ############################################################################
   // The public interface to NEMO    
+  // ############################################################################
 public:
   /// CONSTRUCTOR: sets up the machinery for fast execution
   nemo(
@@ -88,9 +92,6 @@ public:
 
   /// DESTRUCTOR: removes all local data
   ~nemo();
-
-  // ############################################################################
-  // ############################################################################
 
   public:
   ///
@@ -351,7 +352,6 @@ public:
 
   // --------------------------------------------------------------------------
   // cell data variables, that are specific to each update call
-  protected:
   std::vector<double> element_num_density;  ///< element number density vector.
   /// variable recording species number density for NEMO tracer list
   std::vector<std::vector<double> > species_number_density;
@@ -441,7 +441,6 @@ public:
 #endif
 
 
-protected:
   /// Function will generate all the indexing necessary for NEMO module.
   void tracer_species_cataloger(
       const int,  ///< Number of variables in the primitive vector.
@@ -449,12 +448,6 @@ protected:
       const std::string *  ///< List of tracer variables.
   );
 
-  // END OF NEMO CLASS VARIABLES AND FUNCTIONS
-  // ***************************************************************************
-
-
-
-protected:
   ///
   /// set the relative and absolute error tolerances
   ///
@@ -462,15 +455,7 @@ protected:
       double *,  ///< relative error tolerance (single value)
       double[]   ///< absolute error tolerance (array)
   );
-  // END OF FUNCTIONS DERIVED FROM BASE CLASS
-  // ***************************************************************************
 
-
-
-  // ###########################################################################
-  // ###########################################################################
-
-protected:
   ///
   /// convert state vector from grid cell into local microphysics vector.
   ///
@@ -530,12 +515,6 @@ protected:
       int                     /// flags the function
   );
 
-
-  // ###########################################################################
-  // ###########################################################################
-
-
-
   ///
   /// returns gas temperature according to E=nkT/(g-1) with n=1.1*nH*(1+x_in),
   /// appropriate for a gas with 10% Helium by number, and if He is singly
@@ -578,28 +557,7 @@ protected:
   double Min_NeutralFrac;  ///< minimum H0 fraction allowed (eps=1.0e-12)
   double Max_NeutralFrac;  ///< Maximum H0 fraction allowed (1-eps)
 
-
-  ///***********************************************
-
-
-
   int print_flag;
-
-
-  // std::vector<double> elem_number_density;
-
-
-
-  /// ===========================================================================
-  ///  Photo-ionisation
-  /// ===========================================================================
-
-
-protected:
-  /// Function will generate indexing necessary for photo-ionisation tracers
-  /// void photo_species_cataloger();
-
-
 
   /// For each cell, ydot() needs to know the local radiation field.  This
   /// function takes all of the input radiation sources and calculates what
@@ -613,8 +571,6 @@ protected:
           &  ///< list of ionising src column densities and source properties.
   );
 
-
-
   /// Function to return photo-ionisation rate.
   double photoionisation_rate(
       const int,    // Species identifier
@@ -627,16 +583,8 @@ protected:
       const double  // Species number density
   );
 
-
-  // int N_ion_srcs;    ///< No ionising sources --> 0, otherwise --> 1
-  // int ion_src_type;  ///< Either RT_EFFECT_MFION or RT_EFFECT_PION_MONO.
-
-
-
   /// index matching photo_ion xsection to ion in local vector
   std::vector<std::vector<double> > y_ion_xsections;
-
-
 
   // #########################################################################
   // *********************** DEBUG  FUNCTIONS ********************************
