@@ -14,18 +14,16 @@
 #include <map>
 #include <spdlog/spdlog.h>
 
-
 /** \brief
  * Struct to hold atomic physics species attributes.
  **/
 struct species_datatype {
-  std::string element;  ///< Element to which the ion belong to.
-  int atomic_number;    ///< Atomic number
-  int charge;           ///< Charge of the species.
-  double mass;          ///< Mass of the element.
-  double ionise_E;  ///< Ionisation energy of species (in the units of ergs).
+  std::string element; ///< Element to which the ion belong to.
+  int atomic_number;   ///< Atomic number
+  int charge;          ///< Charge of the species.
+  double mass;         ///< Mass of the element.
+  double ionise_E;     ///< Ionisation energy of species (in the units of ergs).
 };
-
 
 // ATOMIC PHYSICS DATABASE CLASS #########################################
 /**
@@ -34,8 +32,7 @@ struct species_datatype {
  * of neutral atoms and their ions. The attributes include element name, charge,
  * mass, ionisation potential energy.
  **/
-class atomic_physics_database :
-  virtual public nemo_constants {
+class atomic_physics_database : virtual public nemo_constants {
 
   // PUBLIC METHODS AND VARIABLE ***********************
 public:
@@ -51,7 +48,6 @@ public:
   /** \brief This will export all the species of an element in a vector. **/
   std::vector<std::string> import_species(const std::string element);
 
-
   /** \brief Returns the element name string of the species. **/
   std::string get_element_name(const std::string species);
 
@@ -59,27 +55,27 @@ public:
   int get_atomic_number(const std::string);
 
   /** \brief Returns the atomic mass of the element. **/
-  double get_atomic_mass(const std::string  ///< element name
+  double get_atomic_mass(const std::string ///< element name
   );
 
   /** \brief Returns the charge of the species. **/
-  int get_charge(const std::string  ///< species name
+  int get_charge(const std::string ///< species name
   );
 
   /** \brief Returns the number of electron released by the species. **/
-  int get_electron_num(const std::string  ///< species name
+  int get_electron_num(const std::string ///< species name
   );
 
   /** \brief Returns the ionisation potential of the species in the units of
    * ergs.
    **/
-  double get_ionisation_potential(const std::string  ///< species name
+  double get_ionisation_potential(const std::string ///< species name
   );
 
   /** \brief Returns the ionisation potential of the species in the units of
    * eV.
    **/
-  double get_ionisation_energy(const std::string  ///< species name
+  double get_ionisation_energy(const std::string ///< species name
   );
 
   // PRIVATE METHODS AND VARIABLES *************************
@@ -115,4 +111,4 @@ private:
 extern class atomic_physics_database atomic_physics_data;
 // END OF ATOMIC PHYSICS DATABASE CLASS ####################################
 
-#endif  // PION_ATOMIC_PHYSICS_DATABASE_H
+#endif // PION_ATOMIC_PHYSICS_DATABASE_H

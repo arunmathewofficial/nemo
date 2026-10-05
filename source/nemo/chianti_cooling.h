@@ -17,15 +17,14 @@
 
 #include "microphysics/interpolate.h"
 
-
 // USER DEFINED DATATYPE #################################################
 
 /**
  * \brief Struct to hold chianti cooling table attributes.
  **/
 struct database_datatype {
-  std::string Name;                        ///< Species name
-  std::vector<std::vector<double> > rate;  ///< chianti cooling rate table
+  std::string Name;                      ///< Species name
+  std::vector<std::vector<double>> rate; ///< chianti cooling rate table
 };
 
 /**
@@ -35,15 +34,13 @@ struct LUT_datatype {
   /// Name of the species
   std::string Name;
   /// New chianti cooling rate lookup table
-  std::vector<std::vector<double> > rate;
+  std::vector<std::vector<double>> rate;
   /// Chianti rate slope along T-axis
-  std::vector<std::vector<double> > T_rateslope;
+  std::vector<std::vector<double>> T_rateslope;
   /// Chianti rate slope along ne-axis
-  std::vector<std::vector<double> > ne_rateslope;
+  std::vector<std::vector<double>> ne_rateslope;
 };
 // END OF USER DEFINED DATATYPE #########################################
-
-
 
 // CHIANTI COOLING CLASS ####################################################
 /** \brief Class to generate Chianti cooling LUTs
@@ -73,8 +70,8 @@ public:
    * function will record the location (integer value) of the species in the
    * tracer list in the database into 2D vector chianti_tracer_locator.
    **/
-  void setup_chianti_cooling(const std::vector<std::vector<std::string> >
-                                 &  ///< MP tracer list for cooling.
+  void setup_chianti_cooling(const std::vector<std::vector<std::string>>
+                                 & ///< MP tracer list for cooling.
   );
 
   /**
@@ -87,16 +84,16 @@ public:
    *same tables of temperature and electron density.
    **/
   void generate_chianti_table(
-      const std::vector<double> &,  ///< Temperature table
-      const std::vector<double> &   ///< Electron number density table
+      const std::vector<double> &, ///< Temperature table
+      const std::vector<double> &  ///< Electron number density table
   );
 
   std::vector<double> chianti_logT_table;
   std::vector<double> chianti_logne_table;
-  std::vector<std::vector<int> >
-      cooling_species_identifier;  ///< Location of tracer species in the
-                                   ///< database.
-  std::vector<LUT_datatype> chianti_table;  ///< LUT datatype variable
+  std::vector<std::vector<int>>
+      cooling_species_identifier; ///< Location of tracer species in the
+                                  ///< database.
+  std::vector<LUT_datatype> chianti_table; ///< LUT datatype variable
 
   // PRIVATE METHODS AND VARIABLES *************************
 private:
@@ -140,8 +137,7 @@ private:
    **/
   void cooling_table_database();
 
-  std::vector<database_datatype>
-      species;  ///< Cooling table database data type.
+  std::vector<database_datatype> species; ///< Cooling table database data type.
 };
 // END OF CHIANTI COOLING CLASS #############################################
-#endif  // CHIANTI_COOLING_H
+#endif // CHIANTI_COOLING_H

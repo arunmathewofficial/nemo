@@ -22,7 +22,7 @@
 /// - 2013.02.07 JM: Changed int to long int in Jacobian function for
 ///    compatibility with sundials 2.5.0.
 
-//#include "constants.h"
+// #include "constants.h"
 #include "microphysics/cvode_integrator.h"
 
 #ifdef SPDLOG_FWD
@@ -40,22 +40,20 @@ using namespace std;
 // ##################################################################
 // ##################################################################
 
-cvode_solver::cvode_solver()
-{
-  abstol    = 0;
+cvode_solver::cvode_solver() {
+  abstol = 0;
   cvode_mem = 0;
-  n_eq      = -1;  // number of equations i.e. number of species in Y.
-  n_xd = -1;  // number of extra paramaters needed in ydot/jacobian functions
-              // (maybe none).
+  n_eq = -1; // number of equations i.e. number of species in Y.
+  n_xd = -1; // number of extra paramaters needed in ydot/jacobian functions
+             // (maybe none).
   have_setup_cvodes = false;
-  fp                = 0;
+  fp = 0;
 }
 
 // ##################################################################
 // ##################################################################
 
-cvode_solver::~cvode_solver()
-{
+cvode_solver::~cvode_solver() {
 #if defined CVODE2
   N_VDestroy_Serial(abstol);
 #else
@@ -71,11 +69,10 @@ cvode_solver::~cvode_solver()
 // ##################################################################
 // ##################################################################
 
-int cvode_solver::setup_cvode_solver()
-{
+int cvode_solver::setup_cvode_solver() {
   if (have_setup_cvodes) {
-    spdlog::debug(
-        ">>>---- Warning! Setting up CVODES solver twice! will delete and re-init. ----<<<\n");
+    spdlog::debug(">>>---- Warning! Setting up CVODES solver twice! will "
+                  "delete and re-init. ----<<<\n");
     if (abstol) {
 #if defined CVODE2
       N_VDestroy_Serial(abstol);
@@ -125,8 +122,7 @@ int cvode_solver::setup_cvode_solver()
 // ##################################################################
 // ##################################################################
 
-int cvode_solver::setup_cvode_solver_without_Jacobian()
-{
+int cvode_solver::setup_cvode_solver_without_Jacobian() {
   if (have_setup_cvodes) {
     spdlog::debug("Setting up CVODES solver twice! will delete and re-init.");
     if (abstol) {
@@ -184,7 +180,7 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
   // the initial dependent variable vector y.
   //
   double t = 0.0;
-  err      = CVodeInit(cvode_mem, Ydot_for_cvode, t, abstol);
+  err = CVodeInit(cvode_mem, Ydot_for_cvode, t, abstol);
   if (err != CV_SUCCESS) {
     spdlog::error("setup_cvode_solver() CVodeInit error: {}", err);
     return 3;
@@ -195,8 +191,8 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
   // and vector absolute tolerances
   //
   double reltol = 0.0;
-  double *atol  = NV_DATA_S(abstol);
-  get_error_tolerances(&reltol, atol);  // both args passed by reference.
+  double *atol = NV_DATA_S(abstol);
+  get_error_tolerances(&reltol, atol); // both args passed by reference.
 
 #ifdef CVODE_DEBUG
   spdlog::debug("\t\treltol={}, atol=[{}", reltol, NV_Ith_S(abstol, 0));
@@ -227,8 +223,8 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
 
   msetup = SUNDenseMatrix(n_eq, n_eq);
   vsetup = N_VNew_Serial(n_eq);
-  LS     = SUNDenseLinearSolver(vsetup, msetup);
-  err    = CVDlsSetLinearSolver(cvode_mem, LS, msetup);
+  LS = SUNDenseLinearSolver(vsetup, msetup);
+  err = CVDlsSetLinearSolver(cvode_mem, LS, msetup);
   if (err != CV_SUCCESS) {
     spdlog::error("setup_cvode_solver() CVDlsSetLinearSolver(): err={}", err);
     return 5;
@@ -238,8 +234,8 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
 
   msetup = SUNDenseMatrix(n_eq, n_eq, sunctx);
   vsetup = N_VNew_Serial(n_eq, sunctx);
-  LS     = SUNLinSol_Dense(vsetup, msetup, sunctx);
-  err    = CVodeSetLinearSolver(cvode_mem, LS, msetup);
+  LS = SUNLinSol_Dense(vsetup, msetup, sunctx);
+  err = CVodeSetLinearSolver(cvode_mem, LS, msetup);
   if (err != CV_SUCCESS) {
     spdlog::error("setup_cvode_solver() CVDlsSetLinearSolver(): err={}", err);
     return 5;
@@ -249,8 +245,8 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
 
   msetup = SUNDenseMatrix(n_eq, n_eq);
   vsetup = N_VNew_Serial(n_eq);
-  LS     = SUNLinSol_Dense(vsetup, msetup);
-  err    = CVodeSetLinearSolver(cvode_mem, LS, msetup);
+  LS = SUNLinSol_Dense(vsetup, msetup);
+  err = CVodeSetLinearSolver(cvode_mem, LS, msetup);
   if (err != CV_SUCCESS) {
     spdlog::error("setup_cvode_solver() CVDlsSetLinearSolver(): err={}", err);
     return 5;
@@ -271,27 +267,18 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
   CVodeSetErrFile(cvode_mem, fp);
 #endif
 
-
-
   // Should be all done now, so return.
   have_setup_cvodes = true;
   return 0;
 }
 
-
-
 // ##################################################################
 // ##################################################################
 
-
-
-int cvode_solver::integrate_cvode_step(
-    N_Vector Y_Input,
-    void *user_data,  ///<  user_data
-    double t_now,
-    double dt,
-    N_Vector Y_Output)
-{
+int cvode_solver::integrate_cvode_step(N_Vector Y_Input,
+                                       void *user_data, ///<  user_data
+                                       double t_now, double dt,
+                                       N_Vector Y_Output) {
   int err = 0;
   //
   // user_data is a pointer to this class, but I can just use the 'this'
@@ -308,7 +295,7 @@ int cvode_solver::integrate_cvode_step(
   // a do-loop where we split the integral into substeps.
   //
   double t_temp = t_now;
-  double tf     = t_now + dt;
+  double tf = t_now + dt;
   //
   // Re-initialise cvode to the current Y-value and start-time.
   //
@@ -327,9 +314,9 @@ int cvode_solver::integrate_cvode_step(
     t_now = t_temp;
     spdlog::debug("Success on first try: t={}, y = [", t_now);
     for (int v = 0; v < n_eq - 1; v++)
-      spdlog::debug(
-          "{}, {}]", NV_Ith_S(Y_Output, v), NV_Ith_S(Y_Output, n_eq - 1));
-#endif  // CVODE_DEBUG
+      spdlog::debug("{}, {}]", NV_Ith_S(Y_Output, v),
+                    NV_Ith_S(Y_Output, n_eq - 1));
+#endif // CVODE_DEBUG
     return 0;
   }
 
@@ -340,7 +327,7 @@ int cvode_solver::integrate_cvode_step(
   //
 #ifdef CVODE_DEBUG
   spdlog::debug("First try failed");
-#endif  // CVODE_DEBUG
+#endif // CVODE_DEBUG
   t_temp = t_now;
   dt *= 0.5;
   int fail_ct = 0, step_ct = 0;
@@ -360,15 +347,15 @@ int cvode_solver::integrate_cvode_step(
     err = CVode(cvode_mem, t_now + dt, Y_Output, &t_temp, CV_NORMAL);
     if (err != CV_SUCCESS) {
 #ifdef CVODE_DEBUG
-      spdlog::debug(
-          "FAILED STEP: err={}.\tOld-t={}, returned t={}, dt was = {}.\tFAILED loop_ct={}: Y_Output = [",
-          err, t_now, t_temp, dt, fail_ct);
+      spdlog::debug("FAILED STEP: err={}.\tOld-t={}, returned t={}, dt was = "
+                    "{}.\tFAILED loop_ct={}: Y_Output = [",
+                    err, t_now, t_temp, dt, fail_ct);
       for (int v = 0; v < n_eq - 1; v++)
-        spdlog::debug(
-            "{}, {}]", NV_Ith_S(Y_Output, v), NV_Ith_S(Y_Output, n_eq - 1));
-      // cout <<"FAILED loop ct="<<fail_ct<<":    y = [";
-      // for (int v=0;v<n_eq-1;v++) cout << NV_Ith_S(Y_Input,v)<<", ";
-      // cout << NV_Ith_S(Y_Input,n_eq-1) <<"]\n";
+        spdlog::debug("{}, {}]", NV_Ith_S(Y_Output, v),
+                      NV_Ith_S(Y_Output, n_eq - 1));
+        // cout <<"FAILED loop ct="<<fail_ct<<":    y = [";
+        // for (int v=0;v<n_eq-1;v++) cout << NV_Ith_S(Y_Input,v)<<", ";
+        // cout << NV_Ith_S(Y_Input,n_eq-1) <<"]\n";
 #endif
       //
       // step failed, so don't copy yout to y, do shrink the timestep,
@@ -377,24 +364,23 @@ int cvode_solver::integrate_cvode_step(
       dt *= 0.5;
       t_temp = t_now;
       fail_ct++;
-    }
-    else {
+    } else {
       //
       // Must have succeeded, copy Y_Output to y, make the next timestep
       // larger (if needed), and make sure dt is not too large,
       // or running past the end of the integration.
       //
 #ifdef CVODE_DEBUG
-      spdlog::debug(
-          "STEPPER: old-t={}, returned t={}, dt was = {}.\t This_loop_fail_ct={}, step_ct={}: yout = [",
-          t_now, t_temp, dt, fail_ct, step_ct);
+      spdlog::debug("STEPPER: old-t={}, returned t={}, dt was = {}.\t "
+                    "This_loop_fail_ct={}, step_ct={}: yout = [",
+                    t_now, t_temp, dt, fail_ct, step_ct);
       for (int v = 0; v < n_eq - 1; v++)
-        spdlog::debug(
-            "{}, {}]", NV_Ith_S(Y_Output, v), NV_Ith_S(Y_Output, n_eq - 1));
-      // cout <<"EEEEEE loop ct="<<fail_ct<<":    y = [";
-      // for (int v=0;v<n_eq-1;v++) cout << NV_Ith_S(Y_Input,v)<<", ";
-      // cout << NV_Ith_S(Y_Input,n_eq-1) <<"]\n";
-#endif  // CVODE_DEBUG
+        spdlog::debug("{}, {}]", NV_Ith_S(Y_Output, v),
+                      NV_Ith_S(Y_Output, n_eq - 1));
+        // cout <<"EEEEEE loop ct="<<fail_ct<<":    y = [";
+        // for (int v=0;v<n_eq-1;v++) cout << NV_Ith_S(Y_Input,v)<<", ";
+        // cout << NV_Ith_S(Y_Input,n_eq-1) <<"]\n";
+#endif // CVODE_DEBUG
 
       for (int v = 0; v < n_eq; v++)
         NV_Ith_S(Y_Input, v) = NV_Ith_S(Y_Output, v);
@@ -416,30 +402,28 @@ int cvode_solver::integrate_cvode_step(
   } while (t_now < tf && fail_ct <= MAX_TRYS && step_ct <= MAX_STEPS);
 
   if (fail_ct > MAX_TRYS) {
-    spdlog::debug(
-        "integrate_cvode_step(): Integration failed after bisecting the step {} times.\n",
-        MAX_TRYS);
+    spdlog::debug("integrate_cvode_step(): Integration failed after bisecting "
+                  "the step {} times.\n",
+                  MAX_TRYS);
     return fail_ct;
   }
   if (step_ct >= MAX_STEPS) {
-    spdlog::debug(
-        "integrate_cvode_step(): Integration took {} and not at end of step.  giving up.\n",
-        MAX_STEPS);
+    spdlog::debug("integrate_cvode_step(): Integration took {} and not at end "
+                  "of step.  giving up.\n",
+                  MAX_STEPS);
     return step_ct;
   }
 
 #ifdef CVODE_DEBUG
   spdlog::debug("Final version step_ct={}: t={}, y = [", step_ct, t_now);
   for (int v = 0; v < n_eq - 1; v++)
-    spdlog::debug(
-        "{}, {}]", NV_Ith_S(Y_Output, v), NV_Ith_S(Y_Output, n_eq - 1));
-#endif  // CVODE_DEBUG
+    spdlog::debug("{}, {}]", NV_Ith_S(Y_Output, v),
+                  NV_Ith_S(Y_Output, n_eq - 1));
+#endif // CVODE_DEBUG
 
   // for (int v=0;v<n_eq;v++) NV_Ith_S(Yf,v) = NV_Ith_S(Y_Output,v);
   return 0;
 }
-
-
 
 // ##################################################################
 // ##################################################################
@@ -450,15 +434,11 @@ int cvode_solver::integrate_cvode_step(
 // ##################################################################
 // ##################################################################
 
-
-
-int Ydot_for_cvode(
-    double t,     ///< current time
-    N_Vector y,   ///< current Y-value
-    N_Vector yd,  ///< vector for Y-dot values
-    void *data    ///< extra user-data pointer to the solver class
-)
-{
+int Ydot_for_cvode(double t,    ///< current time
+                   N_Vector y,  ///< current Y-value
+                   N_Vector yd, ///< vector for Y-dot values
+                   void *data   ///< extra user-data pointer to the solver class
+) {
   //
   // Now call the class member ydot() function:
   //
@@ -471,18 +451,17 @@ int Ydot_for_cvode(
 
 int Jacobian_for_cvode(
 #if defined CVODE2
-    long int N,  ///< N (not sure what this is for!)
+    long int N, ///< N (not sure what this is for!)
 #endif
-    double t,       ///< time, t
-    N_Vector y,     ///< y
-    N_Vector yd,    ///< ydot
-    CVMatrix J,     ///< Jacobian matrix
-    void *data,     ///< extra user-data pointer to the solver class
-    N_Vector tmp1,  ///< temp vector, must be for internal use
-    N_Vector tmp2,  ///< temp vector, must be for internal use
-    N_Vector tmp3   ///< temp vector, must be for internal use
-)
-{
+    double t,      ///< time, t
+    N_Vector y,    ///< y
+    N_Vector yd,   ///< ydot
+    CVMatrix J,    ///< Jacobian matrix
+    void *data,    ///< extra user-data pointer to the solver class
+    N_Vector tmp1, ///< temp vector, must be for internal use
+    N_Vector tmp2, ///< temp vector, must be for internal use
+    N_Vector tmp3  ///< temp vector, must be for internal use
+) {
   //
   // Now call class member function to get the Jacobian.
   // This is stored in J as a 'CVMatrix' stuct, so we don't

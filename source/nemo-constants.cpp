@@ -25,51 +25,37 @@ using namespace std;
 
 nemo_constants::nemo_constants() {}
 
-
 // ##################################################################
 // ##################################################################
 
 nemo_constants::~nemo_constants() {}
 
-
 // ##################################################################
 // ##################################################################
 
-
-
-bool nemo_constants::equalD(const double a, const double b)
-{
+bool nemo_constants::equalD(const double a, const double b) {
   if (a == b) {
     return (true);
   }
   if (fabs(a) + fabs(b) < TINYVALUE) {
 #ifdef DEBUG3
-    spdlog::debug(
-        "tiny numbers in equalD(a,b); a,b <1.e-100... a={}, b={}; returning true.\n",
-        a, b);
+    spdlog::debug("tiny numbers in equalD(a,b); a,b <1.e-100... a={}, b={}; "
+                  "returning true.\n",
+                  a, b);
 #endif
     return (true);
   }
   if ((fabs(a - b) / (fabs(a) + fabs(b) + TINYVALUE)) < SMALLVALUE) {
     return (true);
-  }
-  else {
-    return (false);  // false is zero.
+  } else {
+    return (false); // false is zero.
   }
 }
-
-
 
 // ##################################################################
 // ##################################################################
 
-
-
-double nemo_constants::pow_fast(double a, double b)
-{
-  return exp(b * log(a));
-}
-
+double nemo_constants::pow_fast(double a, double b) { return exp(b * log(a)); }
 
 // ##################################################################
 // ##################################################################

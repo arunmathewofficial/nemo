@@ -27,10 +27,10 @@
  * coefficient.
  **/
 struct coll_ionise_datatype {
-  int P;     ///< Collisional ionisation fit parameter P (dimensionless)
-  double A;  ///< Collisional ionisation fit parameter A (in units of cm^3/s)
-  double X;  ///< Collisional ionisation fit parameter X (dimensionless)
-  double K;  ///< Collisional ionisation fit parameter K (dimensionless)
+  int P;    ///< Collisional ionisation fit parameter P (dimensionless)
+  double A; ///< Collisional ionisation fit parameter A (in units of cm^3/s)
+  double X; ///< Collisional ionisation fit parameter X (dimensionless)
+  double K; ///< Collisional ionisation fit parameter K (dimensionless)
 };
 
 /**
@@ -38,18 +38,17 @@ struct coll_ionise_datatype {
  * recombination rate coefficient.
  **/
 struct recomb_datatype {
-  double A;   ///< Radiative recombination fit parameter A  (in units of cm^3/s)
-  double B;   ///< Radiative recombination fit parameter B  (dimensionless)
-  double T0;  ///< Radiative recombination fit parameter T0 (in units of K)
-  double T1;  ///< Radiative recombination fit parameter T1 (in units of K)
-  double C;   ///< Radiative recombination fit parameter C  (dimensionless)
-  double T2;  ///< Radiative recombination fit parameter T2 (in units of K)
+  double A;  ///< Radiative recombination fit parameter A  (in units of cm^3/s)
+  double B;  ///< Radiative recombination fit parameter B  (dimensionless)
+  double T0; ///< Radiative recombination fit parameter T0 (in units of K)
+  double T1; ///< Radiative recombination fit parameter T1 (in units of K)
+  double C;  ///< Radiative recombination fit parameter C  (dimensionless)
+  double T2; ///< Radiative recombination fit parameter T2 (in units of K)
   std::vector<double> C_coefs{std::vector<double>(9)};
   ///< Dielectronic recombination C_i coefficients (in units of cm^3K^1.5/s)
   std::vector<double> E_coefs{std::vector<double>(9)};
   ///< Dielectronic recombination E_i coefficients (in units of K)
 };
-
 
 // COLLISIONAL IONISATION AND RECOMBINATION CLASS ############################
 /**
@@ -76,45 +75,44 @@ public:
    * species in collisional ionisation tracer list.
    **/
   void setup_collisional_ionisation(
-      const std::vector<std::string> &  ///< collisional ionisation tracer list
+      const std::vector<std::string> & ///< collisional ionisation tracer list
   );
 
   /** \brief This function will set the species size of the recombination rate
    * lookup tables and slope lookup tables.
    **/
   void setup_recombination(
-      const std::vector<std::string> &  ///< recombination tracer list
+      const std::vector<std::string> & ///< recombination tracer list
   );
 
   /** \brief Function generating collisional ionisation rate and slope lookup
    * tables for a given array of temperature values with ci_tracer species list.
    **/
   void generate_collisional_ionisation_LUT(
-      const std::vector<double> &  ///< Temperature table
+      const std::vector<double> & ///< Temperature table
   );
 
   /** \brief Function generating recombination rate and slope lookup tables
    * for a given array of temperature values with recomb_tracer species list.
    **/
-  void generate_recombination_LUT(
-      const std::vector<double> &  ///< Temperature table
+  void
+  generate_recombination_LUT(const std::vector<double> & ///< Temperature table
   );
 
-  std::vector<std::vector<double> >
-      collisional_rate_table;  ///< Collisional ionisation rate LUT
-  std::vector<std::vector<double> >
-      collisional_slope_table;  ///< Collisional ionisation rate slope LUT
-  std::vector<std::vector<double> >
-      recombination_rate_table;  ///< Recombination rate LUT
-  std::vector<std::vector<double> >
-      recombination_slope_table;  ///< Recombination rate slope LUT
-  std::vector<std::vector<double> >
-      caseA_recombination_rate_table;  ///< Recombination rate LUT
-  std::vector<std::vector<double> >
-      caseA_recombination_slope_table;  ///< Recombination rate slope LUT
+  std::vector<std::vector<double>>
+      collisional_rate_table; ///< Collisional ionisation rate LUT
+  std::vector<std::vector<double>>
+      collisional_slope_table; ///< Collisional ionisation rate slope LUT
+  std::vector<std::vector<double>>
+      recombination_rate_table; ///< Recombination rate LUT
+  std::vector<std::vector<double>>
+      recombination_slope_table; ///< Recombination rate slope LUT
+  std::vector<std::vector<double>>
+      caseA_recombination_rate_table; ///< Recombination rate LUT
+  std::vector<std::vector<double>>
+      caseA_recombination_slope_table; ///< Recombination rate slope LUT
   std::vector<double>
-      ci_ion_pot;  ///< Ionisation potential vector for ci_tracer_list
-
+      ci_ion_pot; ///< Ionisation potential vector for ci_tracer_list
 
   // PRIVATE METHODS AND VARIABLES *************************
 private:
@@ -134,8 +132,8 @@ private:
   void collisional_ionisation_database();
 
   std::vector<std::string>
-      ci_species_list;  ///< Collisional ionisation tracer list
-  std::vector<std::string> recomb_species_list;  ///< Recombination tracer list
+      ci_species_list; ///< Collisional ionisation tracer list
+  std::vector<std::string> recomb_species_list; ///< Recombination tracer list
 
   /** \brief Radiative and Dielectronic recombination fit parameter database
    * for H1+, He1+, He2+, C1+, C2+, C3+, C4+, C5+, C6+, N1+, N2+, N3+, N4+,
@@ -191,9 +189,8 @@ private:
   /** \brief Calculate collisional ionisation rate of a species for a given
    * temperature T.
    **/
-  double get_collisional_ionisation_rate(
-      const std::string,  ///< species name
-      const double        ///< Temperature
+  double get_collisional_ionisation_rate(const std::string, ///< species name
+                                         const double       ///< Temperature
   );
 
   /** \brief Calculate recombination rate of a species for a given temperature
@@ -202,13 +199,11 @@ private:
    * Returns Case A rate for most ions, Case B for H+ and He+, in units cm3/s
    * Also adds the Case A rate to an optional 3rd argument to the function.
    **/
-  double get_recombination_rate(
-      const std::string,  ///< species name
-      const double,       ///< Temperature
-      double &            ///< Case A rate
+  double get_recombination_rate(const std::string, ///< species name
+                                const double,      ///< Temperature
+                                double &           ///< Case A rate
   );
 };
 // END OF COLLISIONAL IONISATION AND RECOMBINATION CLASS #####################
 
-
-#endif  // PION_COLL_IONISE_RECOMB_H
+#endif // PION_COLL_IONISE_RECOMB_H

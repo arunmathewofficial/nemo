@@ -10,24 +10,17 @@
 // Global instance of class
 class atomic_physics_database atomic_physics_data;
 
-
 // ##################################################################
 // Constructor
-atomic_physics_database::atomic_physics_database()
-{
-  database();
-}
-
+atomic_physics_database::atomic_physics_database() { database(); }
 
 // ##################################################################
 // Destructor
 atomic_physics_database::~atomic_physics_database() {}
 
-
 // ##################################################################
 // Find the species in the database.
-bool atomic_physics_database::find_species(const std::string species)
-{
+bool atomic_physics_database::find_species(const std::string species) {
 
   auto it = species_attributes.find(species);
   if (it != species_attributes.end())
@@ -40,9 +33,8 @@ bool atomic_physics_database::find_species(const std::string species)
 
 // ##################################################################
 // Export species of an element from the database.
-std::vector<std::string> atomic_physics_database::import_species(
-    const std::string element_name)
-{
+std::vector<std::string>
+atomic_physics_database::import_species(const std::string element_name) {
   // get all the species corresponding to an element.
   std::vector<std::string> element_species_set;
   std::string key = "";
@@ -55,14 +47,13 @@ std::vector<std::string> atomic_physics_database::import_species(
 
   // Sort the obtained string species vector according to their charge
   // Comparator function to compare species based on charges
-  auto charge_comparator =
-      [this](const std::string &species_1, const std::string &species_2) {
-        return get_charge(species_1) < get_charge(species_2);
-      };
+  auto charge_comparator = [this](const std::string &species_1,
+                                  const std::string &species_2) {
+    return get_charge(species_1) < get_charge(species_2);
+  };
   // Sorting the vector using the charge comparator
-  std::sort(
-      element_species_set.begin(), element_species_set.end(),
-      charge_comparator);
+  std::sort(element_species_set.begin(), element_species_set.end(),
+            charge_comparator);
 
   // if the element is not in the database return error.
   if (key == "") {
@@ -73,71 +64,54 @@ std::vector<std::string> atomic_physics_database::import_species(
   return element_species_set;
 }
 
-
 // ##################################################################
 // Get atomic element from the database
-std::string atomic_physics_database::get_element_name(const std::string species)
-{
+std::string
+atomic_physics_database::get_element_name(const std::string species) {
   return species_attributes[species].element;
 }
 
 // ##################################################################
 // Get atomic mass from the database
-int atomic_physics_database::get_atomic_number(const std::string species)
-{
+int atomic_physics_database::get_atomic_number(const std::string species) {
   return species_attributes[species].atomic_number;
 }
 
-
 // ##################################################################
 // Get atomic mass from the database
-double atomic_physics_database::get_atomic_mass(const std::string species)
-{
+double atomic_physics_database::get_atomic_mass(const std::string species) {
   return species_attributes[species].mass;
 }
 
-
-
 // ##################################################################
 // Get the charge of the species
-int atomic_physics_database::get_charge(const std::string species)
-{
+int atomic_physics_database::get_charge(const std::string species) {
   return species_attributes[species].charge;
 }
-
-
 
 // ##################################################################
 // Get number of electron released by the species
-int atomic_physics_database::get_electron_num(const std::string species)
-{
+int atomic_physics_database::get_electron_num(const std::string species) {
   return species_attributes[species].charge;
 }
 
-
-
 // ##################################################################
 // Get ionisation potential in units of erg
-double atomic_physics_database::get_ionisation_potential(
-    const std::string species)
-{
+double
+atomic_physics_database::get_ionisation_potential(const std::string species) {
   return species_attributes[species].ionise_E * eV();
 }
 
-
-
 // ##################################################################
 // Get ionisation potential in units of eV
-double atomic_physics_database::get_ionisation_energy(const std::string species)
-{
+double
+atomic_physics_database::get_ionisation_energy(const std::string species) {
   return species_attributes[species].ionise_E;
 }
 
-
 // ##################################################################
 // Atomic physics database
-void atomic_physics_database::database()
-{
+void atomic_physics_database::database() {
   spdlog::info("Setting up atomic physics database");
 
   // Ionisation energies are taken from NIST Atomic Spectra
@@ -152,8 +126,8 @@ void atomic_physics_database::database()
   // Entry: H1+
   species_attributes["H1+"] = species_datatype{
       "H", 1, 1,
-      0,       // mass of H1+ is set equal to zero.
-      1.0e-99  // small dummy value.
+      0,      // mass of H1+ is set equal to zero.
+      1.0e-99 // small dummy value.
   };
 
   // Entry: He
@@ -455,6 +429,5 @@ void atomic_physics_database::database()
   // Entry: Fe26+
   species_attributes["Fe26+"] = species_datatype{"Fe", 26, 26, 0, 1.0e-99};
 }
-
 
 // **************************************************************

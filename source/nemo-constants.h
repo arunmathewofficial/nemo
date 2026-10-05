@@ -9,7 +9,7 @@
 ///
 ///
 /// Modifications:
-/// - 
+/// -
 
 #ifndef NEMO_CONSTANTS_H
 #define NEMO_CONSTANTS_H
@@ -125,12 +125,10 @@ public:
   ///
   bool equalD(const double, const double);
   /// Function to replace pow(a, b) - exp(b*log(a)) is twice as fast
-  double pow_fast(
-      double,  ///< a
-      double   ///< b
+  double pow_fast(double, ///< a
+                  double  ///< b
   );
 };
-
 
 //-------------------------------------------------------
 // Defines for different sized numbers.
@@ -145,18 +143,17 @@ public:
 #define ONE_MINUS_EPS (1.0 - SMALLVALUE)
 
 // Effect of source:
-#define RT_EFFECT_MP10_ATLAS_O3V 7   ///< ATLAS models
-#define RT_EFFECT_MP10_POWR_WC 8     ///< POWR WC models
-#define RT_EFFECT_MP10_POWR_WNE 9    ///< POWR WNE models
-#define RT_EFFECT_MP10_BLACKBODY 10  ///< BLACKBODY
+#define RT_EFFECT_MP10_ATLAS_O3V 7  ///< ATLAS models
+#define RT_EFFECT_MP10_POWR_WC 8    ///< POWR WC models
+#define RT_EFFECT_MP10_POWR_WNE 9   ///< POWR WNE models
+#define RT_EFFECT_MP10_BLACKBODY 10 ///< BLACKBODY
 
 ///
 /// Global function to exit NEMO
 ///
-inline int exit_nemo(const int i)
-{
+inline int exit_nemo(const int i) {
   spdlog::error("NEMO encountered an error and will now exit: code = {}", i);
-  spdlog::shutdown();  // should flush the logfile buffer to file.
+  spdlog::shutdown(); // should flush the logfile buffer to file.
   exit(i);
 }
 
@@ -168,18 +165,16 @@ inline int exit_nemo(const int i)
 /// they are in order.
 ///
 enum primitive {
-  RO = 0,  ///< Density
-  PG = 1,  ///< Gas pressure
-  VX = 2,  ///< x-velocity
-  VY = 3,  ///< y-velocity
-  VZ = 4,  ///< z-velocity
-  BX = 5,  ///< x-magnetic field
-  BY = 6,  ///< y-magnetic field
-  BZ = 7,  ///< z-magnetic field
-  SI = 8   ///< The GLM scalar field, psi.
+  RO = 0, ///< Density
+  PG = 1, ///< Gas pressure
+  VX = 2, ///< x-velocity
+  VY = 3, ///< y-velocity
+  VZ = 4, ///< z-velocity
+  BX = 5, ///< x-magnetic field
+  BY = 6, ///< y-magnetic field
+  BZ = 7, ///< z-magnetic field
+  SI = 8  ///< The GLM scalar field, psi.
 };
 //--------------------------------------------------------
 
-
-
-#endif  // NEMO_CONSTANTS_H
+#endif // NEMO_CONSTANTS_H
