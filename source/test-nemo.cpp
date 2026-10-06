@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 
   // nemo(ndim, coord-sys, Nel(state vec), Ntracer, tracers, extra-physics,
   // rad-sources, gamma)
-  class nemo MP(15, 5, tr, &wp, &rs, 5.0 / 3.0);
+  class nemo MP(15, 5, 0, 1, tr, &wp, &rs, 5.0 / 3.0);
 
   std::vector<double> input(15, 0.0);
   input[0]  = 1.0e-22;  // density

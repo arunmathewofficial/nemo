@@ -159,24 +159,4 @@ inline int exit_nemo(const int i)
   exit(i);
 }
 
-//--------------------------------------------------------
-/// \brief Primitive Variables Enum
-/// The code requires that the velocities follow each other in order,
-/// and the same for the Magnetic Field.  I'm not sure if it will work
-/// without them being in that order, but I'm writing the code assuming
-/// they are in order.
-///
-enum primitive {
-  RO = 0,  ///< Density
-  PG = 1,  ///< Gas pressure
-  VX = 2,  ///< x-velocity
-  VY = 3,  ///< y-velocity
-  VZ = 4,  ///< z-velocity
-  BX = 5,  ///< x-magnetic field
-  BY = 6,  ///< y-magnetic field
-  BZ = 7,  ///< z-magnetic field
-  SI = 8   ///< The GLM scalar field, psi.
-};
-//--------------------------------------------------------
-
 #endif  // NEMO_CONSTANTS_H

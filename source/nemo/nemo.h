@@ -81,7 +81,9 @@ public:
   /// CONSTRUCTOR: sets up the machinery for fast execution
   nemo(
       const int,            ///< Total number of variables in state vector
-      const int,            ///< Number of passive-tracer vars in state vector.
+      const int,            ///< Number of passive-tracer vars in state vector
+      const int,            ///< index of density variable in state vector
+      const int,            ///< index of pressure variable in state vector
       const std::string *,  ///< List of what the tracer variables mean.
       struct which_physics *,  ///< pointer to extra physics flags.
       struct rad_sources *,    ///< radiation sources.
@@ -214,11 +216,16 @@ protected:
   // --------------------------------------------------------------------------
   // static variables for book-keeping
   std::vector<string> tracers_replica;  ///< microphysics tracers replica.
-  int N_prim;              ///< Size of the primitive vector (prim_vec).
-  int first_tracer_index;  /// Idx of the first tracer variable in the prim_vec.
-  std::vector<vector<string> > all_species_list;  ///< Imported species list.
+  int N_prim;             ///< Size of the primitive vector (prim_vec).
+  int prim_first_tracer;  ///< Idx of the first tracer variable in the prim_vec.
+  int prim_dens_idx;      ///< index of density var in primitive vector
+  int prim_pres_idx;      ///< index of pressure var in primitive vector
   std::vector<int>
-      massfrac_idx;  ///< idx of elemental mass fraction in prim_vec.
+      massfrac_species_prim_idx;  ///< local species index in prim_vec.
+  std::vector<int>
+      massfrac_el_prim_idx;  ///< idx of elemental mass fraction in prim_vec.
+
+  std::vector<vector<string> > all_species_list;  ///< Imported species list.
   std::vector<std::string> element_tracers;  ///< Element tracers in prim_vec.
   std::unordered_map<std::string, int> element_position_index_map;
   std::vector<int> element_atomic_number;   ///< atomic number of elements.
@@ -227,7 +234,6 @@ protected:
 
   std::vector<string> local_tracers;  ///< Extracted local tracers.
   int N_species;                      ///< Number of species.
-  std::vector<int> species_prim_idx;  ///< local species index in prim_vec.
   std::vector<int>
       species_local_idx;  ///< species idx in local vector (local_vec).
   std::vector<int>
@@ -246,8 +252,8 @@ protected:
   std::map<std::string, int> tr_map;
   /// map element names to state-vec index
   std::map<std::string, int> el_map;
-  std::vector<int> el_index;  ///< indices of elements
-  std::vector<int> tr_index;  ///< indices of tracers
+  std::vector<int> el_index;  ///< indices of elements (USED???)
+  std::vector<int> tr_index;  ///< indices of tracers  (USED???)
   int n_el;                   ///< number of element tracers
   int nv_prim;                ///< number of vars in state vec
   int ntracer;                ///< number of tracer variables
@@ -312,7 +318,8 @@ protected:
       photo_upper_ion_local_idx;           /// photo-species upper local index.
   std::vector<int> photo_species_element;  /// Corresponding element's position.
   std::vector<int> photo_species_charge;   /// photo species charge.
-  std::vector<int> photo_species_prim_idx;  /// photo-species prim-vec index.
+  std::vector<int>
+      photo_massfrac_species_prim_idx;  /// photo-species prim-vec index.
   std::vector<double>
       photo_species_IE;  ///< Record the ionisation threshold of photo species
 
