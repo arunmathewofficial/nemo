@@ -76,6 +76,8 @@ void nemo::get_problem_size(
 nemo::nemo(
     const int nv,   ///< Total number of variables in state vector
     const int ntr,  ///< Number of tracer variables in state vector.
+      const int de,            ///< index of density variable in state vector
+      const int pr,            ///< index of pressure variable in state vector
     const std::string *tracers,   ///< List of what the tracer variables mean.
     struct which_physics *ephys,  ///< pointer to extra physics flags.
     struct rad_sources *rsrcs,    ///< radiation sources.
@@ -98,6 +100,9 @@ nemo::nemo(
       "nemo: Setting up tracer variables, assuming tracers"
       " are last {} variables in primitive vector",
       ntracer);
+
+  prim_dens_idx = de;
+  prim_pres_idx = pr;
 
   // ############  from base class - check if needed #########
   EP = ephys;
@@ -474,7 +479,7 @@ void nemo::tracer_species_cataloger(
   prim_copy.resize(N_prim, 0.0);
 
   // Index of the first tracer variable in the primitive vector.
-  first_tracer_index = N_prim - N_tracers;
+  prim_first_tracer = N_prim - N_tracers;
 
   // Identifying the chemical elements and import all its species from *********
   // atomic-physics database.
@@ -525,7 +530,7 @@ void nemo::tracer_species_cataloger(
   for (int e = 0; e < N_elements; e++) {
     while (els[tr] == 0)
       tr++;
-    massfrac_idx.push_back(first_tracer_index + tr);
+    massfrac_el_prim_idx.push_back(prim_first_tracer + tr);
     tr++;
     element_atomic_number.push_back(
         atomic_physics_data.get_atomic_number(element_tracers[e]));
@@ -538,7 +543,7 @@ void nemo::tracer_species_cataloger(
   element_num_density.resize(N_elements);
 
   spdlog::debug(" nemo: Element tracers in prim-vec {}", element_tracers);
-  spdlog::debug(" nemo: Elemental mass fraction prim idx {} ", massfrac_idx);
+  spdlog::debug(" nemo: Elemental mass fraction prim idx {} ", massfrac_el_prim_idx);
   spdlog::debug(
       " nemo: Element position index map {} ", element_position_index_map);
   spdlog::debug(
@@ -595,7 +600,7 @@ void nemo::tracer_species_cataloger(
   // Now we have removed all non-species tracers, so copy this to local_tracers
   local_tracers = tracers_replica;
   if (local_tracers.size()
-      != N_prim - N_elements - first_tracer_index - notchem) {
+      != N_prim - N_elements - prim_first_tracer - notchem) {
     spdlog::error(
         " NEMO: local tracers size mismatch with local variables"
         " in prim_vec {} ",
@@ -664,7 +669,7 @@ void nemo::tracer_species_cataloger(
     while (all_species_list[position][charge] != tracers[sp])
       sp++;
 
-    species_prim_idx.push_back(first_tracer_index + sp);
+    massfrac_species_prim_idx.push_back(prim_first_tracer + sp);
     species_local_idx.push_back(s);
 
     // get element_species_count.
@@ -672,7 +677,7 @@ void nemo::tracer_species_cataloger(
     element_species_count[position]++;
 
     // map tracer string to its primitive index
-    species_prim_index_map[local_tracers[s]] = first_tracer_index + sp;
+    species_prim_index_map[local_tracers[s]] = prim_first_tracer + sp;
 
     // collisional ionisation species ******************************************
     if (EP->coll_ionisation) {
@@ -750,7 +755,7 @@ void nemo::tracer_species_cataloger(
         // record the photo-species local index.
         photo_species_local_idx.push_back(s);
         // record the photo-species primitive index.
-        photo_species_prim_idx.push_back(first_tracer_index + sp);
+        photo_massfrac_species_prim_idx.push_back(prim_first_tracer + sp);
 
         // calculating upper ion local index for the current photo-species.
         if (s + 1 < N_species
@@ -774,7 +779,7 @@ void nemo::tracer_species_cataloger(
       " nemo: Found {} elements and {} species in primitive"
       " vector",
       N_elements, N_species);
-  spdlog::debug(" NEMO: Local species primitive idx {} ", species_prim_idx);
+  spdlog::debug(" NEMO: Local species primitive idx {} ", massfrac_species_prim_idx);
   spdlog::debug(" NEMO: Species local idx {} ", species_local_idx);
   spdlog::debug(" NEMO: Species corresponding element {} ", species_element);
   spdlog::debug(" NEMO: Upper ion idx in local {} ", upper_ion_local_idx);
@@ -922,7 +927,7 @@ void nemo::tracer_species_cataloger(
     spdlog::debug(" NEMO: No of Photo-species {} ", N_photo_species);
     spdlog::debug(
         " NEMO: Photo-species local idx {} ", photo_species_local_idx);
-    spdlog::debug(" NEMO: Photo-species prim idx {} ", photo_species_prim_idx);
+    spdlog::debug(" NEMO: Photo-species prim idx {} ", photo_massfrac_species_prim_idx);
     spdlog::debug(
         " NEMO: Photo upper ion local idx {} ", photo_upper_ion_local_idx);
     spdlog::debug(" NEMO: Photo-species element {} ", photo_species_element);
@@ -943,14 +948,14 @@ double nemo::get_n_elec(const double *prim  ///< primitive state vector array.
   int sct               = 0;
   double ne_per_density = 0.0;
   for (int e = 0; e < N_elements; e++) {  // loop over every element
-    double top_ion_massfrac = prim[massfrac_idx[e]];
+    double top_ion_massfrac = prim[massfrac_el_prim_idx[e]];
     double Ne_massfrac_product =
         0.0;  // product of Ne and species mass fraction.
     for (int q = 0; q < element_species_count[e]; q++) {
       // sum of product of number of electron and corresponding mass fraction.
-      Ne_massfrac_product += q * prim[species_prim_idx[sct]];
+      Ne_massfrac_product += q * prim[massfrac_species_prim_idx[sct]];
       // calculating highest ion mass fraction
-      top_ion_massfrac -= prim[species_prim_idx[sct]];
+      top_ion_massfrac -= prim[massfrac_species_prim_idx[sct]];
       sct++;
     }
     top_ion_massfrac = max(NEMO_ABSTOL, top_ion_massfrac);
@@ -960,7 +965,7 @@ double nemo::get_n_elec(const double *prim  ///< primitive state vector array.
         (Ne_massfrac_product + element_atomic_number[e] * top_ion_massfrac)
         / element_atomic_mass[e];
   }
-  return prim[RO] * ne_per_density;  // electron number density
+  return prim[prim_dens_idx] * ne_per_density;  // electron number density
 }
 
 // GET ION NUMBER DENSITY ##############################################
@@ -983,7 +988,7 @@ double nemo::get_n_ion(
   std::string element_name = atomic_physics_data.get_element_name(s);
   int element_idx          = element_position_index_map[element_name];
 
-  return species_num_density = prim[RO] * prim[species_primitive_idx]
+  return species_num_density = prim[prim_dens_idx] * prim[species_primitive_idx]
                                / element_atomic_mass[element_idx];
 }
 
@@ -1122,18 +1127,18 @@ void nemo::get_dtau(
   for (int bin = 0; bin < N_ebins; bin++) {
     double bin_optical_depth = 0.0;
     for (int s = 0; s < N_photo_species; s++) {
-      bin_optical_depth += prim_in[photo_species_prim_idx[s]]
+      bin_optical_depth += prim_in[photo_massfrac_species_prim_idx[s]]
                            * photo_xsection_table[s][bin]
                            * bin_weight_table[s][bin]
                            / element_atomic_mass[photo_species_element[s]];
-      // if (prim_in[photo_species_prim_idx[0]]>0.71 && (s==0 || s==10)) {
+      // if (prim_in[photo_massfrac_species_prim_idx[0]]>0.71 && (s==0 || s==10)) {
       //  spdlog::info("s {}, b {}, dtau
-      //  {:12.3e}",s,bin,bin_optical_depth*prim_in[RO] * depth);
+      //  {:12.3e}",s,bin,bin_optical_depth*prim_in[prim_dens_idx] * depth);
       //}
     }
-    bin_optical_depth *= prim_in[RO] * depth;
+    bin_optical_depth *= prim_in[prim_dens_idx] * depth;
     dtau_vec[bin] = bin_optical_depth;
-    // if (prim_in[photo_species_prim_idx[0]]>0.71) {
+    // if (prim_in[photo_massfrac_species_prim_idx[0]]>0.71) {
     //  spdlog::info("b {}, dtau {:12.3e}",bin,bin_optical_depth);
     //}
   }
@@ -1154,12 +1159,12 @@ int nemo::convert_prim2local(
 
   // Make sure mass fraction in primitive vector is a self-consistent.
   sCMA(prim_copy.data(), prim_in);
-  // spdlog::info("copy {} orig {}",prim_copy[PG],prim_in[PG]);
+  // spdlog::info("copy {} orig {}",prim_copy[prim_pres_idx],prim_in[prim_pres_idx]);
 
   // Set elemental number density from the current primitive vector.
   for (int e = 0; e < N_elements; e++) {  // loop over every element
     element_num_density[e] =
-        prim_copy[RO] * prim_copy[massfrac_idx[e]] / element_atomic_mass[e];
+        prim_copy[prim_dens_idx] * prim_copy[massfrac_el_prim_idx[e]] / element_atomic_mass[e];
   }
 
   // Set local vector species variables
@@ -1172,11 +1177,11 @@ int nemo::convert_prim2local(
   for (int e = 0; e < N_elements; e++) {
     // loop over every species in this element
     for (int q = 0; q < element_species_count[e]; q++) {
-      if (prim_copy[massfrac_idx[e]] <= 0.0)
+      if (prim_copy[massfrac_el_prim_idx[e]] <= 0.0)
         p_local[sct] = 0.0;
       else
         p_local[sct] =
-            prim_copy[species_prim_idx[sct]] / prim_copy[massfrac_idx[e]];
+            prim_copy[massfrac_species_prim_idx[sct]] / prim_copy[massfrac_el_prim_idx[e]];
       p_local[sct] = min(1.0, p_local[sct]);
       p_local[sct] = max(0.0, p_local[sct]);
       sct++;
@@ -1184,11 +1189,11 @@ int nemo::convert_prim2local(
   }
 
   // Set internal energy density in local vector.
-  p_local[E_index] = prim_copy[PG] / (gamma_minus_one);
+  p_local[E_index] = prim_copy[prim_pres_idx] / (gamma_minus_one);
   if (!isfinite(p_local[E_index])) {
     spdlog::error(
-        "nemo: Input pressure is not finite: {} {}", prim_copy[PG],
-        prim_in[PG]);
+        "nemo: Input pressure is not finite: {} {}", prim_copy[prim_pres_idx],
+        prim_in[prim_pres_idx]);
     exit_nemo(4);
   }
 
@@ -1209,14 +1214,14 @@ int nemo::convert_local2prim(
     prim_out[v] = prim_in[v];
 
   // Set pressure in the primitive vector.
-  prim_out[PG] = p_local[E_index] * (gamma_minus_one);
+  prim_out[prim_pres_idx] = p_local[E_index] * (gamma_minus_one);
   // resizing y_species vector.
   std::vector<double> y_species_frac(N_species, 0.0);
   // set primitive species variables and define y_species_frac
   int sct = 0;                            // species counter
   for (int e = 0; e < N_elements; e++) {  // loop over every element
     for (int q = 0; q < element_species_count[e]; q++) {
-      prim_out[species_prim_idx[sct]] = p_local[sct] * prim_in[massfrac_idx[e]];
+      prim_out[massfrac_species_prim_idx[sct]] = p_local[sct] * prim_in[massfrac_el_prim_idx[e]];
       y_species_frac[sct]             = p_local[sct];
       sct++;
     }
@@ -1276,12 +1281,12 @@ double nemo::Temperature(
 {
   //
   // Check for negative pressure/density!  If either is found, return -1.0e99.
-  if (prim[RO] <= 0.0 || prim[PG] <= 0.0) {
-    // cout <<"nemo::Temperature() negative rho="<<pv[RO]<<" or
-    // p="<<pv[PG]<<"\n";
+  if (prim[prim_dens_idx] <= 0.0 || prim[prim_pres_idx] <= 0.0) {
+    // cout <<"nemo::Temperature() negative rho="<<pv[prim_dens_idx]<<" or
+    // p="<<pv[prim_pres_idx]<<"\n";
     return -1.0e99;
   }
-  if (!isfinite(prim[PG])) {
+  if (!isfinite(prim[prim_pres_idx])) {
     spdlog::error(
         "NEMO Temperature() pressure is not finite: {}",
         std::vector<double>(prim, prim + nv_prim));
@@ -1300,12 +1305,12 @@ double nemo::Temperature(
   for (int e = 0; e < N_elements; e++) {  // loop over every element
     // loop over every species in THIS element
     for (int q = 0; q < element_species_count[e]; q++) {
-      if (prim[massfrac_idx[e]] <= 0.0) {
+      if (prim[massfrac_el_prim_idx[e]] <= 0.0) {
         y_species_frac[sct] = 0.0;
       }
       else {
         y_species_frac[sct] =
-            prim[species_prim_idx[sct]] / prim[massfrac_idx[e]];
+            prim[massfrac_species_prim_idx[sct]] / prim[massfrac_el_prim_idx[e]];
       }
       sct++;
     }
@@ -1333,9 +1338,9 @@ int nemo::Set_Temp(
   // out because there is no way to set a temperature, but if p<0 we
   // can just overwrite it.
 
-  if (prim[PG] <= 0.0 || !isfinite(prim[PG])) {
+  if (prim[prim_pres_idx] <= 0.0 || !isfinite(prim[prim_pres_idx])) {
     spdlog::debug("nemo::Set_Temp() correcting negative pressure");
-    prim[PG] = 1.0e-12;  // Need p>0 for prim-to-local conversion.
+    prim[prim_pres_idx] = 1.0e-12;  // Need p>0 for prim-to-local conversion.
   }
 
   std::vector<double> p_local(N_local, 0.0);
@@ -1350,12 +1355,12 @@ int nemo::Set_Temp(
   for (int e = 0; e < N_elements; e++) {  // loop over every element
     // loop over every species in THIS element
     for (int q = 0; q < element_species_count[e]; q++) {
-      if (prim[massfrac_idx[e]] <= 0.0) {
+      if (prim[massfrac_el_prim_idx[e]] <= 0.0) {
         y_species_frac[sct] = 0.0;
       }
       else {
         y_species_frac[sct] =
-            prim[species_prim_idx[sct]] / prim[massfrac_idx[e]];
+            prim[massfrac_species_prim_idx[sct]] / prim[massfrac_el_prim_idx[e]];
       }
       sct++;
     }
@@ -1686,26 +1691,26 @@ void nemo::sCMA(
 
   // first ensure elemental abundances are within allowed range
   for (int e = 0; e < N_elements; e++) {
-    // if (prim[massfrac_idx[e]] < 0.0 || prim[massfrac_idx[e]] > 1.0) {
-    //  spdlog::warn("element {} out of range: {}", e, prim[massfrac_idx[e]]);
+    // if (prim[massfrac_el_prim_idx[e]] < 0.0 || prim[massfrac_el_prim_idx[e]] > 1.0) {
+    //  spdlog::warn("element {} out of range: {}", e, prim[massfrac_el_prim_idx[e]]);
     //  spdlog::info("prim: {}",std::vector<double>(prim,prim+N_prim));
     //  warn=true;
     //}
     // spdlog::info("e {}, el {}, val {:12.3e}, N_prim
-    // {}",e,massfrac_idx[e],prim[massfrac_idx[e]], N_prim);
-    prim[massfrac_idx[e]] = min(1.0, max(1.0e-20, prim[massfrac_idx[e]]));
+    // {}",e,massfrac_el_prim_idx[e],prim[massfrac_el_prim_idx[e]], N_prim);
+    prim[massfrac_el_prim_idx[e]] = min(1.0, max(1.0e-20, prim[massfrac_el_prim_idx[e]]));
   }
   // Then apply sCMA criterion to elements
   double element_massfrac = 0.0;
   for (int e = 0; e < N_elements; e++) {
-    element_massfrac += prim[massfrac_idx[e]];
+    element_massfrac += prim[massfrac_el_prim_idx[e]];
   }
   double element_correction = 1.0 / element_massfrac;
 
   element_massfrac = 0.0;  // test
   for (int e = 0; e < N_elements; e++) {
-    prim[massfrac_idx[e]] *= element_correction;
-    element_massfrac += prim[massfrac_idx[e]];  // test
+    prim[massfrac_el_prim_idx[e]] *= element_correction;
+    element_massfrac += prim[massfrac_el_prim_idx[e]];  // test
   }
   if (!equalD(element_massfrac, 1.0))  // test
     spdlog::warn(
@@ -1717,16 +1722,16 @@ void nemo::sCMA(
   int sct = 0, s = 0;
   for (int e = 0; e < N_elements; e++) {
     for (int q = 0; q < element_species_count[e]; q++) {
-      // if (prim[species_prim_idx[sct]] < 0.0 ||
-      //    prim[species_prim_idx[sct]] > prim[massfrac_idx[e]]*(1.0+1e-12)) {
+      // if (prim[massfrac_species_prim_idx[sct]] < 0.0 ||
+      //    prim[massfrac_species_prim_idx[sct]] > prim[massfrac_el_prim_idx[e]]*(1.0+1e-12)) {
       //  spdlog::warn("species {},{} out of range: {}, {}", e,sct,
-      //               prim[massfrac_idx[e]],prim[species_prim_idx[sct]]);
+      //               prim[massfrac_el_prim_idx[e]],prim[massfrac_species_prim_idx[sct]]);
       //  spdlog::info("prim: {}",std::vector<double>(prim,prim+N_prim));
       //  warn=true;
       //}
 
-      prim[species_prim_idx[sct]] =
-          min(prim[massfrac_idx[e]], max(1.0e-20, prim[species_prim_idx[sct]]));
+      prim[massfrac_species_prim_idx[sct]] =
+          min(prim[massfrac_el_prim_idx[e]], max(1.0e-20, prim[massfrac_species_prim_idx[sct]]));
       sct++;
     }
   }
@@ -1739,23 +1744,23 @@ void nemo::sCMA(
     s           = sct;
     // loop over every species in this element to get sum
     for (int q = 0; q < element_species_count[e]; q++) {
-      species_sum += prim[species_prim_idx[s]];
+      species_sum += prim[massfrac_species_prim_idx[s]];
       s++;
     }
     // corrector is X_ei / sum(Y_ei,j), but we didn't count the top ion, so we
     // only correct if the sum is too large.
-    species_corr = min(1.0, prim[massfrac_idx[e]] / species_sum);
+    species_corr = min(1.0, prim[massfrac_el_prim_idx[e]] / species_sum);
     // apply corrector to each species.
     species_sum = 0.0;  // test
     for (int q = 0; q < element_species_count[e]; q++) {
-      prim[species_prim_idx[sct]] *= species_corr;
-      species_sum += prim[species_prim_idx[sct]];  // test
+      prim[massfrac_species_prim_idx[sct]] *= species_corr;
+      species_sum += prim[massfrac_species_prim_idx[sct]];  // test
       sct++;
     }
-    if (species_sum > prim[massfrac_idx[e]] * (1.0 + 1e-12))  // test
+    if (species_sum > prim[massfrac_el_prim_idx[e]] * (1.0 + 1e-12))  // test
       spdlog::warn(
           "renormalisation of species mass fracs failed: {} {} {}", e,
-          prim[massfrac_idx[e]], species_sum);  // test
+          prim[massfrac_el_prim_idx[e]], species_sum);  // test
   }
 
   for (int i = 0; i < N_prim; i++)
