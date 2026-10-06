@@ -74,6 +74,7 @@ include_directories(
 )
 
 add_subdirectory(source)
+add_subdirectory(tests)
 
 execute_process(
   COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tools/get-git-ver.sh
