@@ -216,11 +216,12 @@ protected:
   // --------------------------------------------------------------------------
   // static variables for book-keeping
   std::vector<string> tracers_replica;  ///< microphysics tracers replica.
-  int N_prim;              ///< Size of the primitive vector (prim_vec).
+  int N_prim;             ///< Size of the primitive vector (prim_vec).
   int prim_first_tracer;  ///< Idx of the first tracer variable in the prim_vec.
-  int prim_dens_idx;  ///< index of density var in primitive vector
-  int prim_pres_idx;  ///< index of pressure var in primitive vector
-  std::vector<int> massfrac_species_prim_idx;  ///< local species index in prim_vec.
+  int prim_dens_idx;      ///< index of density var in primitive vector
+  int prim_pres_idx;      ///< index of pressure var in primitive vector
+  std::vector<int>
+      massfrac_species_prim_idx;  ///< local species index in prim_vec.
   std::vector<int>
       massfrac_el_prim_idx;  ///< idx of elemental mass fraction in prim_vec.
 
@@ -317,7 +318,8 @@ protected:
       photo_upper_ion_local_idx;           /// photo-species upper local index.
   std::vector<int> photo_species_element;  /// Corresponding element's position.
   std::vector<int> photo_species_charge;   /// photo species charge.
-  std::vector<int> photo_massfrac_species_prim_idx;  /// photo-species prim-vec index.
+  std::vector<int>
+      photo_massfrac_species_prim_idx;  /// photo-species prim-vec index.
   std::vector<double>
       photo_species_IE;  ///< Record the ionisation threshold of photo species
 
