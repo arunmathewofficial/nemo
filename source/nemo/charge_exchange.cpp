@@ -234,7 +234,7 @@ void charge_exchange::generate_charge_exchange_LUT(
     const std::vector<double> &T_table)
 {
 
-  spdlog::info("Generating charge-exchange LUTs");
+  spdlog::debug("Generating charge-exchange LUTs");
 
   // std::pair<std::string, std::string> key = std::make_pair("C1+", "H");
   // spdlog::debug("rate = {}", get_charge_exchange_rate(key, 5.0E+6));
@@ -295,7 +295,7 @@ void charge_exchange::generate_charge_exchange_LUT(
 void charge_exchange::charge_exchange_database()
 {
 
-  spdlog::info("Setting up charge exchange database");
+  spdlog::debug("Setting up charge exchange database");
 
   // This function serves as the database for charge exchange reactions.
   // The reactions included in the database follow the M. Arnaud &

@@ -68,7 +68,7 @@ void coll_ionise_recomb::setup_recombination(
 void coll_ionise_recomb::generate_collisional_ionisation_LUT(
     const std::vector<double> &T_table)
 {
-  spdlog::info("Generating collisional ionisation LUTs");
+  spdlog::debug("Generating collisional ionisation LUTs");
   // Generate collisional ionisation rate table for all species
   // in the species list.
   // loop over ci species list
@@ -97,7 +97,7 @@ void coll_ionise_recomb::generate_collisional_ionisation_LUT(
 void coll_ionise_recomb::generate_recombination_LUT(
     const std::vector<double> &T_table)
 {
-  spdlog::info("Generating recombination LUTs");
+  spdlog::debug("Generating recombination LUTs");
   // Generate recombination rate table for all species in the species
   // list.
   double caseA = 0.0;
@@ -157,7 +157,7 @@ double coll_ionise_recomb::get_recombination_rate(
 
   // Calculating di-electronic recombination rate:
   for (int i = 0; i < 9; i++) {
-    // spdlog::info("recomb {} {} {} {}
+    // spdlog::debug("recomb {} {} {} {}
     // {}",i,species,recomb_parameters[species].C_coefs[i],recomb_parameters[species].E_coefs[i],T);
     rate += recomb_parameters[species].C_coefs[i]
             * exp(-recomb_parameters[species].E_coefs[i] / T);
@@ -234,7 +234,7 @@ double coll_ionise_recomb::get_recombination_rate(
 void coll_ionise_recomb::collisional_ionisation_database()
 {
 
-  spdlog::info("Setting up collisional ionisation database");
+  spdlog::debug("Setting up collisional ionisation database");
 
   // This uses parametric fitting formulae from Voronov (1997)
   // Atomic data and nuclear data tables, 65, 1.
@@ -546,7 +546,7 @@ void coll_ionise_recomb::recombination_database()
   // http://amdpp.phys.strath.ac.uk/tamoc/DATA/DR/
   // badnell@phys.strath.ac.uk from August 2021.
 
-  spdlog::info("Setting up recombination database");
+  spdlog::debug("Setting up recombination database");
 
   // Hydrogen and its ion.
   recomb_parameters["H"] = recomb_datatype{

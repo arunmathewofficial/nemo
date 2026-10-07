@@ -20,7 +20,7 @@ void photoionisation::setup_photoionisation(
 )
 {
 
-  spdlog::info("Setting up photoionisation module");
+  spdlog::debug("Setting up photoionisation module");
 
   // replicating energy bin
   E_bins = ebins;

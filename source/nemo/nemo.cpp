@@ -1,7 +1,7 @@
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnreachableCode"
 /// \file nemo.cpp
-/// \authors Arun Mathew, Jonathan Mackey, Maggie Celeste Goulden
+/// \authors Arun Mathew, Jonathan Mackey, Maggie Celeste
 /// \date 2018.10
 ///
 /// Description:
@@ -151,11 +151,11 @@ nemo::nemo(
   // coll_ionisation are enabled in the parameter file.
   if (EP->charge_exchange && EP->coll_ionisation) {
     charge_exchange_enable = true;
-    spdlog::info("Charge-exchange reaction(s) enabled");
+    spdlog::debug("Charge-exchange reaction(s) enabled");
   }
   else {
     charge_exchange_enable = false;
-    spdlog::info("Charge-exchange reaction(s) disabled");
+    spdlog::debug("Charge-exchange reaction(s) disabled");
   }
 
   // Section: Invoking NEMO chemical Species cataloger ***********************
@@ -594,7 +594,7 @@ void nemo::tracer_species_cataloger(
     }
   }
   for (int v = 0; v < a2.size(); v++) {
-    spdlog::info(" NEMO: Removing non-chemistry tracers: {} {}", v, *(a2[v]));
+    spdlog::debug(" NEMO: Removing non-chemistry tracers: {} {}", v, *(a2[v]));
     tracers_replica.erase(a2[v]);
   }
 

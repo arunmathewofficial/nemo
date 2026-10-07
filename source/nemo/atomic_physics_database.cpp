@@ -124,7 +124,7 @@ double atomic_physics_database::get_ionisation_energy(const std::string species)
 // Atomic physics database
 void atomic_physics_database::database()
 {
-  spdlog::info("Setting up atomic physics database");
+  spdlog::debug("Setting up atomic physics database");
 
   // Ionisation energies are taken from NIST Atomic Spectra
   // Database (ver.5.10), Kramida, A., Ralchenko, Yu., Reader,

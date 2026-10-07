@@ -33,7 +33,7 @@ chianti_cooling::~chianti_cooling()
 void chianti_cooling::setup_chianti_cooling(
     const std::vector<std::vector<std::string> > &cooling_species)
 {
-  spdlog::info("Setting up chianti cooling tables");
+  spdlog::debug("Setting up chianti cooling tables");
   // Setting up species locator
   // Sizing locator according to MP_tracer_list.
   // Chianti is dry red Italian wine produced in Tuscany.
