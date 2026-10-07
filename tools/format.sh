@@ -8,7 +8,7 @@
 set -o errexit
 
 # The clang-format executable.
-: ${CLANG_FORMAT_EXECUTABLE:=$(which clang-format)}
+: ${CLANG_FORMAT_EXECUTABLE:=$(which clang-format-18)}
 export CLANG_FORMAT_EXECUTABLE
 
 file="$1"

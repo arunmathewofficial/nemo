@@ -10,11 +10,38 @@
 #include <spdlog/spdlog.h>
 
 #include <vector>
+#include <stdexcept>
 
 #include "nemo-datastructs.h"
 #include "nemo/nemo.h"
 #include "nemo_git_version.h"
 
+// *******************************************************************
+// check that result and reference are compatible.
+bool compare_vectors(
+      const std::vector<double>& a,
+      const std::vector<double>& b,
+      double relTol = 1e-8,
+      double absTol = 1e-14)
+{
+    if (a.size() != b.size()) {
+        throw std::invalid_argument("Vectors must have the same size");
+    }
+
+  for (size_t i = 0; i < a.size(); ++i) {
+    double diff = std::abs(a[i] - b[i]);
+    double absSum = std::abs(a[i]) + std::abs(b[i]);
+    double relDiff = (absSum == 0.0) ? 0.0 : diff / absSum;
+    if (diff > absTol && relDiff > relTol) {
+      return false;
+    }
+  }
+  return true;
+}
+// *******************************************************************
+
+
+// *******************************************************************
 int main(int argc, char **argv)
 {
 #ifdef NDEBUG
@@ -76,7 +103,14 @@ int main(int argc, char **argv)
       input.data(), 0, rs.src_data, 0, rs.src_data, output.data(), 1e14,
       5. / 3., 0, &x);
 
-  spdlog::info("output [{:8.3e}]", fmt::join(output, ", "));
+  spdlog::info("output [{:20.16e}]", fmt::join(output, ", "));
 
-  return 0;
+  std::vector<double> reference = {1.0e-22, 1.0e-09, 7.2e-01, 2.8e-01, 1.4590868581185208e-05, 2.1600536773812401e-04, 1.3033378001396104e-01};
+
+  bool result = compare_vectors(output,reference);
+  spdlog::info("comparison: {} {}", result, "(if passed, rel-err<1e-8 and abs-err<1e-14 for every element)");
+  if (result) return 0;
+  else return 1;
 }
+// *******************************************************************
+

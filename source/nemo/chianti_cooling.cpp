@@ -66,7 +66,7 @@ void chianti_cooling::setup_chianti_cooling(
       }
       // If not found in the database, display message "no data"
       if (species_found == false)
-        spdlog::info(
+        spdlog::warn(
             "No data, assigning default cooling table for {}",
             cooling_species[i][j]);
     }
@@ -80,7 +80,7 @@ void chianti_cooling::generate_chianti_table(
     const std::vector<double> &T, const std::vector<double> &ne)
 {
   // Setting up x and y axes for generating lookup table
-  spdlog::info("Generating chianti cooling LUTs");
+  spdlog::debug("Generating chianti cooling LUTs");
 
   // MAKING LOGARITHMIC ARRAY OF INDEPENDENT VARIABLES
   // size of T arraya and ne array.
@@ -202,7 +202,7 @@ void chianti_cooling::cooling_table_database()
   // See Tables 1-11 of A. C. Raga et al. 1997 ApJS 109, 517-535.
   // Note: Default cooling table is the last database entry.
 
-  spdlog::info("Setting up chianti cooling database");
+  spdlog::debug("Setting up chianti cooling database");
 
   // Entry No.0, species : H ===================================================
   species.push_back(

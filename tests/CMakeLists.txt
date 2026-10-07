@@ -12,3 +12,6 @@ install(
     INCLUDES DESTINATION ${NEMO_INSTALL_INCLUDEDIR}
 )
 
+enable_testing()
+add_test(NAME one-zone COMMAND one-zone)
+
