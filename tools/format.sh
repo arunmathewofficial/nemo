@@ -36,7 +36,7 @@ set +o errexit
 if cmp --quiet "${tmpfile}" "${file}"
 then
     set -o errexit
-    #echo "Formatting ${file}: No Change..."
+    echo "Formatting ${file}: No Change..."
     rm "${tmpfile}"
 else
     set -o errexit
