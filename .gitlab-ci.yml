@@ -86,6 +86,7 @@ Compile:
       libspdlog-dev
       libfmt-dev
       libboost-dev
+      build-essential
   artifacts:
     name: Serial 
     paths:
