@@ -1,4 +1,5 @@
-image: debian:13-slim
+#image: debian:13-slim
+image: jmackey12345/nemo-ci:latest
 
 .snippets:
   - &configure
