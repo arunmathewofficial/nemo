@@ -1,3 +1,4 @@
+image: debian:13-slim
 
 .snippets:
   - &configure
@@ -44,7 +45,6 @@ stages:
 
 Format:
   <<: *default_job
-  image: debian:13-slim
   stage: static analysis
   variables:
     <<: *default_cmake_variables
@@ -63,7 +63,6 @@ Format:
 
 Compile:
   <<: *default_job
-  image: debian:13-slim
   stage: build libraries
   variables:
     <<: *default_cmake_variables
@@ -93,7 +92,6 @@ Compile:
 
 Test:
   <<: *default_job
-  image: debian:13-slim
   stage: test 
   variables:
     <<: *default_cmake_variables
