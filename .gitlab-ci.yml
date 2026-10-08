@@ -72,17 +72,10 @@ Compile:
     - apt-get update -y
     - apt-get install --no-install-recommends -y
       git
-      clang
-      clang-format-18
       g++ 
       libsundials-dev
       openmpi-bin
-      openmpi-common
-      curl
-      libcurl4-openssl-dev
-      libhdf5-dev
       cmake
-      libbz2-dev
       libspdlog-dev
       libfmt-dev
       libboost-dev
@@ -97,12 +90,24 @@ Test:
   variables:
     <<: *default_cmake_variables
     CXX: mpicxx
+  dependencies:
+    - Compile 
+  before_script:
+    - apt-get update -y
+    - apt-get install --no-install-recommends -y
+      git
+      g++ 
+      libsundials-dev
+      openmpi-bin
+      cmake
+      libspdlog-dev
+      libfmt-dev
+      libboost-dev
+      build-essential
   script:
     - *configure
     - *build
     - make -C "${CMAKE_BUILD_DIR}/tests" test 
-  dependencies:
-    - Compile 
   artifacts:
     name: test 
     paths:
