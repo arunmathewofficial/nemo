@@ -63,9 +63,12 @@ Format:
 
 Compile:
   <<: *default_job
+  image: debian:13-slim
   stage: build libraries
   variables:
     <<: *default_cmake_variables
+  dependencies:
+    - Format 
   before_script:
     - apt-get update -y
     - apt-get install --no-install-recommends -y
@@ -90,6 +93,7 @@ Compile:
 
 Test:
   <<: *default_job
+  image: debian:13-slim
   stage: test 
   variables:
     <<: *default_cmake_variables
