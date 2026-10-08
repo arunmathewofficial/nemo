@@ -66,6 +66,24 @@ Compile:
   stage: build libraries
   variables:
     <<: *default_cmake_variables
+  before_script:
+    - apt-get update -y
+    - apt-get install --no-install-recommends -y
+      git
+      clang
+      clang-format-18
+      g++ 
+      libsundials-dev
+      openmpi-bin
+      openmpi-common
+      curl
+      libcurl4-openssl-dev
+      libhdf5-dev
+      cmake
+      libbz2-dev
+      libspdlog-dev
+      libfmt-dev
+      libboost-dev
   artifacts:
     name: Serial 
     paths:
