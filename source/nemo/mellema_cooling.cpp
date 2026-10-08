@@ -37,7 +37,7 @@ void mellema_cooling::setup_mellema_cooling(
     const std::vector<std::vector<std::string> > &cooling_species)
 {
 
-  spdlog::info("Setting up mellema cooling tables");
+  spdlog::debug("Setting up mellema cooling tables");
   // Setting up species locator
   // Sizing locator according to MP_tracer_list.
   cooling_species_identifier.resize(cooling_species.size());
@@ -84,7 +84,7 @@ void mellema_cooling::generate_mellema_table(
     const std::vector<double> &T, const std::vector<double> &ne)
 {
   // Setting up x and y axes for generating lookup table
-  spdlog::info("Generating up mellema cooling LUTs");
+  spdlog::debug("Generating up mellema cooling LUTs");
 
   int location;
 
@@ -233,7 +233,7 @@ void mellema_cooling::cooling_table_database()
   // See Tables 1-11 of A. C. Raga et al. 1997 ApJS 109, 517-535.
   // Note: Default cooling table is the last database entry.
 
-  spdlog::info("Setting up mellema cooling database");
+  spdlog::debug("Setting up mellema cooling database");
 
   // Entry No.0, species : H ===================================================
   species.push_back(

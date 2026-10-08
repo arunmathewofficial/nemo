@@ -28,7 +28,7 @@ std::vector<double> multi_ion_photo_xsections::setup_photo_xsections(
     const std::vector<std::string> &photo_tracer_list  // photo tracer species
 )
 {
-  spdlog::info("Setting up multi-ion photoionisation cross-section module");
+  spdlog::debug("Setting up multi-ion photoionisation cross-section module");
 
   // Resize photo cross-section table based on photo tracer list.
   photo_xsection_table.resize(photo_tracer_list.size());
@@ -83,7 +83,7 @@ void multi_ion_photo_xsections::generate_ebin_mean_xsection(
     const std::vector<std::vector<double> > &ebins  // energy bins
 )
 {
-  spdlog::info("Generating mean photo-xsection tables");
+  spdlog::debug("Generating mean photo-xsection tables");
 
   std::vector<double> get_bin_mean_xsection_fraction = {0.0, 0.0};
   for (int s = 0; s < photo_species_list.size(); s++) {
@@ -172,7 +172,7 @@ std::vector<double> multi_ion_photo_xsections::mean_bin_xsection(
 void multi_ion_photo_xsections::multi_ion_photo_xsections_database()
 {
 
-  spdlog::info("Setting up photo-ionisation cross-section database");
+  spdlog::debug("Setting up photo-ionisation cross-section database");
 
   // This database contain the analytic fit parameters for photoionisation
   // cross-sections of atoms and ions.
