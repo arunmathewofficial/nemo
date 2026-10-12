@@ -13,7 +13,7 @@ FORMAT_EXECUTABLE="${script_dir}/format.sh"
 cd ${source_dir}
 
 # All the directories containing source files
-source_dirs="source"
+source_dirs="source tests"
 
 # All the extensions of source files
 source_exts="cpp cc c hh h"
