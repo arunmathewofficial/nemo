@@ -11,6 +11,7 @@ cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_COMPILER=mpicxx \
     -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
+    -DNEMO_OMP=ON \
     "${script_dir}"
 
 make -j 4

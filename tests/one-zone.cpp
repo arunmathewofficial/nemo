@@ -9,8 +9,8 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 
-#include <vector>
 #include <stdexcept>
+#include <vector>
 
 #include "nemo-datastructs.h"
 #include "nemo/nemo.h"
@@ -19,18 +19,18 @@
 // *******************************************************************
 // check that result and reference are compatible.
 bool compare_vectors(
-      const std::vector<double>& a,
-      const std::vector<double>& b,
-      double relTol = 1e-8,
-      double absTol = 1e-14)
+    const std::vector<double> &a,
+    const std::vector<double> &b,
+    double relTol = 1e-8,
+    double absTol = 1e-14)
 {
-    if (a.size() != b.size()) {
-        throw std::invalid_argument("Vectors must have the same size");
-    }
+  if (a.size() != b.size()) {
+    throw std::invalid_argument("Vectors must have the same size");
+  }
 
   for (size_t i = 0; i < a.size(); ++i) {
-    double diff = std::abs(a[i] - b[i]);
-    double absSum = std::abs(a[i]) + std::abs(b[i]);
+    double diff    = std::abs(a[i] - b[i]);
+    double absSum  = std::abs(a[i]) + std::abs(b[i]);
     double relDiff = (absSum == 0.0) ? 0.0 : diff / absSum;
     if (diff > absTol && relDiff > relTol) {
       return false;
@@ -82,13 +82,13 @@ int main(int argc, char **argv)
   rs.sources.resize(0);
   rs.src_data.resize(0);
 
-  // nemo(Nel(state vec), Ntracer, dens-idx, pres-idx, tracer-names, extra-physics,
-  // rad-sources, gamma)
+  // nemo(Nel(state vec), Ntracer, dens-idx, pres-idx, tracer-names,
+  // extra-physics, rad-sources, gamma)
   class nemo MP(7, 5, 0, 1, tr, &wp, &rs, 5.0 / 3.0);
 
   std::vector<double> input(7, 0.0);
-  input[0]  = 1.0e-22;  // density
-  input[1]  = 1.0e-9;   // pressure (~1e5 K)
+  input[0] = 1.0e-22;  // density
+  input[1] = 1.0e-9;   // pressure (~1e5 K)
   input[2] = 0.72;
   input[3] = 0.28;
   input[4] = 0.36;
@@ -105,12 +105,22 @@ int main(int argc, char **argv)
 
   spdlog::info("output [{:20.16e}]", fmt::join(output, ", "));
 
-  std::vector<double> reference = {1.0e-22, 1.0e-09, 7.2e-01, 2.8e-01, 1.4590868581185208e-05, 2.1600536773812401e-04, 1.3033378001396104e-01};
+  std::vector<double> reference = {
+      1.0e-22,
+      1.0e-09,
+      7.2e-01,
+      2.8e-01,
+      1.4590868581185208e-05,
+      2.1600536773812401e-04,
+      1.3033378001396104e-01};
 
-  bool result = compare_vectors(output,reference);
-  spdlog::info("comparison: {} {}", result, "(if passed, rel-err<1e-8 and abs-err<1e-14 for every element)");
-  if (result) return 0;
-  else return 1;
+  bool result = compare_vectors(output, reference);
+  spdlog::info(
+      "comparison: {} {}", result,
+      "(if passed, rel-err<1e-8 and abs-err<1e-14 for every element)");
+  if (result)
+    return 0;
+  else
+    return 1;
 }
 // *******************************************************************
-

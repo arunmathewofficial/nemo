@@ -13,6 +13,7 @@ image: jmackey12345/nemo-ci:latest
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
         -DCMAKE_CXX_COMPILER=${CXX}
         -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}"
+        -DNEMO_OMP="${NEMO_OMP}"
         ..
     )
     && popd
@@ -27,7 +28,7 @@ image: jmackey12345/nemo-ci:latest
     CMAKE_BUILD_TYPE: Release 
     CXX: mpicxx
     CMAKE_PREFIX_PATH: "/usr/lib/x86_64-linux-gnu"
-
+    NEMO_OMP: "ON"
 
 .default_job: &default_job
   tags:
@@ -56,6 +57,7 @@ Format:
       git
       clang
       clang-format-18
+      yapf3
   script:
     - ./tools/run_format.sh
       && git status
@@ -105,12 +107,16 @@ Test:
       libfmt-dev
       libboost-dev
       build-essential
+      python3
+      python3-numpy
   script:
     - *configure
     - *build
     - make -C "${CMAKE_BUILD_DIR}/tests" test 
   artifacts:
     name: test 
-    paths:
+    paths: 
+      - "${CMAKE_BUILD_DIR}/tests/"
+    expire_in: 10 days
 
 

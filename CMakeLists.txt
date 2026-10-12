@@ -31,6 +31,11 @@ set(
     "The install directory for NEMO data (eg. cmake scripts)."
 )
 
+option(
+    NEMO_OMP
+    "Build NEMO with OpenMP. Default is disbled."
+    OFF
+)
 
 #  This is required on OSX so that the Boost code will compile successfully
 set(CMAKE_CXX_STANDARD 14)
@@ -39,8 +44,18 @@ if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
+if(NEMO_OMP)
+  add_definitions(-DNEMO_OMP)
+endif(NEMO_OMP)
+
+
 # Find dependant libraries
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+
+if(NEMO_OMP)
+  find_package(OpenMP REQUIRED COMPONENTS CXX)
+  include_directories(${OpenMP_CXX_INCLUDE_DIR})
+endif(NEMO_OMP)
 
 find_package(Boost 1.73.0 REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
@@ -89,3 +104,5 @@ enable_testing()
 
 message(STATUS "Build options:")
 message(STATUS "    CMAKE_BUILD_TYPE         = ${CMAKE_BUILD_TYPE}")
+message(STATUS "    NEMO_OMP                 = ${NEMO_OMP}")
+
