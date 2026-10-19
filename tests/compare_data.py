@@ -13,10 +13,11 @@ def compare_vectors(a, b, rel_tol=3e-5, abs_tol=3e-11):
     # Compare each element
     for i in range(len(a)):
         diff = abs(a[i] - b[i])
-        abs_sum = abs(a[i]) + abs(b[i])
+        abs_sum = 0.5 * (abs(a[i]) + abs(b[i]))
         rel_diff = diff / abs_sum if abs_sum != 0 else 0
         if diff > abs_tol and rel_diff > rel_tol:
-            print("i=", i, "a=", a[i], "b=", b[i])
+            print("i=", i, "a=", a[i], "b=", b[i], "reldiff:", rel_diff,
+                  "absdiff:", diff)
             return False
     return True
 
@@ -25,12 +26,12 @@ def main():
     # Check command line arguments
     if len(sys.argv) < 3:
         print(
-            "Usage: python compare.py <output_file> <comparison_file> [<rel-tol>] [<abs-tol>]"
+            "Usage: python compare.py <newdata_file> <refdata_file> [<rel-tol>] [<abs-tol>]"
         )
         return 1
 
-    output_file = sys.argv[1]
-    comparison_file = sys.argv[2]
+    newdata_file = sys.argv[1]
+    refdata_file = sys.argv[2]
     if (len(sys.argv) >= 4):
         reltol = sys.argv[3]
         reltol = float(reltol)
@@ -45,35 +46,34 @@ def main():
 
     # Load the data files
     try:
-        output_data = np.loadtxt(output_file, skiprows=1)
-        comparison_data = np.loadtxt(comparison_file, skiprows=1)
+        print("Reading new data:", newdata_file)
+        print("Reading ref data:", refdata_file)
+        newdata_data = np.loadtxt(newdata_file, skiprows=1)
+        refdata_data = np.loadtxt(refdata_file, skiprows=1)
 
         # Check if files have the same number of rows
-        if output_data.shape[0] != comparison_data.shape[0]:
+        if newdata_data.shape[0] != refdata_data.shape[0]:
             print(
-                f"Warning: Different number of rows - output: {output_data.shape[0]}, comparison: {comparison_data.shape[0]}"
+                f"Warning: Different number of rows - output: {newdata_data.shape[0]}, comparison: {refdata_data.shape[0]}"
             )
-            min_rows = min(output_data.shape[0], comparison_data.shape[0])
+            min_rows = min(newdata_data.shape[0], refdata_data.shape[0])
             return 1
         else:
-            min_rows = output_data.shape[0]
+            min_rows = newdata_data.shape[0]
 
         # Compare each row
         all_match = True
         for i in range(min_rows):
             # Compare all data on a row
-            output_row = output_data[i]
-            comparison_row = comparison_data[i]
+            newdata_row = newdata_data[i]
+            refdata_row = refdata_data[i]
 
-            if output_row[8] < 0.5 and not compare_vectors(
-                    output_row, comparison_row, rel_tol=reltol,
-                    abs_tol=abstol):
+            if not compare_vectors(
+                    newdata_row, refdata_row, rel_tol=reltol, abs_tol=abstol):
                 print(f"Row {i} differs")
-                print("op", output_row)
-                print("cm", comparison_row)
+                print("op", newdata_row)
+                print("cm", refdata_row)
                 all_match = False
-            elif output_row[8] >= 0.5:
-                print(f"skipping row {i} because H is neutral")
             else:
                 print(f"Row {i} matches")
 

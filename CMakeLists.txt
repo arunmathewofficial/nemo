@@ -106,6 +106,8 @@ include_directories(
 )
 
 add_subdirectory(source)
+# Add unit tests to run: 
+enable_testing()
 add_subdirectory(tests)
 
 execute_process(

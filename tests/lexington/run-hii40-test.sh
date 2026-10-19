@@ -29,11 +29,11 @@ script_dir="$( cd "$( dirname "${script}" )" >/dev/null 2>&1 && pwd )"
 #echo "OMP_NUM_THREADS=$OMP_NUM_THREADS"
 ${mpi} ./hii40-lexington #|| exit 1
 
-REF_FILE=${script_dir}/data/hii40_test_output.txt
+REF_FILE=${script_dir}/../data/hii40_test_output.txt
 NEW_FILE=output_states_hii40.txt
 
 # Or you can use it in an if statement directly
-if python3 ${script_dir}/hii40-test-compare.py $NEW_FILE $REF_FILE 3.0e-5 1.0e-10; then
+if python3 ${script_dir}/../compare_data.py $NEW_FILE $REF_FILE 3.0e-5 1.0e-10; then
   echo "Comparison successful - files match"
   echo -e "${GREEN}*** TEST HAS BEEN PASSED ***${NC}"
   exit 0
