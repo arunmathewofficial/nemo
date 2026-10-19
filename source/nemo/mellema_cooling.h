@@ -62,7 +62,7 @@ public:
   /**
    * \brief Destructor: Erase database, once the LUTs are generated.
    **/
-  ~mellema_cooling();
+  virtual ~mellema_cooling();
 
   /**
    * \brief This function will set up the species locator for the given tracer

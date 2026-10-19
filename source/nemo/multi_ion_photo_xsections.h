@@ -9,15 +9,14 @@
 #include <spdlog/fwd.h>
 #endif
 #include <spdlog/spdlog.h>
-/* prevent clang-format reordering */
+// prevent clang-format reordering
 #include <fmt/ranges.h>
 
 #include "atomic_physics_database.h"
 #include <map>
 
-/**
- * \brief Struct to hold fit parameters of photo-ionisation cross-sections.
- **/ ///< photo-ionisation fit parameter X (dimensionless)
+/// \brief Struct to hold fit parameters of photo-ionisation cross-sections.
+///
 struct photo_xsection_datatype {
   double fit_emax;  ///< Fit parameters should not be extrapolated above this
                     ///< value (in the units of eV)
@@ -31,61 +30,57 @@ struct photo_xsection_datatype {
   double y1;        ///< photo-ionisation fit parameter y1 (dimensionless)
 };
 
-// MULTI ION PHOTOIONISATION CROSS SECTION CLASS ############################
-/**
- * \brief Class to generate
- * \details
- **/
+/// \brief MULTI ION PHOTOIONISATION CROSS SECTION CLASS
+///
 class multi_ion_photo_xsections : virtual public atomic_physics_database {
-  // PUBLIC METHODS AND VARIABLE **** *******************
+  // PUBLIC METHODS AND VARIABLE
 public:
-  /** \brief Constructor: Setup photo-ionisation cross-section database. **/
+  /// \brief Constructor: Setup photo-ionisation cross-section database.
   multi_ion_photo_xsections();
 
-  /** \brief Destructor **/
-  ~multi_ion_photo_xsections();
+  /// \brief Destructor
+  virtual ~multi_ion_photo_xsections();
 
-  /** \brief ????? **/
+  /// \brief ?????
   std::vector<double> setup_photo_xsections(
       const std::vector<std::string> &  ///< photo tracer species
   );
 
-  /** \brief ????? **/
+  /// \brief ????
   void generate_ebin_mean_xsection(
       const std::vector<std::vector<double> > &  ///< array of energy bins
   );
 
-  /** \brief Record of mean photo-ionisation cross-section of
-   * photo tracer list.
-   * **/
+  /// \brief Record of mean photo-ionisation cross-section of
+  /// photo tracer list.
   std::vector<std::vector<double> > photo_xsection_table;
 
-  /** \brief Record proportion of the energy bin that results in a non-zero
-   * cross-section for the photo tracer list.
-   * **/
+  /// \brief Record proportion of the energy bin that results in a non-zero
+  /// cross-section for the photo tracer list.
   std::vector<std::vector<double> > bin_weight_table;
 
 private:
-  ///
+  /// \brief
   double species_xsection(
       const std::string,  ///< Name of the species
       const double &      ///< Energy of the photon in the units of eV
   );
 
-  ///
+  /// \brief
   std::vector<double> mean_bin_xsection(
       const std::string,  ///< Name of the species
       const double &,
       const std::vector<double> &  ///< Range of particular energy bin
   );
 
-  /// Map coll_ionise_datatype to the species string (species symbol)
+  /// \brief Map coll_ionise_datatype to the species string (species symbol)
   std::map<std::string, photo_xsection_datatype> photo_xsection_parameters;
 
-  ///
+  /// \brief
   void multi_ion_photo_xsections_database();
 
-  std::vector<std::string> photo_species_list;  ///<
+  std::vector<std::string>
+      photo_species_list;  ///< runtime list of species used
 
   std::vector<double> photo_threshold;  ///< Ionisation threshold energy vector
 };

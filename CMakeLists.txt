@@ -74,18 +74,31 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
     include_directories(${READLINE_INCLUDE_DIR})
 endif(CMAKE_BUILD_TYPE MATCHES "Debug")
 
-find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
-
-add_definitions("-DSPDLOG_FMT_EXTERNAL")
 add_definitions("-DSPDLOG_COMPILED_LIB")
+# Get spdlog version
+message(STATUS "spdlog version: ${spdlog_VERSION}")
 
-if (${spdlog_VERSION_MAJOR} GREATER_EQUAL 1)
-    if (${spdlog_VERSION_MINOR} GREATER_EQUAL 6)
-        message(STATUS "spdlog version = ${spdlog_VERSION_MAJOR}.${spdlog_VERSION_MINOR}")
-        add_definitions("-DSPDLOG_FWD")
-    endif (${spdlog_VERSION_MINOR} GREATER_EQUAL 6)
-endif (${spdlog_VERSION_MAJOR} GREATER_EQUAL 1)
+
+if(spdlog_VERSION VERSION_GREATER_EQUAL "1.6.0")
+  message(STATUS "spdlog version = ${spdlog_VERSION}")
+  add_definitions("-DSPDLOG_FWD")
+endif()
+
+# Create an interface target that abstracts the spdlog+fmt combination
+add_library(spdlog_deps INTERFACE)
+
+if(spdlog_VERSION VERSION_LESS "1.13.0" OR APPLE)
+  message(STATUS "using external fmt b/c old spdlog or apple")
+  find_package(fmt REQUIRED)
+  message(STATUS "fmt version = ${fmt_VERSION}")
+  target_compile_definitions(spdlog_deps INTERFACE SPDLOG_FMT_EXTERNAL)
+  target_link_libraries(spdlog_deps INTERFACE spdlog::spdlog fmt::fmt)
+  # Suppress deprecation warnings from fmt/spdlog version mismatch in Homebrew
+  target_compile_options(spdlog_deps INTERFACE -Wno-deprecated-declarations)
+else()
+  target_link_libraries(spdlog_deps INTERFACE spdlog::spdlog)
+endif()
 
 # Include optional subdirectories
 include_directories(

@@ -40,6 +40,6 @@ then
     rm "${tmpfile}"
 else
     set -o errexit
-    echo "Formatting ${file}: Updating..."
+    echo "!!! **** !!! Formatting ${file}: Updating..."
     mv "${tmpfile}" "${file}"
 fi

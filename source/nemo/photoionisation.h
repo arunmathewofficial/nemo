@@ -21,7 +21,7 @@ class photoionisation :
     virtual public nemo_constants {
 public:
   photoionisation();
-  ~photoionisation();
+  virtual ~photoionisation();
 
   /** \brief This function will adjust the number of photo-ionization
    * rate species tables and the photo-ionization heating rate species

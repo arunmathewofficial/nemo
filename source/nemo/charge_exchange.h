@@ -46,7 +46,7 @@ public:
   /** \brief Constructor: Setup charge exchange database. **/
   charge_exchange(const int);
   /** \brief Destructor */
-  ~charge_exchange();
+  virtual ~charge_exchange();
 
   void setup_charge_exchange(
       const std::vector<std::vector<std::pair<std::string, std::string> > >

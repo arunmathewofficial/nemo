@@ -1,0 +1,27 @@
+# CMake build directories and generated files
+/build/
+/build-*/
+/cmake-build-*/
+
+/source/nemo_git_version.h
+
+# Local compile scripts
+/compile-*.sh
+
+
+# ignore temperature_profile.txt from test dir
+/tests/temperature_profile.txt
+
+# PNG images
+*.png
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+/.venv/
+
+# Local editor settings and macOS metadata
+/.idea/
+.DS_Store
+*.swp
+*.swo
