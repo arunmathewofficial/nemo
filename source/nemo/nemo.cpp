@@ -1458,7 +1458,7 @@ int nemo::update_single_cell(
 
   err = correct_localvector(p_local, 2);
   if (err) {
-    spdlog::error("bad output vector from update_single_cell_RT");
+    spdlog::error("bad output vector from update_single_cell");
     exit(2);
   }
   err = convert_local2prim(p_local, p_in, p_out, 2);
@@ -1485,8 +1485,8 @@ int nemo::correct_localvector(
     int function_flag              /// flags the function
 )
 {
-  // function_flag 1 -> towards begining of update_single_cell_RT
-  // function_flag 2 -> towards the end of update_single_cell_RT
+  // function_flag 1 -> at begining of update_single_cell
+  // function_flag 2 -> at the end of update_single_cell
   // function_flag 3 -> timescales
   // function_flag 4 -> ydot
 
@@ -1846,21 +1846,22 @@ int nemo::ydot(
   else if (T < T_min)
     T = T_min;
 
-  // SECTION: Species number density *******************************************
+  // SECTION: Species number den/sity
+  // *******************************************
   int sct = 0;
   for (int e = 0; e < all_species_list.size(); e++) {
     // calculate the excess fraction corresponding to each element.
     double excess_elemental_frac = 0.0;
     std::vector<double> species_frac;
     for (int q = 0; q < all_species_list[e].size(); q++) {
-      // Calculating the current number density of neutral atoms.
+      // Calculating the current number density of bare ions.
       if (q == element_atomic_number[e]) {
         species_number_density[e][q] =
             y_top_ion_frac[e] * element_num_density[e];
         excess_elemental_frac += y_top_ion_frac[e];
         species_frac.push_back(y_top_ion_frac[e]);
       }
-      // Calculating the current number density of ions.
+      // Calculating the current number density of neutral/ions.
       else {
         species_number_density[e][q] =
             y_species_frac[sct] * element_num_density[e];

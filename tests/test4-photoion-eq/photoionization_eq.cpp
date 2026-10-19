@@ -1,14 +1,17 @@
-/// hii40-lexington.cpp
+/// photoionization_eq.cpp
 ///
-/// Author: Arun Mathew
-/// Created: 12 October 2026
+/// Author: Arun Mathew, Jonathan Mackey
+/// Created: 19 October 2026
 ///
-/// Test NEMO's photoionisation and thermal evolution using the HII40
+/// Test NEMO's photoionisation evolution using the HII40
 /// Lexington benchmark (Test 2 in Mathew et al. 2025, Section 3.4).
+/// This time without thermal evolution, charge exchange or collisional
+/// ionization, integrated to ionization equilibrium.
 ///
 /// A central 40,000 K blackbody irradiates initially neutral, uniform gas
-/// containing H, He, C, N, O and Ne on a one-dimensional spherical grid.
-/// Includes radial attenuation, heating and cooling, without hydrodynamics.
+/// with T=10,000 K and containing H, He, C, N, O and Ne on a one-dimensional
+/// spherical grid. Includes radial attenuation, photoionization and
+/// radiative/dielec recombination.
 ///
 
 #ifdef SPDLOG_FWD
@@ -36,33 +39,7 @@
 #include "nemo/nemo.h"
 #include "nemo_git_version.h"
 
-
-// *******************************************************************
-// Calculate optical depth to the inner edge of every shell.
-void spherical_optical_depth(
-    nemo &MP,
-    const rad_src_info &star,
-    const std::vector<std::vector<double> > &state,
-    const std::vector<double> &thickness,
-    std::vector<std::vector<double> > &optical_depth)
-{
-  optical_depth.assign(state.size(), std::vector<double>(star.NTau, 0.0));
-
-  std::vector<double> total_tau(star.NTau, 0.0);
-  std::vector<double> shell_tau(star.NTau, 0.0);
-
-  // Shells must be ordered from the star outward.
-  for (std::size_t i = 0; i < state.size(); ++i) {
-    optical_depth[i] = total_tau;  // Optical depth BEFORE this shell
-
-    MP.get_dtau(&star, thickness[i], state[i].data(), shell_tau.data());
-
-    for (int b = 0; b < star.NTau; ++b) {
-      total_tau[b] += shell_tau[b];
-    }
-  }
-}
-// *******************************************************************
+#include "../common_functions.h"
 
 
 std::pair<std::vector<double>, std::vector<std::string> > setup_initial_state()
@@ -70,8 +47,8 @@ std::pair<std::vector<double>, std::vector<std::string> > setup_initial_state()
   // Initialize the initial state vector with all ions zero (neutral state,
   // enforced by the conservation equations for each element)
   std::vector<double> initial_vector(59, 0.0);
-  initial_vector[0] = 2.3589999999999998e-22;  // density
-  initial_vector[1] = 1.0e-12;                 // pressure (~1e5 K)
+  initial_vector[0] = 2.36e-22;  // density
+  initial_vector[1] = 2.43e-10;  // pressure (T~8000K)
   // Elemental abundances (from Asplund 2010/Solar System)
   initial_vector[2] = 7.0933e-01;  // H (72%)
   initial_vector[3] = 2.8373e-01;  // He (26%)
@@ -81,7 +58,7 @@ std::pair<std::vector<double>, std::vector<std::string> > setup_initial_state()
   initial_vector[7] = 7.1647e-04;  // Ne (0.05%)
   initial_vector[8] = 2.0492e-04;  // S (0.015%)
 
-  // Ion concentrations (all set to zero for neutral plasma)
+  // Ion concentrations (neutral plasma)
   // H: 1 ion (H0) - index 9
   initial_vector[9] = 7.0933e-01;  // H0
   // He: 2 ions (He0, He+) - indices 10-11
@@ -89,7 +66,7 @@ std::pair<std::vector<double>, std::vector<std::string> > setup_initial_state()
   initial_vector[11] = 0.0;         // He1+
   // C: 6 ions (C0-C6+) - indices 12-17
   initial_vector[12] = 1.0000e-03;  // C0
-  initial_vector[13] = 0.8725e-3;   // C1+
+  initial_vector[13] = 0.8725e-3;   // C1+ start partially ionised
   initial_vector[14] = 0.0;         // C2+
   initial_vector[15] = 0.0;         // C3+
   initial_vector[16] = 0.0;         // C4+
@@ -258,45 +235,6 @@ std::vector<std::vector<double> > load_reference_state(const std::string &path)
 
 
 // *******************************************************************
-// Compare every cell and variable, including density and temperature.
-bool compare_state(
-    const std::vector<std::vector<double> > &result_state,
-    const std::vector<std::vector<double> > &reference_state,
-    double relative_tolerance = 1e-4,
-    double absolute_tolerance = 1e-8)
-{
-  if (result_state.empty() || result_state.size() != reference_state.size()) {
-    spdlog::error("States are empty or have different cell counts");
-    return false;
-  }
-
-  bool test_status = true;
-  for (size_t i = 0; i < result_state.size(); ++i) {
-    if (result_state[i].size() != reference_state[i].size()) {
-      spdlog::error("Different vector sizes in cell {}", i + 1);
-      test_status = false;
-      continue;
-    }
-    for (size_t j = 0; j < result_state[i].size(); ++j) {
-      const double result    = result_state[i][j];
-      const double reference = reference_state[i][j];
-      const double diff      = std::abs(result - reference);
-      const double absSum    = std::abs(result) + std::abs(reference);
-      const double relDiff   = (absSum == 0.0) ? 0.0 : diff / absSum;
-      if (diff > absolute_tolerance && relDiff > relative_tolerance) {
-        spdlog::error(
-            "Cell {}, element {}: result={:.6e}, reference={:.6e}, rel = {:.6e}, abs = {:.6e}",
-            i + 1, j, result, reference, relDiff, diff);
-        test_status = false;
-      }
-    }
-  }
-  return test_status;
-}
-// *******************************************************************
-
-
-// *******************************************************************
 int main(int argc, char **argv)
 {
 #ifdef NDEBUG
@@ -307,24 +245,25 @@ int main(int argc, char **argv)
   spdlog::flush_on(spdlog::level::trace);
 #endif
 
-  spdlog::info("[NEMO::hii40-lexington] Initialising H II region simulation");
+  spdlog::info(
+      "[NEMO::photoionization_eq] Initialising H II region simulation");
 #ifdef NEMO_OMP
   spdlog::info(
-      "NEMO::hii40-lexington test: git {} running, nth={}", git_version,
+      "NEMO::photoionization_eq test: git {} running, nth={}", git_version,
       omp_get_num_procs());
 #else
   spdlog::info(
-      "NEMO::hii40-lexington test: git {} running, nth=1", git_version);
+      "NEMO::photoionization_eq test: git {} running, nth=1", git_version);
 #endif
 
   struct which_physics wp;
   // NEMO microphysics settings
-  wp.cooling           = 1;
-  wp.coll_ionisation   = 1;
+  wp.cooling           = 0;
+  wp.coll_ionisation   = 0;
   wp.rad_recombination = 1;
   wp.phot_ionisation   = 1;
-  wp.charge_exchange   = 1;
-  wp.update_erg        = 1;
+  wp.charge_exchange   = 0;
+  wp.update_erg        = 0;
   wp.MP_timestep_limit = 1;
   wp.MinTemperature    = 1.0e3;
   wp.MaxTemperature    = 1.0e9;
@@ -374,16 +313,15 @@ int main(int argc, char **argv)
       n_state_vars, n_tracers, 0, 1, tracers.data(), &wp, &rs, Gamma);
 #endif
 
-
-  // Set up the spherical shell grid
-  const int n_cells          = 16;  // Number of spherical shells
+  // --------------------------------------------------------------
+  // Set up initial conditions: the spherical shell grid
+  const int n_cells          = 32;  // Number of spherical shells
   const double cm_per_parsec = 3.085677581e18;
   const double pi            = 3.141592653589793;
   // Simulation domain: radial boundaries
   const double r_min = 0.0 * cm_per_parsec;   // Inner radius: 0.01 pc
   const double r_max = 5.76 * cm_per_parsec;  // Outer radius: 6.0 pc
   const double dr    = (r_max - r_min) / n_cells;
-
   std::vector<double> r_inner(n_cells);   // Inner radii
   std::vector<double> r_outer(n_cells);   // Outer radii
   std::vector<double> r_center(n_cells);  // Radial midpoints
@@ -399,27 +337,14 @@ int main(int argc, char **argv)
     volume[i] =
         (4.0 * pi / 3.0) * (std::pow(r_outer[i], 3) - std::pow(r_inner[i], 3));
   }
-
-
-
   // Initial gas state of the simulation
   std::vector<std::vector<double> > initial_state(n_cells, initial_vector);
-  // Advanced vector
-  std::vector<double> advanced_vector(initial_vector.size(), 0.0);
-  // Advanced gas state
-  std::vector<std::vector<double> > advanced_state(n_cells, advanced_vector);
-
-
-  // Simulation time settings
   const double start_time = 0.0;       // seconds
   const double end_time   = 3.156e13;  // seconds
   double time             = start_time;
   int step                = 0;
-  std::vector<double> advanced_temperature(n_cells, 0.0);
-
-  // edge optical depth
+  // vector of optical depths at each point and in each energy bin
   std::vector<std::vector<double> > optical_depth;
-
   std::vector<std::vector<rt_source_data> > rtdata(n_cells);
   for (int i = 0; i < n_cells; ++i) {
     rtdata[i].resize(1);
@@ -429,7 +354,6 @@ int main(int argc, char **argv)
     radiation.Vshell          = volume[i];     // Shell volume, cm3
     radiation.NTau            = star.NTau;     // Number of energy bins
   }
-
   double x                    = 0.0;
   const auto simulation_start = std::chrono::steady_clock::now();
 
@@ -449,55 +373,46 @@ int main(int argc, char **argv)
     const double remaining_time = end_time - time;
     double dt                   = remaining_time;
 #ifdef NEMO_OMP
-#pragma omp parallel for schedule(static) reduction(min: dt)
+#pragma omp parallel for reduction(min: dt)
 #endif
     for (int i = 0; i < n_cells; ++i) {
       const double cell_dt = MP->timescales(
           initial_state[i].data(), 0, rtdata[i], 1, rtdata[i], Gamma);
       dt = std::min(dt, cell_dt);
     }
+    // enforce that dt cannot be less than 0.1*time
     dt = std::min(std::max(dt, 0.1 * time), remaining_time);
     dt = std::min(dt, remaining_time);
 
     // ---------------------------------------------------------------
     // 3. Advance every shell through the same time interval.
 #ifdef NEMO_OMP
-    #pragma omp parallel
-    {
-      #pragma omp for
+    #pragma omp parallel for
 #endif
-      for (int i = 0; i < n_cells; ++i) {
+    for (int i = 0; i < n_cells; ++i) {
+      std::vector<double> advanced_vector(initial_vector.size(), 0.0);
+      const int error = MP->update_single_cell(
+          initial_state[i].data(),  // Current state of shell i
+          0,                        // Unused
+          rtdata[i],                // Unused
+          1,                        // One ionising source
+          rtdata[i],                // Radiation data for this shell
+          advanced_vector.data(),   // Advanced state
+          dt,                       // Timestep, seconds
+          Gamma,                    // Adiabatic index
+          0,                        // Unused
+          &x                        // Auxiliary output pointer
+      );
 
-        // set_shell_radiation(i);
-
-        // update all cells
-        const int error = MP->update_single_cell(
-            initial_state[i].data(),  // Current state of shell i
-            0,                        // Unused
-            rtdata[i],                // Unused
-            1,                        // One ionising source
-            rtdata[i],                // Radiation data for this shell
-            advanced_vector.data(),   // Advanced state
-            dt,                       // Timestep, seconds
-            Gamma,                    // Adiabatic index
-            0,                        // Unused
-            &x                        // Auxiliary output pointer
-        );
-
-        if (error != 0) {
-          throw std::runtime_error(
-              "[NEMO::hii40-lexington] NEMO update failed in shell "
-              + std::to_string(i));
-        }
-
-        // Replace ith shell current state for the next timestep.
-        initial_state[i] = advanced_vector;
-        // Store a separate copy of ith shell into advanced gas state.
-        advanced_state[i] = advanced_vector;
+      if (error != 0) {
+        throw std::runtime_error(
+            "[NEMO::photoionization_eq] NEMO update failed in shell "
+            + std::to_string(i));
       }
-#ifdef NEMO_OMP
+
+      // Replace ith shell current state for the next timestep.
+      initial_state[i] = advanced_vector;
     }
-#endif
 
     // ---------------------------------------------------------------
     // 4. Advance simulation time
@@ -519,75 +434,41 @@ int main(int argc, char **argv)
   #pragma omp parallel for
 #endif
   for (int i = 0; i < n_cells; ++i) {
-    advanced_temperature[i] = MP->Temperature(advanced_state[i].data(), Gamma);
+    initial_state[i][1] = MP->Temperature(initial_state[i].data(), Gamma);
+    initial_state[i][0] = r_center[i];
   }
-
-  // Assign Temperature to pressure variable for saving
-  for (int i = 0; i < n_cells; ++i) {
-    advanced_state[i][1] = advanced_temperature[i];
-  }
-
   for (int i = 0; i < n_cells; ++i) {
     spdlog::info(
         "optical_depth[{}] = {:8.3e}", i, fmt::join(optical_depth[i], ", "));
   }
 
-  // Load reference data
-  std::vector<std::vector<double> > reference_state;
-  reference_state = load_reference_state("data/hii40_lexington_reference.txt");
-
-  // Compare the final state with reference state
-  const bool test_status = compare_state(advanced_state, reference_state);
-  spdlog::info("Gas state comparison: {}", test_status ? "PASSED" : "FAILED");
-
-
-
   // Open file for writing final state
-  std::ofstream outfile("output_states_hii40.txt");
+  std::string opf("output_states_pieq.txt");
+  std::ofstream outfile(opf);
   if (!outfile.is_open()) {
     spdlog::error("Failed to open output file");
     return 1;
   }
   // Write header line
-  std::string header = "temperature";
+  std::string header = "radius temperature";
   for (int i = 2; i < n_state_vars; i++)
     header += " " + tracers[i - 2];
+  header += " [plus 15 optical depth bins]";
   outfile << header << "\n";
   outfile.setf(std::ios::scientific);
   outfile.precision(6);  // 6 decimal places in scientific notation
   // save data in sequence (not in OMP loop)
   for (int i = 0; i < n_cells; i++) {
-    for (int j = 1; j < n_state_vars; j++) {
-      outfile << advanced_state[i][j] << "  ";
+    for (int j = 0; j < n_state_vars; j++) {
+      outfile << initial_state[i][j] << "  ";
+    }
+    for (int j = 0; j < optical_depth[i].size(); j++) {
+      outfile << optical_depth[i][j] << "  ";
     }
     outfile << "\n";
   }
   outfile.close();
-  spdlog::info("Output saved to output_states_hii40.txt");
-
-  // TODO: Remove the rest later
-  // Save the final temperature at each shell's radial midpoint.
-  const std::string profile_path = "temperature_profile.txt";
-  std::ofstream file(profile_path);
-  if (!file) {
-    throw std::runtime_error("Cannot open " + profile_path);
-  }
-
-  file << "# Radius_pc  Temperature_K\n";
-  file << std::scientific << std::setprecision(8);
-  for (int i = 0; i < n_cells; ++i) {
-    const double temperature = MP->Temperature(initial_state[i].data(), Gamma);
-    file << r_center[i] / cm_per_parsec << "  " << temperature << '\n';
-  }
-
-  file.close();
-  if (!file) {
-    throw std::runtime_error("Failed to write " + profile_path);
-  }
-  spdlog::debug(
-      "[NEMO::hii40-lexington] Saved temperature profile for {} cells",
-      n_cells);
-
+  spdlog::info("Output saved to {}", opf);
 
 
 #ifdef NEMO_OMP
@@ -599,6 +480,6 @@ int main(int argc, char **argv)
   }
 #endif
 
-  return test_status ? 0 : 1;
+  return 0;
 }
 // *******************************************************************
