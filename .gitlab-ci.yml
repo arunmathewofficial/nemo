@@ -86,6 +86,8 @@ Compile:
   artifacts:
     name: Serial 
     paths:
+      - "${CMAKE_BUILD_DIR}"
+    expire_in: 1 hour     # optional cleanup
 
 Test:
   <<: *default_job
@@ -93,8 +95,9 @@ Test:
   variables:
     <<: *default_cmake_variables
     CXX: mpicxx
-  dependencies:
-    - Compile 
+  needs:
+    - job: Compile
+      artifacts: true
   before_script:
     - apt-get update -y
     - apt-get install --no-install-recommends -y
@@ -110,13 +113,11 @@ Test:
       python3
       python3-numpy
   script:
-    - *configure
-    - *build
     - make -C "${CMAKE_BUILD_DIR}/tests" test 
   artifacts:
     name: test 
     paths: 
       - "${CMAKE_BUILD_DIR}/tests/"
-    expire_in: 10 days
+    expire_in: 1 days
 
 

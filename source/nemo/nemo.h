@@ -51,7 +51,7 @@
 #include <utility>
 
 #define NEMO_RELTOL 1.0e-6   ///< relative-error tolerance
-#define NEMO_ABSTOL 1.0e-12  ///< minimum neutral fraction I care.
+#define NEMO_ABSTOL 1.0e-12  ///< minimum relevant absolute value of Y[i].
 #define NEMO_MINERG 1.0e-20  ///< Minimum internal energy density I care.
 
 // ############################################################################
@@ -61,17 +61,17 @@
 /// fraction of various ions, and for the internal energy density.
 ///
 class nemo :
-    public cvode_solver,
-    public coll_ionise_recomb,
-    public charge_exchange,
+    virtual public cvode_solver,
+    virtual public coll_ionise_recomb,
+    virtual public charge_exchange,
 #ifdef MELLEMA
-    public mellema_cooling,
+    virtual public mellema_cooling,
 #elif defined CHIANTI
-    public chianti_cooling,
+    virtual public chianti_cooling,
 #endif
-    public stellar_atmosphere_models,
-    public multi_ion_photo_xsections,
-    public photoionisation {
+    virtual public stellar_atmosphere_models,
+    virtual public multi_ion_photo_xsections,
+    virtual public photoionisation {
 
   // ############################################################################
   // ############################################################################
@@ -91,13 +91,13 @@ public:
   );
 
   /// DESTRUCTOR: removes all local data
-  ~nemo();
+  virtual ~nemo();
 
 public:
   ///
   /// Update microphysics including photoionization and photoheating
   ///
-  virtual int update_single_cell(
+  int update_single_cell(
       const double *,  ///< Primitive Vector to be updated.
       const int,       ///< unused
       const std::vector<struct rt_source_data> &,  ///< unused
@@ -138,7 +138,7 @@ public:
   /// It requires the radiation field as an input, but the vectors can be null.
   /// Used for setting a simulation timestep, together with CFL condition.
   ///
-  virtual double timescales(
+  double timescales(
       const double *,  ///< Current cell.
       const int,       ///< Number of UV heating sources.
       const std::vector<struct rt_source_data> &,
@@ -150,7 +150,7 @@ public:
   );
 
   /// Return the H mass fraction
-  virtual double get_X_H();
+  double get_X_H();
 
   /// Get electron number density (cm^{-3})
   double get_n_elec(const double *  ///< primitive state vector.
@@ -164,7 +164,7 @@ public:
 
   /// Calculates the change in optical depth over the cell
   /// for use in the Raytracing module
-  virtual void get_dtau(
+  void get_dtau(
       const rad_src_info *,  ///< not used in NEMO
       const double,          ///< ds, thickness of the cell
       const double *,        ///< input primitive vector from grid
@@ -175,7 +175,7 @@ public:
   ///
   /// calculate dy/dt for the vector of y-values.
   ///
-  virtual int ydot(
+  int ydot(
       double,  ///< current time (probably not needed for rate equations)
       const N_Vector,  ///< current Y-value
       N_Vector,        ///< vector for Y-dot values
@@ -185,7 +185,7 @@ public:
   ///
   /// Calculate the Jacobian matrix d(dy_i/dt)/dy_j for a vector of y-values.
   ///
-  virtual int Jacobian(
+  int Jacobian(
 #if defined CVODE2
       int,  ///< N (not sure what this is for!)
 #endif
@@ -204,7 +204,7 @@ public:
   ///
   /// Get the number of extra parameters and the number of equations.
   ///
-  virtual void get_problem_size(
+  void get_problem_size(
       int *,  ///< number of equations
       int *   ///< number of parameters in user_data vector.
   );
@@ -418,7 +418,7 @@ protected:
 
 #ifdef MELLEMA
   /// Fucntion to return mellema colling rate.
-  virtual double mellema_cooling_rate(
+  double mellema_cooling_rate(
       const int,     //  species identifier
       const double,  // Temperature
       const double   // ne
@@ -427,7 +427,7 @@ protected:
 
 #ifdef CHIANTI
   /// Fucntion to return chianti colling rate.
-  virtual double chianti_cooling_rate(
+  double chianti_cooling_rate(
       const int,     //  species identifier
       const double,  // Temperature
       const double   // ne
@@ -444,7 +444,7 @@ protected:
   ///
   /// set the relative and absolute error tolerances
   ///
-  virtual void get_error_tolerances(
+  void get_error_tolerances(
       double *,  ///< relative error tolerance (single value)
       double[]   ///< absolute error tolerance (array)
   );
@@ -452,7 +452,7 @@ protected:
   ///
   /// convert state vector from grid cell into local microphysics vector.
   ///
-  virtual int convert_prim2local(
+  int convert_prim2local(
       const double *,         ///< primitive vector (nv_prim)
       std::vector<double> &,  ///< local vector [x(H0),E](n+1).
       int                     /// flags the function
@@ -462,7 +462,7 @@ protected:
   /// Convert local microphysics vector into state vector for grid cell.
   /// This is the inverse of convert_prim2local.
   ///
-  virtual int convert_local2prim(
+  int convert_local2prim(
       const std::vector<double> &,  ///< local (updated) vector [x(H0),E](n+1).
       const double *,               ///< input primitive vector (nv_prim)
       double *,                     ///< updated primitive vector (nv_prim)
@@ -473,7 +473,7 @@ protected:
   /// Set local variables (y_ion_frac, y_neutral_frac, ne) by calling
   /// get_y_ion_frac(), get_y_top_ion_frac, and get_ne().
   ///
-  virtual void set_localvariables(
+  void set_localvariables(
       const std::vector<double> &,  ///< local vector
       std::vector<double> &,        ///< y_ion_frac
       std::vector<double> &,        ///< y_neutral_frac
@@ -481,19 +481,19 @@ protected:
   );
 
   /// Set y_ion_frac
-  virtual void get_y_species_frac(
+  void get_y_species_frac(
       const std::vector<double> &,  ///< local vector
       std::vector<double> &         ///< y_ion_frac
   );
 
   /// Set y_top_ion_frac
-  virtual void get_y_top_ion_frac(
+  void get_y_top_ion_frac(
       const std::vector<double> &,  ///< y_species_frac
       std::vector<double> &         ///< y_top_ion_frac
   );
 
   /// Calculate electron number density
-  virtual void get_ne(
+  void get_ne(
       const std::vector<double> &,  ///< y_species_frac
       double &                      ///< electron number density
   );
@@ -501,7 +501,7 @@ protected:
   /// Correct local vector
   /// + check that ion fractions are >= ABSTOL.
   /// + check that energy is within temperature limits
-  virtual int correct_localvector(
+  int correct_localvector(
       std::vector<double> &,  /// local vector
       int                     /// flags the function
   );
@@ -511,7 +511,7 @@ protected:
   /// appropriate for a gas with 10% Helium by number, and if He is singly
   /// ionised whenever H is.
   ///
-  virtual double get_temperature(
+  double get_temperature(
       const std::vector<double> &,  ///< ion fractions
       const std::vector<double> &,  ///< element number densities
       const double                  ///< E_int (per unit volume)
@@ -520,7 +520,7 @@ protected:
   ///
   /// Returns total number of particles.
   ///
-  virtual double get_ntot(
+  double get_ntot(
       const std::vector<double> &,  ///< species fractions (input)
       const std::vector<double> &   ///< element number density (input)
   );
@@ -528,7 +528,7 @@ protected:
   ///
   /// Set the size of local vectors, and index them with integers.
   ///
-  virtual void setup_local_vectors();
+  void setup_local_vectors();
 
   ///
   /// This function is utilized to correct the input primitive vector of the
@@ -537,7 +537,7 @@ protected:
   /// method requires the inputted mass fraction to satisfy the constraint that
   /// the sum of elemental mass fractions must equal unity.
   ///
-  virtual void sCMA(
+  void sCMA(
       double *,       ///< corrected vector.
       const double *  ///< input primitive vector.
   );

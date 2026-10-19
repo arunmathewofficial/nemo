@@ -40,7 +40,7 @@ public:
   atomic_physics_database();
 
   /** \brief Destructor **/
-  ~atomic_physics_database();
+  virtual ~atomic_physics_database();
 
   /** \brief Returns the element name string of the species. **/
   bool find_species(const std::string species);

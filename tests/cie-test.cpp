@@ -402,24 +402,6 @@ int main(int argc, char **argv)
       num_vectors, std::vector<double>(N_el, 0.0));
   double x = 0.0;
 
-  // Open file for writing
-  std::ofstream outfile("output_states.txt");
-  if (!outfile.is_open()) {
-    spdlog::error("Failed to open output file");
-    return 1;
-  }
-
-  // Write header line
-  std::string header = "temperature";
-  for (int i = 2; i < N_el; i++) {        // Skip density (0) and pressure (1)
-    header += " " + tracer_names[i - 2];  // Use tracer names from the array
-  }
-  outfile << header << "\n";
-
-  // Set scientific notation format
-  outfile.setf(std::ios::scientific);
-  outfile.precision(6);  // 6 decimal places in scientific notation
-
   // Process each of the state vectors with temperature adjustment
 #ifdef NEMO_OMP
   #pragma omp parallel
@@ -448,21 +430,26 @@ int main(int argc, char **argv)
           "integrated vector {} with T_in= {:8.3e} K, T_out= {:8.3e} K", i,
           temperatures[i], output_temperature);
       outputs[i][1] = output_temperature;  // store T in pressure var.
-
-      // Write data line
-      // std::string line = std::to_string(output_temperature);
-      // for (int j = 2; j < N_el; j++) {  // Skip density (0) and pressure (1)
-      //  line += " " + std::to_string(outputs[i][j]);
-      //}
-      // outfile << line << "\n";
     }
 #ifdef NEMO_OMP
   }
 #endif
 
-  // save data in sequence (not in OMP loop)
+  // Open file for writing
+  std::ofstream outfile("output_states.txt");
+  if (!outfile.is_open()) {
+    spdlog::error("Failed to open output file");
+    return 1;
+  }
+  // Write header line
+  std::string header = "temperature";
+  for (int i = 2; i < N_el; i++)
+    header += " " + tracer_names[i - 2];
+  outfile << header << "\n";
+  outfile.setf(std::ios::scientific);
+  outfile.precision(6);  // 6 decimal places in scientific notation
   for (int i = 0; i < num_vectors; i++) {
-    for (int j = 1; j < N_el; j++) {  // Skip density (0) but include T (1)
+    for (int j = 1; j < N_el; j++) {
       outfile << outputs[i][j] << "  ";
     }
     outfile << "\n";
@@ -474,7 +461,9 @@ int main(int argc, char **argv)
 #ifdef NEMO_OMP
   #pragma omp parallel
   {
+#endif
     delete MP;
+#ifdef NEMO_OMP
   }
 #endif
 

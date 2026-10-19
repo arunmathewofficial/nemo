@@ -66,7 +66,7 @@ public:
   coll_ionise_recomb();
 
   /** \brief Destructor **/
-  ~coll_ionise_recomb();
+  virtual ~coll_ionise_recomb();
 
   /** \brief This function will set the species size of the collisional
    *ionisation rate lookup tables and slope lookup tables to the number of

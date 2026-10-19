@@ -33,7 +33,7 @@ class stellar_atmosphere_models : virtual public nemo_constants {
 
 public:
   stellar_atmosphere_models();
-  ~stellar_atmosphere_models();
+  virtual ~stellar_atmosphere_models();
 
   void setup_stellar_atmosphere_models(
       std::vector<std::vector<double> >
