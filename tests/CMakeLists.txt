@@ -41,11 +41,14 @@ add_library(
 add_subdirectory(cie-test)
 add_dependencies(cie-test copy_data)
 
-# HII40 Lexington test
-add_subdirectory(lexington)
-add_dependencies(hii40-lexington copy_data)
+# CX test
+add_subdirectory(cx-test)
+add_dependencies(cx-test copy_data)
 
 # photoionization equilibrium test
 add_subdirectory(test4-photoion-eq)
 add_dependencies(photoionization_eq copy_data)
 
+# HII40 Lexington test
+add_subdirectory(lexington)
+add_dependencies(hii40-lexington copy_data)
