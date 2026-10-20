@@ -147,9 +147,8 @@ nemo::nemo(
     // energy in the energy bin vector.
   }
 
-  // Enable the charge-exchange reaction only if both charge_exchange and
-  // coll_ionisation are enabled in the parameter file.
-  if (EP->charge_exchange && EP->coll_ionisation) {
+  // Enable the charge-exchange reaction
+  if (EP->charge_exchange) {
     charge_exchange_enable = true;
     spdlog::debug("Charge-exchange reaction(s) enabled");
   }
@@ -681,7 +680,7 @@ void nemo::tracer_species_cataloger(
     species_prim_index_map[local_tracers[s]] = prim_first_tracer + sp;
 
     // collisional ionisation species ******************************************
-    if (EP->coll_ionisation) {
+    if (EP->coll_ionisation || charge_exchange_enable) {
       if (charge < Z) {
         // appending collisional ionisation species.
         collion_species.push_back(local_tracers[s]);
@@ -715,7 +714,7 @@ void nemo::tracer_species_cataloger(
     // end of collisional ionisation species ***********************************
 
     // recombination species ***************************************************
-    if (EP->rad_recombination) {
+    if (EP->rad_recombination || charge_exchange_enable) {
       // Making recombination species list.
       // if hydrogen exist in the tracer list, then add H1+ ion.
       if (charge == 0 && charge == Z - 1) {
