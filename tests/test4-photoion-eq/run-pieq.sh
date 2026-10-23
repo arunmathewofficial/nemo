@@ -8,26 +8,14 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-###################################################################
-# Logic for whether to test MPI, OpenMP, or hybrid parallelisation
-# Default (also with no argument) is to use MPI with np=4
-nt=0    # number of threads
-mpi=""  # MPI command
-
-if [[ $1 -eq 1 ]]; then
-  nt=4
-  mpi=""
-else
-  nt=1
-  mpi=""
-fi
-###################################################################
-
 script="${BASH_SOURCE[0]:-${(%):-%x}}"
 script_dir="$( cd "$( dirname "${script}" )" >/dev/null 2>&1 && pwd )"
-#export OMP_NUM_THREADS=8
-#echo "OMP_NUM_THREADS=$OMP_NUM_THREADS"
-${mpi} ./photoionization_eq || exit 1
+
+NCPUS=$(getconf _NPROCESSORS_ONLN)
+export OMP_NUM_THREADS=$(( NCPUS < 8 ? NCPUS : 8 ))
+
+echo "OMP_NUM_THREADS=$OMP_NUM_THREADS"
+./photoionization_eq || exit 1
 
 REF_FILE=${script_dir}/../data/pieq_test_refdata.txt
 NEW_FILE=output_states_pieq.txt

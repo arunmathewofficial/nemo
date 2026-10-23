@@ -52,11 +52,11 @@ void coll_ionise_recomb::setup_recombination(
 {
 
   // Resize recombination rate table based on recomb tracer list.
-  recombination_rate_table.resize(recomb_tracer_list.size());
+  caseB_recombination_rate_table.resize(recomb_tracer_list.size());
   caseA_recombination_rate_table.resize(recomb_tracer_list.size());
 
   // Resize recombination rate slope table based on NEMO tracer list.
-  recombination_slope_table.resize(recomb_tracer_list.size());
+  caseB_recombination_slope_table.resize(recomb_tracer_list.size());
   caseA_recombination_slope_table.resize(recomb_tracer_list.size());
 
   recomb_species_list = recomb_tracer_list;
@@ -100,29 +100,29 @@ void coll_ionise_recomb::generate_recombination_LUT(
   spdlog::debug("Generating recombination LUTs");
   // Generate recombination rate table for all species in the species
   // list.
-  double caseA = 0.0;
-  for (int s = 0; s < recombination_rate_table.size(); s++) {
+  double caseA = 0.0, caseB = 0.0;
+  for (int s = 0; s < caseB_recombination_rate_table.size(); s++) {
     for (int k = 0; k < T_table.size(); k++) {
-      caseA = 0.0;
-      recombination_rate_table[s].push_back(
-          get_recombination_rate(recomb_species_list[s], T_table[k], caseA));
+      get_recombination_rate(recomb_species_list[s], T_table[k], caseA, caseB);
+      caseB_recombination_rate_table[s].push_back(caseB);
       caseA_recombination_rate_table[s].push_back(caseA);
     }
   }
 
   // Generate recombination rate slope table for all species in
   // the species list.
-  for (int s = 0; s < recombination_slope_table.size(); s++) {
+  for (int s = 0; s < caseB_recombination_slope_table.size(); s++) {
     for (int k = 0; k < T_table.size() - 1; k++) {
-      recombination_slope_table[s].push_back(
-          (recombination_rate_table[s][k + 1] - recombination_rate_table[s][k])
+      caseB_recombination_slope_table[s].push_back(
+          (caseB_recombination_rate_table[s][k + 1]
+           - caseB_recombination_rate_table[s][k])
           / (T_table[k + 1] - T_table[k]));
       caseA_recombination_slope_table[s].push_back(
           (caseA_recombination_rate_table[s][k + 1]
            - caseA_recombination_rate_table[s][k])
           / (T_table[k + 1] - T_table[k]));
     }
-    recombination_slope_table[s].push_back(0.0);
+    caseB_recombination_slope_table[s].push_back(0.0);
     caseA_recombination_slope_table[s].push_back(0.0);
   }
 }
@@ -149,11 +149,11 @@ double coll_ionise_recomb::get_collisional_ionisation_rate(
 
 // ##################################################################
 // Calculate recombination rate of a species for a given temperature.
-double coll_ionise_recomb::get_recombination_rate(
-    const std::string species, const double T, double &caseA)
+void coll_ionise_recomb::get_recombination_rate(
+    const std::string species, const double T, double &caseA, double &caseB)
 {
   double rate = 0.0, tmp = 0.0;
-  caseA = 0.0;
+  caseA = 0.0, caseB = 0.0;
 
   // Calculating di-electronic recombination rate:
   for (int i = 0; i < 9; i++) {
@@ -172,21 +172,17 @@ double coll_ionise_recomb::get_recombination_rate(
                   * exp(-recomb_parameters[species].T2 / T);
   }
 
-  caseA = recomb_parameters[species].A
-          * pow(
-              pow(T / recomb_parameters[species].T0, 0.5)
-                  * pow(
-                      1.0 + pow(T / recomb_parameters[species].T0, 0.5),
-                      1.0 - B_new)
-                  * pow(
-                      1.0 + pow(T / recomb_parameters[species].T1, 0.5),
-                      1.0 + B_new),
-              -1.0);
+  caseA =
+      recomb_parameters[species].A
+      * pow(
+          sqrt(T / recomb_parameters[species].T0)
+              * pow(1.0 + sqrt(T / recomb_parameters[species].T0), 1.0 - B_new)
+              * pow(1.0 + sqrt(T / recomb_parameters[species].T1), 1.0 + B_new),
+          -1.0);
   caseA += rate;  // This is the case A rate
 
   // Calculating the Case B radiative recombination rate for H1+, He1+.
   if (species == "H1+") {
-#ifdef HYDROGEN_CASE_B
     // The Case B radiative recombination coefficient for the hydrogen ion is
     // determined using the fitting formula and parameters from
     // Seager, Sara et al., ApJS, 128, 407, 2000
@@ -198,34 +194,36 @@ double coll_ionise_recomb::get_recombination_rate(
     // Hui & Gnedin (1997) rate
     rate = 2.753e-14 * pow(2.0 * 1.57807e5 / T, 1.5)
            / pow(1.0 + pow(2.0 * 1.57807e5 / (2.74 * T), 0.407), 2.242);
-    caseA = rate;  // set them to be the same (hack!)
-    return rate;
-#endif
+    caseB = rate;
+    caseA = caseB;  // Always use caseB for H+ recombination...
   }
   else if (species == "He1+") {
-#ifdef HELIUM_CASE_B
     // Seager, Sara et al., ApJS, 128, 407, 2000
     // double T1 = T/pow(10.0,5.114), T2 = T/3.0;
     // rate += pow(10.0,-10.744) / (sqrt(T2) * pow(1.0 + sqrt(T2),(1.0-0.711)) *
     // pow(1.0+sqrt(T1), (1.0+0.711)));
     // Hui & Gnedin (1997) case B
-    rate += 1.26e-14 * pow(2.0 * 2.85335e5 / T, 0.75);
-    return rate;
-#endif
+    rate  = 1.26e-14 * pow(2.0 * 2.85335e5 / T, 0.75);
+    caseB = rate;
   }
   else if (species == "He2+") {
-#ifdef HELIUM_CASE_B
     // Hui & Gnedin (1997) case B
     tmp  = 2.0 * 6.31515e5 / T;
     rate = 2.0 * 2.753e-14 * pow(tmp, 1.5)
            / pow(1.0 + pow(tmp / 2.74, 0.407), 2.242);
+    caseB = rate;
+    // Hui & Gnedin (1997) Case A
+    rate = 2.0 * 1.269e-13 * pow(tmp, 1.503)
+           / pow(1.0 + pow(tmp / 0.522, 0.470), 1.923);
     caseA = rate;
-    return rate;
-#endif
+    // caseA = caseB;
+  }
+  else {
+    // if not H/He then just return case-A rate
+    caseB = caseA;
   }
 
-  rate = caseA;
-  return rate;
+  return;
 }
 // End of get recombination rate ###################################
 

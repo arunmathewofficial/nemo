@@ -42,7 +42,7 @@ bool compare_vectors(
 
 
 // *******************************************************************
-int main(int argc, char **argv)
+int main(void)
 {
 #ifdef NDEBUG
   spdlog::set_level(spdlog::level::info);
@@ -54,41 +54,32 @@ int main(int argc, char **argv)
 
   spdlog::info("NEMO tests: git {} running", git_version);
 
-  std::string tr[5] = {"X_H", "X_He", "H", "He", "He1+"};
-  struct which_physics wp;
-  wp.dynamics          = 1;
-  wp.raytracing        = 0;
-  wp.cooling           = 0;
-  wp.chemistry         = 1;
-  wp.coll_ionisation   = 1;
-  wp.rad_recombination = 1;
-  wp.phot_ionisation   = 0;
-  wp.charge_exchange   = 1;
-  wp.sat_thermal_cond  = 1;
-  wp.tc_strength       = 1;
-  wp.update_erg        = 0;
-  wp.MP_timestep_limit = 1;
-  wp.MinTemperature    = 10.0;
-  wp.MaxTemperature    = 1.0e9;
-  wp.H_MassFrac        = 0.0;
-  wp.Helium_MassFrac   = 0.0;
-  wp.Metal_MassFrac    = 0.0;
-  wp.compton_cool      = 0;
-  wp.wind_acceleration = 0;
-  wp.shocked_tracer    = 0;
-
+  std::vector<std::string> tr({"X_H", "X_He", "H", "He", "He1+"});
   struct rad_sources rs;
   rs.Nsources = 0;
   rs.sources.resize(0);
   rs.src_data.resize(0);
 
+  struct nemo_options flags;
+  flags.Min_Temperature         = 1.0e1;
+  flags.Max_Temperature         = 1.0e9;
+  flags.timestep_limiter        = 1;
+  flags.update_energy           = 0;
+  flags.cooling                 = 0;
+  flags.collisional_ionization  = 1;
+  flags.photoionization         = 0;
+  flags.charge_exchange         = 1;
+  flags.cosmicray_ionization    = 1;
+  flags.radiative_recombination = 1;
+  flags.onthespot_radiation     = 0;
+
   // nemo(Nel(state vec), Ntracer, dens-idx, pres-idx, tracer-names,
-  // extra-physics, rad-sources, gamma)
-  class nemo MP(7, 5, 0, 1, tr, &wp, &rs, 5.0 / 3.0);
+  // nemo-flags, rad-sources, gamma)
+  class nemo MP(7, 5, 0, 1, tr, flags, &rs, 5.0 / 3.0);
 
   std::vector<double> input(7, 0.0);
   input[0] = 1.0e-22;  // density
-  input[1] = 1.0e-9;   // pressure (~1e5 K)
+  input[1] = 1.0e-9;   // pressure (7.532e+04 K)
   input[2] = 0.72;
   input[3] = 0.28;
   input[4] = 0.36;
@@ -104,20 +95,21 @@ int main(int argc, char **argv)
       5. / 3., 0, &x);
 
   spdlog::info("output [{:20.16e}]", fmt::join(output, ", "));
+  spdlog::info("Temperature: {:8.3e}", MP.Temperature(output.data(), 5. / 3.));
 
   std::vector<double> reference = {
       1.0e-22,
       1.0e-09,
       7.2e-01,
       2.8e-01,
-      1.4590868581185208e-05,
-      2.1600536773812401e-04,
-      1.3033378001396104e-01};
+      1.4592800481802200e-05,
+      4.8425499616648750e-05,
+      1.3043365641742180e-01};
 
   bool result = compare_vectors(output, reference);
-  spdlog::info(
-      "comparison: {} {}", result,
-      "(if passed, rel-err<1e-8 and abs-err<1e-14 for every element)");
+  spdlog::info("comparison: {:8.3e}", fmt::join(output, ", "));
+  spdlog::info("reference:  {:8.3e}", fmt::join(reference, ", "));
+  spdlog::info("result: {}", result);
   if (result)
     return 0;
   else

@@ -1,5 +1,4 @@
-#image: debian:13-slim
-image: jmackey12345/nemo-ci:latest
+image: $CI_REGISTRY_IMAGE/nemo-ci:latest
 
 .snippets:
   - &configure
@@ -41,8 +40,7 @@ image: jmackey12345/nemo-ci:latest
 
 stages:
   - static analysis
-  - build libraries
-  - build executables
+  - build
   - test
 
 Format:
@@ -55,7 +53,6 @@ Format:
     - apt-get update -y
     - apt-get install --no-install-recommends -y
       git
-      clang
       clang-format-18
       yapf3
   script:
@@ -66,11 +63,9 @@ Format:
 
 Compile:
   <<: *default_job
-  stage: build libraries
+  stage: build
   variables:
     <<: *default_cmake_variables
-  dependencies:
-    - Format 
   before_script:
     - apt-get update -y
     - apt-get install --no-install-recommends -y
@@ -84,10 +79,10 @@ Compile:
       libboost-dev
       build-essential
   artifacts:
-    name: Serial 
+    name: build_libraries
     paths:
       - "${CMAKE_BUILD_DIR}"
-    expire_in: 1 hour     # optional cleanup
+    expire_in: 1 day
 
 Test:
   <<: *default_job
@@ -115,9 +110,9 @@ Test:
   script:
     - make -C "${CMAKE_BUILD_DIR}/tests" test 
   artifacts:
-    name: test 
+    name: tests
     paths: 
       - "${CMAKE_BUILD_DIR}/tests/"
-    expire_in: 1 days
+    expire_in: 1 day
 
 

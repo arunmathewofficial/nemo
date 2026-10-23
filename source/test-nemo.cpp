@@ -15,7 +15,7 @@
 #include "nemo/nemo.h"
 #include "nemo_git_version.h"
 
-int main(int argc, char **argv)
+int main(void)
 {
 #ifdef NDEBUG
   spdlog::set_level(spdlog::level::info);
@@ -27,37 +27,29 @@ int main(int argc, char **argv)
 
   spdlog::info("NEMO tests: git {} running", git_version);
 
-  std::string tr[5] = {"X_H", "X_He", "H", "He", "He1+"};
-  struct which_physics wp;
-  wp.dynamics          = 1;
-  wp.raytracing        = 0;
-  wp.cooling           = 1;
-  wp.chemistry         = 1;
-  wp.coll_ionisation   = 1;
-  wp.rad_recombination = 1;
-  wp.phot_ionisation   = 0;
-  wp.charge_exchange   = 1;
-  wp.sat_thermal_cond  = 1;
-  wp.tc_strength       = 1;
-  wp.update_erg        = 1;
-  wp.MP_timestep_limit = 1;
-  wp.MinTemperature    = 10.0;
-  wp.MaxTemperature    = 1.0e9;
-  wp.H_MassFrac        = 0.0;
-  wp.Helium_MassFrac   = 0.0;
-  wp.Metal_MassFrac    = 0.0;
-  wp.compton_cool      = 0;
-  wp.wind_acceleration = 0;
-  wp.shocked_tracer    = 0;
+  std::vector<std::string> tr({"X_H", "X_He", "H", "He", "He1+"});
 
   struct rad_sources rs;
   rs.Nsources = 0;
   rs.sources.resize(0);
   rs.src_data.resize(0);
 
+  struct nemo_options flags;
+  flags.Min_Temperature         = 1.0e1;
+  flags.Max_Temperature         = 1.0e9;
+  flags.timestep_limiter        = 1;
+  flags.update_energy           = 1;
+  flags.cooling                 = 1;
+  flags.collisional_ionization  = 1;
+  flags.photoionization         = 1;
+  flags.charge_exchange         = 1;
+  flags.cosmicray_ionization    = 1;
+  flags.radiative_recombination = 1;
+
+
   // nemo(ndim, coord-sys, Nel(state vec), Ntracer, tracers, extra-physics,
   // rad-sources, gamma)
-  class nemo MP(15, 5, 0, 1, tr, &wp, &rs, 5.0 / 3.0);
+  class nemo MP(15, 5, 0, 1, tr, flags, &rs, 5.0 / 3.0);
 
   std::vector<double> input(15, 0.0);
   input[0]  = 1.0e-22;  // density
