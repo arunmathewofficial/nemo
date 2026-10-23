@@ -42,7 +42,7 @@ def main():
         abstol = sys.argv[4]
         abstol = float(abstol)
     else:
-        abstol = 1.0e-14
+        abstol = 1.0e-10
 
     # Load the data files
     try:

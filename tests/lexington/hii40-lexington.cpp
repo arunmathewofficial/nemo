@@ -340,6 +340,9 @@ int main(void)
   struct nemo_options flags;
   flags.Min_Temperature         = 1.0e3;
   flags.Max_Temperature         = 1.0e9;
+  flags.nemo_reltol             = 1.0e-6;
+  flags.nemo_abstol             = 1.0e-12;
+  flags.nemo_minerg             = 1.0e-20;
   flags.timestep_limiter        = 1;
   flags.update_energy           = 1;
   flags.cooling                 = 1;

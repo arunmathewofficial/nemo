@@ -87,6 +87,9 @@ struct rt_source_data {
 
 /// List of options for NEMO setting out how it functions
 struct nemo_options {
+  double nemo_reltol;      ///< relative tolerance for ODE integration
+  double nemo_abstol;      ///< absolute tolerance for ODE integration
+  double nemo_minerg;      ///< absolute tolerance on Eint for ODE integration
   double Min_Temperature;  ///< enforce that T remains above this temperature
   double Max_Temperature;  ///< enforce that T remains below this temperature
   int timestep_limiter;    ///< integer flag that determines how to set

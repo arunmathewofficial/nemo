@@ -50,9 +50,6 @@
 #include <sys/stat.h>
 #include <utility>
 
-#define NEMO_RELTOL 1.0e-6   ///< relative-error tolerance
-#define NEMO_ABSTOL 1.0e-12  ///< minimum relevant absolute value of Y[i].
-#define NEMO_MINERG 1.0e-20  ///< Minimum internal energy density I care.
 
 // ############################################################################
 //  NEMO CLASS VARIABLES AND FUNCTIONS
