@@ -51,11 +51,11 @@ void nemo::get_error_tolerances(
     double atol[]    ///< absolute error tolerances
 )
 {
-  *reltol = NEMO_RELTOL;
+  *reltol = opt.nemo_reltol;
   for (int i = 0; i < N_local - 1; i++)
-    atol[i] = NEMO_ABSTOL;          ///< minimum neutral fraction I care about.
-  atol[N_local - 1] = NEMO_MINERG;  ///< E_int: for n=1.0, T=1.0e4, ==>
-                                    ///< E=2.07e-12, so say 1e-17?
+    atol[i] = opt.nemo_abstol;  ///< minimum neutral fraction I care about.
+  atol[N_local - 1] = opt.nemo_minerg;  ///< E_int: for n=1.0, T=1.0e4, ==>
+                                        ///< E=2.07e-12, so say 1e-17?
   return;
 }
 
@@ -416,8 +416,8 @@ nemo::nemo(
   // Set gamma - 1 from EOS gamma
   gamma_minus_one = eos_gamma - 1.0;
   // Set tolerance
-  Min_NeutralFrac = NEMO_ABSTOL;
-  Max_NeutralFrac = 1.0 - NEMO_ABSTOL;
+  Min_NeutralFrac = opt.nemo_abstol;
+  Max_NeutralFrac = 1.0 - opt.nemo_abstol;
 
   // Initializing CVODE Solver *************************************************
   // Initialise the CVODES solver memory etc.
@@ -1018,8 +1018,8 @@ double nemo::get_n_elec(const double *prim  ///< primitive state vector array.
       top_ion_massfrac -= prim[massfrac_species_prim_idx[sct]];
       sct++;
     }
-    top_ion_massfrac = max(NEMO_ABSTOL, top_ion_massfrac);
-    top_ion_massfrac = min(1.0 - NEMO_ABSTOL, top_ion_massfrac);
+    top_ion_massfrac = max(opt.nemo_abstol, top_ion_massfrac);
+    top_ion_massfrac = min(1.0 - opt.nemo_abstol, top_ion_massfrac);
 
     ne_per_density +=
         (Ne_massfrac_product + element_atomic_number[e] * top_ion_massfrac)
@@ -1100,8 +1100,8 @@ void nemo::get_y_species_frac(
   for (int s = 0; s < N_species; s++) {
     y_species_frac[s] = p_local[s];
     // Set y_ion_frac within physically acceptable range.
-    y_species_frac[s] = max(NEMO_ABSTOL, y_species_frac[s]);
-    y_species_frac[s] = min(1.0 - NEMO_ABSTOL, y_species_frac[s]);
+    y_species_frac[s] = max(opt.nemo_abstol, y_species_frac[s]);
+    y_species_frac[s] = min(1.0 - opt.nemo_abstol, y_species_frac[s]);
   }
   return;
 }
@@ -1124,15 +1124,15 @@ void nemo::get_y_top_ion_frac(
       sct++;
     }
 
-    if (y_top_ion_frac[e] < -NEMO_RELTOL) {
+    if (y_top_ion_frac[e] < -opt.nemo_reltol) {
       spdlog::error(
           "nemo: Negative species frac !!! E {} y-top-ion {}", e,
           y_top_ion_frac[e]);
     }
 
     // Ensure the top-ion frac is within the acceptable range
-    y_top_ion_frac[e] = max(NEMO_ABSTOL, y_top_ion_frac[e]);
-    y_top_ion_frac[e] = min(1.0 - NEMO_ABSTOL, y_top_ion_frac[e]);
+    y_top_ion_frac[e] = max(opt.nemo_abstol, y_top_ion_frac[e]);
+    y_top_ion_frac[e] = min(1.0 - opt.nemo_abstol, y_top_ion_frac[e]);
   }
   return;
 }
@@ -1153,8 +1153,8 @@ void nemo::get_ne(const std::vector<double> &y_species_frac, double &ne)
       element_top_ion_frac -= y_species_frac[sct];
       sct++;
     }
-    element_top_ion_frac = max(NEMO_ABSTOL, element_top_ion_frac);
-    element_top_ion_frac = min(1.0 - NEMO_ABSTOL, element_top_ion_frac);
+    element_top_ion_frac = max(opt.nemo_abstol, element_top_ion_frac);
+    element_top_ion_frac = min(1.0 - opt.nemo_abstol, element_top_ion_frac);
 
     ne += (electrons_per_ions + element_atomic_number[e] * element_top_ion_frac)
           * element_num_density[e];
@@ -1555,8 +1555,8 @@ int nemo::correct_localvector(
 
   for (int s = 0; s < N_species; s++) {  // loop over ions in p_local
     y_species_frac[s] = p_local[s];
-    y_species_frac[s] = max(NEMO_ABSTOL, y_species_frac[s]);
-    y_species_frac[s] = min(1.0 - NEMO_ABSTOL, y_species_frac[s]);
+    y_species_frac[s] = max(opt.nemo_abstol, y_species_frac[s]);
+    y_species_frac[s] = min(1.0 - opt.nemo_abstol, y_species_frac[s]);
   }
   // *********************************************************************
 
@@ -1577,10 +1577,10 @@ int nemo::correct_localvector(
   sct = 0;
   for (int e = 0; e < N_elements; e++) {
     // spdlog::info("correct localvec {}: checking el {}",function_flag, elem);
-    if (1.0 - y_frac_sum[e] < NEMO_ABSTOL) {
+    if (1.0 - y_frac_sum[e] < opt.nemo_abstol) {
       // if total ion fraction is nearly one or more than one,
-      // the neutral fraction must be minumum (say, NEMO_ABSTOL)
-      if (y_frac_sum[e] - 1.0 > 1.0e4 * NEMO_RELTOL && function_flag != 4) {
+      // the neutral fraction must be minumum (say, opt.nemo_abstol)
+      if (y_frac_sum[e] - 1.0 > 1.0e4 * opt.nemo_reltol && function_flag != 4) {
         spdlog::warn(
             "nemo::CorrLocalVec flag {}: too many species! element "
             "{}, y-1 = {:12.3e}",
@@ -1595,7 +1595,8 @@ int nemo::correct_localvector(
       }
       // double total_fraction = y_total_ion_frac[elem] + 1.0e-30;
       for (int q = 0; q < element_species_count[e]; q++) {
-        y_species_frac[sct] /= y_frac_sum[e] + NEMO_ABSTOL;  // total_fraction;
+        y_species_frac[sct] /=
+            y_frac_sum[e] + opt.nemo_abstol;  // total_fraction;
         sct++;
       }
     }
@@ -2357,9 +2358,9 @@ int nemo::ydot(
 
   /*
   for (int v = 0; v < N_species; v++) {
-    if (y_species_frac[v] < NEMO_ABSTOL && NV_Ith_S(y_dot, v) < 0.0)
+    if (y_species_frac[v] < opt.nemo_abstol && NV_Ith_S(y_dot, v) < 0.0)
       NV_Ith_S(y_dot, v) = 0.0;
-    if (y_species_frac[v] > 1.0 - NEMO_ABSTOL && NV_Ith_S(y_dot, v) > 0.0)
+    if (y_species_frac[v] > 1.0 - opt.nemo_abstol && NV_Ith_S(y_dot, v) > 0.0)
       NV_Ith_S(y_dot, v) = 0.0;
   }
    */
