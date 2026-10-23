@@ -45,8 +45,6 @@ using namespace std;
 // Maximum charge of the reactant in charge exchange reactions
 #define CX_MaxQ 4  // Note: CX_MaxQ can only take values 1, 2, 3, or 4
 
-// #define OTS_HACK
-
 // GET ERROR TOLERANCES #################################################
 void nemo::get_error_tolerances(
     double *reltol,  ///< relative error tolerance.
@@ -78,10 +76,11 @@ nemo::nemo(
     const int ntr,  ///< Number of tracer variables in state vector.
     const int de,   ///< index of density variable in state vector
     const int pr,   ///< index of pressure variable in state vector
-    const std::string *tracers,   ///< List of what the tracer variables mean.
-    struct which_physics *ephys,  ///< pointer to extra physics flags.
-    struct rad_sources *rsrcs,    ///< radiation sources.
-    const double g                ///< EOS Gamma
+    const std::vector<std::string>
+        tracers,  ///< List of what the tracer variables mean.
+    const struct nemo_options n_o,
+    struct rad_sources *rsrcs,  ///< radiation sources.
+    const double g              ///< EOS Gamma
     ) :
     coll_ionise_recomb(), charge_exchange(CX_MaxQ),
 #ifdef MELLEMA
@@ -91,11 +90,11 @@ nemo::nemo(
 #else
 #error "must define MELLEMA or CHIANTI"
 #endif
-    eos_gamma(g), T_min(1e1), T_max(1e9), Num_temps(300), Num_ne(100),
-    ne_min(1.0), ne_max(1.0e6), nv_prim(nv), ntracer(ntr),
-    stellar_atmosphere_models(), multi_ion_photo_xsections(), photoionisation()
+    eos_gamma(g), tab_T_min(1e1), tab_T_max(1e9), tab_Num_temps(300),
+    tab_Num_ne(100), tab_ne_min(1.0), tab_ne_max(1.0e6), nv_prim(nv),
+    ntracer(ntr), opt(n_o), stellar_atmosphere_models(),
+    multi_ion_photo_xsections(), photoionisation()
 {
-
   spdlog::debug(
       "nemo: Setting up tracer variables, assuming tracers"
       " are last {} variables in primitive vector",
@@ -105,7 +104,6 @@ nemo::nemo(
   prim_pres_idx = pr;
 
   // ############  from base class - check if needed #########
-  EP = ephys;
   RS = rsrcs;
   // set up a map of tracer names to indices in state vec.
   int offset = nv - ntr;
@@ -141,14 +139,15 @@ nemo::nemo(
   // ############  from base class - end  #########
 
   // Setup stellar atmosphere models for stellar luminosity spectrum
-  if (EP->phot_ionisation) {
+  if (opt.photoionization) {
     setup_stellar_atmosphere_models(ebins, N_ebins, photo_Emax);
     // Note: This will return energy bins, number of energy bins and maximum
     // energy in the energy bin vector.
   }
 
-  // Enable the charge-exchange reaction
-  if (EP->charge_exchange) {
+  // Enable the charge-exchange reaction only if both charge_exchange and
+  // coll_ionisation are enabled in the parameter file.
+  if (opt.charge_exchange && opt.collisional_ionization) {
     charge_exchange_enable = true;
     spdlog::debug("Charge-exchange reaction(s) enabled");
   }
@@ -166,19 +165,19 @@ nemo::nemo(
   // is used to calculate temperature index and electron number density index to
   // get the rate for a specific value of T or ne. Setting up uniform step size
   // for log T.
-  delta_logT = (log10(T_max) - log10(T_min)) / (Num_temps - 1);
+  delta_logT = (log10(tab_T_max) - log10(tab_T_min)) / (tab_Num_temps - 1);
   // Make temperature table for all LUTs.
-  T_table.resize(Num_temps);
-  for (int i = 0; i < Num_temps; i++) {
+  T_table.resize(tab_Num_temps);
+  for (int i = 0; i < tab_Num_temps; i++) {
     // Temperature table for coll_ionise and recomb LUTs:
-    T_table[i] = pow(10.0, (log10(T_min) + i * delta_logT));
+    T_table[i] = pow(10.0, (log10(tab_T_min) + i * delta_logT));
   }
   // Setting up uniform step size for log ne.
-  delta_logne = (log10(ne_max) - log10(ne_min)) / (Num_ne - 1);
+  delta_logne = (log10(tab_ne_max) - log10(tab_ne_min)) / (tab_Num_ne - 1);
   // Make electron number density table for all LUTs.
-  ne_table.resize(Num_ne);
-  for (int i = 0; i < Num_ne; i++) {
-    ne_table[i] = pow(10, log10(ne_min) + i * delta_logne);
+  ne_table.resize(tab_Num_ne);
+  for (int i = 0; i < tab_Num_ne; i++) {
+    ne_table[i] = pow(10, log10(tab_ne_min) + i * delta_logne);
   }
 
   // Section: Cosmic-ray ionisation  *******************************************
@@ -188,7 +187,7 @@ nemo::nemo(
   cosmic_ray_energy = 20.0 * eV();
 
   // Section: Collisional ionisation  ******************************************
-  if (EP->coll_ionisation) {
+  if (opt.collisional_ionization) {
     // setting up collisional ionisation
     setup_collisional_ionisation(collion_species);
     // Generating collisional ionisation rate lookup tables
@@ -207,9 +206,9 @@ nemo::nemo(
   }
 
   // Section: Recombination  ***************************************************
-  if (EP->rad_recombination) {
+  if (opt.radiative_recombination) {
     // setting up recombination
-    setup_recombination(recomb_species);
+    setup_recombination(recomb_species_list);
     // Generating recombination rate lookup tables
     generate_recombination_LUT(T_table);
 #ifdef NEMO_DEBUG
@@ -219,7 +218,7 @@ nemo::nemo(
     std::string recomb_info = "-- File: Recombination rate table --\n"
                               "-- Generated by NEMO module PION v3.0 --\n";
     print_CIR_LUT(
-        recomb_species, recomb_info, T_table, recombination_rate_table,
+        recomb_species_list, recomb_info, T_table, recombination_rate_table,
         recombination_slope_table, "NEMO-Tables/coll-recom-tables/recomb-rate");
 #endif
   }
@@ -272,7 +271,7 @@ nemo::nemo(
   }
 
   // Section: Photo-ionisation and photo-heating *******************************
-  if (EP->phot_ionisation) {
+  if (opt.photoionization) {
     spdlog::debug(" nemo: Energy bins {}", ebins);
     spdlog::debug(" nemo: Number of energy bins {}", N_ebins);
     spdlog::debug(" nemo: Maximum photo-ionisation energy {} eV", photo_Emax);
@@ -457,21 +456,19 @@ nemo::~nemo()
 
 // TRACER SPECIES CATALOGER ################################################
 void nemo::tracer_species_cataloger(
-    const int N_primitive, const int N_tracers, const std::string *tracers)
+    const int N_primitive,
+    const int N_tracers,
+    const std::vector<std::string> &tracers)
 {
 
   // Beginning of cataloging tracers
   spdlog::debug("nemo: Cataloging chemical tracers");
-
-  spdlog::debug(
-      "nemo: Chemical tracers in primitive vector {} ",
-      std::vector<string>(tracers, tracers + N_tracers));
-
+  spdlog::debug("nemo: Chemical tracers in primitive vector {} ", tracers);
   // Make a copy of tracer list
   std::vector<int> els(N_tracers, 0);
-  tracers_replica.resize(N_tracers);
+  scalars_names.resize(N_tracers);
   for (int s = 0; s < N_tracers; s++)
-    tracers_replica[s] = tracers[s];
+    scalars_names[s] = tracers[s];
 
   // Number of elements in the primitive vector.
   N_prim = N_primitive;
@@ -483,17 +480,17 @@ void nemo::tracer_species_cataloger(
   // Identifying the chemical elements and import all its species from *********
   // atomic-physics database.
   for (int s = 0; s < N_tracers; s++) {
-    if (tracers_replica[s].substr(0, 2) == "X_") {
-      tracers_replica[s].erase(0, 2);
-      element_tracers.push_back(tracers_replica[s]);
-      if (!atomic_physics_data.find_species(tracers_replica[s])) {
+    if (scalars_names[s].substr(0, 2) == "X_") {
+      scalars_names[s].erase(0, 2);
+      element_tracers.push_back(scalars_names[s]);
+      if (!atomic_physics_data.find_species(scalars_names[s])) {
         spdlog::warn(
-            "no species match for tracer: {}  {}", s, tracers_replica[s]);
+            "no species match for tracer: {}  {}", s, scalars_names[s]);
         exit_nemo(1);
       }
       else
         all_species_list.push_back(
-            atomic_physics_data.import_species(tracers_replica[s]));
+            atomic_physics_data.import_species(scalars_names[s]));
       els[s] = 1;
     }
   }
@@ -560,33 +557,33 @@ void nemo::tracer_species_cataloger(
 
   spdlog::debug(
       " nemo: Atomic-physics DB imported species list {}", all_species_list);
-  // Removing mass fraction tracers from tracers_replica.
-  vector<string>::iterator a = tracers_replica.begin();
+  // Removing mass fraction tracers from scalars_names.
+  vector<string>::iterator a = scalars_names.begin();
   for (size_t v = 0; v < els.size(); v++) {
     a++;
     if (els[v] == 1) {
-      tracers_replica.erase(a - 1);
+      scalars_names.erase(a - 1);
       a--;  // we deleted an element so the iterator needs to go back one
     }
   }
 
-  // Remove non-chemistry tracers from tracers_replica:
+  // Remove non-chemistry tracers from scalars_names:
   int notchem = 0;
-  a           = tracers_replica.end();
+  a           = scalars_names.end();
   vector<vector<string>::iterator> a2;
-  for (int v = tracers_replica.size() - 1; v >= 0; v--) {
+  for (int v = scalars_names.size() - 1; v >= 0; v--) {
     int position = -1;
     for (size_t i = 0; i < all_species_list.size(); ++i) {
       auto it = find(
           all_species_list[i].begin(), all_species_list[i].end(),
-          tracers_replica[v]);
+          scalars_names[v]);
       if (it != all_species_list[i].end()) {
         position = 1;
       }
     }
     if (position == -1) {
       notchem += 1;
-      a = tracers_replica.begin() + v;
+      a = scalars_names.begin() + v;
       a2.push_back(a);
     }
     else {
@@ -594,11 +591,11 @@ void nemo::tracer_species_cataloger(
   }
   for (int v = 0; v < a2.size(); v++) {
     spdlog::debug(" NEMO: Removing non-chemistry tracers: {} {}", v, *(a2[v]));
-    tracers_replica.erase(a2[v]);
+    scalars_names.erase(a2[v]);
   }
 
   // Now we have removed all non-species tracers, so copy this to local_tracers
-  local_tracers = tracers_replica;
+  local_tracers = scalars_names;
   if (local_tracers.size()
       != N_prim - N_elements - prim_first_tracer - notchem) {
     spdlog::error(
@@ -680,7 +677,7 @@ void nemo::tracer_species_cataloger(
     species_prim_index_map[local_tracers[s]] = prim_first_tracer + sp;
 
     // collisional ionisation species ******************************************
-    if (EP->coll_ionisation || charge_exchange_enable) {
+    if (opt.collisional_ionization || charge_exchange_enable) {
       if (charge < Z) {
         // appending collisional ionisation species.
         collion_species.push_back(local_tracers[s]);
@@ -714,38 +711,87 @@ void nemo::tracer_species_cataloger(
     // end of collisional ionisation species ***********************************
 
     // recombination species ***************************************************
-    if (EP->rad_recombination || charge_exchange_enable) {
+    if (opt.radiative_recombination || charge_exchange_enable) {
       // Making recombination species list.
       // if hydrogen exist in the tracer list, then add H1+ ion.
-      if (charge == 0 && charge == Z - 1) {
-        recomb_species.push_back(all_species_list[position][Z]);
-        recomb_species_element.push_back(position);
-        recomb_species_charge.push_back(1);
-        recomb_top_ion_bool.push_back(1);
+      if (charge == 0 && Z == 1) {
+        recomb_species_list.push_back(all_species_list[position][Z]);
+        struct nemo_recomb_species rs;
+#ifdef NEMO_DEBUG
+        rs.s_name = all_species_list[position][Z];
+#endif
+        rs.element = position;
+        rs.s_into  = s;
+        rs.s_from  = -1;
+        rs.charge  = 1;
+        rs.top_ion = 1;
+        rec_s.push_back(rs);
+        // recomb_species_element.push_back(position);
+        // recomb_species_charge.push_back(1);
+        // recomb_top_ion_bool.push_back(1);
       }
       // append all other species
       if (charge != 0) {  // avoiding neutral species
-        recomb_species.push_back(local_tracers[s]);
+        recomb_species_list.push_back(local_tracers[s]);
         // Incorporating the highest ionization state of the respective element
         // into the recombination species list, as it undergoes recombination
         // with the electron. This chemical species is not included in the
         // primitive vector; thus, it is imported from the atomic physics
         // database. Note: In this step hydrogen ion is not included.
-        recomb_species_element.push_back(position);
-        recomb_species_charge.push_back(charge);
-        recomb_top_ion_bool.push_back(0);
+        struct nemo_recomb_species rs;
+#ifdef NEMO_DEBUG
+        rs.s_name = local_tracers[s];
+#endif
+        rs.element = position;
+        rs.s_into  = s - 1;
+        rs.s_from  = s;
+        rs.charge  = charge;
+        rs.top_ion = 0;
+        rec_s.push_back(rs);
+        // recomb_species_element.push_back(position);
+        // recomb_species_charge.push_back(charge);
+        // recomb_top_ion_bool.push_back(0);
         if (charge == Z - 1) {
-          recomb_species.push_back(all_species_list[position][Z]);
-          recomb_species_element.push_back(position);
-          recomb_species_charge.push_back(charge + 1);
-          recomb_top_ion_bool.push_back(1);
+          recomb_species_list.push_back(all_species_list[position][Z]);
+          struct nemo_recomb_species rs;
+#ifdef NEMO_DEBUG
+          rs.s_name = all_species_list[position][Z];
+#endif
+          rs.element = position;
+          rs.s_into  = s;
+          rs.s_from  = -1;
+          rs.charge  = charge + 1;
+          rs.top_ion = 1;
+          rec_s.push_back(rs);
+          // recomb_species_element.push_back(position);
+          // recomb_species_charge.push_back(charge + 1);
+          // recomb_top_ion_bool.push_back(1);
+        }
+      }
+
+      // add H + Helium OTS
+      if (opt.onthespot_radiation) {
+        if (Z == 1 || Z == 2) {
+          // add H0, He0 and He+ to the OTS species list
+          struct nemo_recomb_species os;
+          os.element = position;
+          os.s_into  = s;  // add H0 position, not H+
+          if (charge <= Z - 1) {
+            os.s_from = s + 1;  // next stage exists for He0 only
+          }
+          else {
+            os.s_from = -1;
+          }
+          ots_s.push_back(os);
+          spdlog::debug(
+              "***OTS***: {} {} {}", os.element, os.s_into, ots_s.size());
         }
       }
     }
     // end of recombination species ********************************************
 
     // photo-ionisation species ************************************************
-    if (EP->phot_ionisation) {
+    if (opt.photoionization) {
       // if the ionisation energy is less than the maximum photon energy,
       // then the tracer is qualified photo species
       if (charge < Z
@@ -792,7 +838,7 @@ void nemo::tracer_species_cataloger(
       " NEMO: Neutral Species local idx {} ", neutral_species_local_idx);
 
   // Collisional species and their related indices.
-  if (EP->coll_ionisation) {
+  if (opt.collisional_ionization) {
     spdlog::debug(
         " NEMO: Collisional ionisation species {} {} ", collion_species.size(),
         collion_species);
@@ -804,16 +850,28 @@ void nemo::tracer_species_cataloger(
   }
 
   // Recombination species and their related indices.
-  if (EP->rad_recombination) {
+  if (opt.radiative_recombination) {
     spdlog::debug(
-        " NEMO: Recombination species {} {} ", recomb_species.size(),
-        recomb_species);
-    spdlog::debug(
-        " NEMO: Recombination species element {} ", recomb_species_element);
-    spdlog::debug(
-        " NEMO: Recombination species charge {} ", recomb_species_charge);
-    spdlog::debug(
-        " NEMO: Recombination top ion boolean {} ", recomb_top_ion_bool);
+        " NEMO: Recombination species {} {} ", recomb_species_list.size(),
+        recomb_species_list);
+    for (const auto &item : rec_s) {
+#ifdef NEMO_DEBUG
+      spdlog::debug(
+          " NEMO: Recombination: {} {} {} {} {}", item.s_into, item.s_from,
+          item.element, item.charge, item.top_ion);
+#else
+      spdlog::debug(
+          " NEMO: Recombination: {} {} {}", item.element, item.charge,
+          item.top_ion);
+#endif
+    }
+
+    // spdlog::debug(
+    //     " NEMO: Recombination species element {} ", recomb_species_element);
+    // spdlog::debug(
+    //     " NEMO: Recombination species charge {} ", recomb_species_charge);
+    // spdlog::debug(
+    //     " NEMO: Recombination top ion boolean {} ", recomb_top_ion_bool);
   }
 
   // Charge exchange reaction **************************************************
@@ -824,7 +882,7 @@ void nemo::tracer_species_cataloger(
     // ionisation-recombination charge exchange reaction.
     std::set<std::string> combined_set(
         collion_species.begin(), collion_species.end());
-    combined_set.insert(recomb_species.begin(), recomb_species.end());
+    combined_set.insert(recomb_species_list.begin(), recomb_species_list.end());
     std::vector<std::string> cx_ref_species_list(
         combined_set.begin(), combined_set.end());
     spdlog::debug(" NEMO: cx reference species set {}", cx_ref_species_list);
@@ -846,12 +904,12 @@ void nemo::tracer_species_cataloger(
         " NEMO: cx ionisation reactions list {}", ionise_cx_reactions);
 
     // recombining charge exchange reactions
-    for (size_t s = 0; s < recomb_species.size(); s++) {
+    for (size_t s = 0; s < recomb_species_list.size(); s++) {
       // Get the set of charge exchange reactant species participating
       // in recombination reactions, limited by the maximum reactant charge.
-      charge_exchange_recomb_species.push_back(recomb_species[s]);
-      recomb_cx_reactions.push_back(
-          get_cx_reactions(recomb_species[s], recReact, cx_ref_species_list));
+      charge_exchange_recomb_species.push_back(recomb_species_list[s]);
+      recomb_cx_reactions.push_back(get_cx_reactions(
+          recomb_species_list[s], recReact, cx_ref_species_list));
     }
 
     spdlog::debug(
@@ -921,7 +979,7 @@ void nemo::tracer_species_cataloger(
   }
 
   // Photo-ionisation species and their related indices. *********************
-  if (EP->phot_ionisation) {
+  if (opt.photoionization) {
     // Calculate number of photo-species
     N_photo_species = photo_species.size();
     spdlog::debug(" NEMO: Photo-ionisation species {} ", photo_species);
@@ -937,7 +995,7 @@ void nemo::tracer_species_cataloger(
   }
   // Cooling species and their related indices.
   cooling_species = all_species_list;
-  if (EP->cooling) {
+  if (opt.cooling) {
     spdlog::debug(" NEMO: Cooling species {} ", cooling_species);
   }
 }
@@ -1236,20 +1294,20 @@ int nemo::convert_local2prim(
   double T =
       get_temperature(y_species_frac, element_num_density, p_local[E_index]);
   // cout <<"current temp = " << T << "\n";
-  if (T > 1.01 * EP->MaxTemperature) {
+  if (T > 1.01 * opt.Max_Temperature) {
     spdlog::warn("nemo::convert_local2prim() High temperature encountered!!!");
-    Set_Temp(prim_out, EP->MaxTemperature, 0);
+    Set_Temp(prim_out, opt.Max_Temperature, 0);
     spdlog::warn(
         "T = {} K, eint = {} erg/cm^3, ...  limiting to T = {} K", T,
-        p_local[E_index], EP->MaxTemperature);
+        p_local[E_index], opt.Max_Temperature);
     spdlog::warn("prim_in {}", std::vector<double>(prim_in, prim_in + N_prim));
   }
-  if (T < 0.99 * EP->MinTemperature) {
+  if (T < 0.99 * opt.Min_Temperature) {
     spdlog::warn("nemo::convert_local2prim() LOW temperature encountered!!!");
-    Set_Temp(prim_out, EP->MinTemperature, 0);
+    Set_Temp(prim_out, opt.Min_Temperature, 0);
     spdlog::warn(
         "T = {} K, eint = {} erg/cm^3, ...  limiting to T = {} K", T,
-        p_local[E_index], EP->MinTemperature);
+        p_local[E_index], opt.Min_Temperature);
   }
 
   return 0;
@@ -1562,11 +1620,11 @@ int nemo::correct_localvector(
       spdlog::warn(
           "nemo::CorrLocalVec flag: {} - Negative pressure input: Eint = {}, "
           "setting to {} K",
-          function_flag, p_local[E_index], EP->MinTemperature);
+          function_flag, p_local[E_index], opt.Min_Temperature);
 
     // reset the internal energy (requires using y_ion_frac in get_ntot)
     p_local[E_index] = get_ntot(y_species_frac, element_num_density) * kB()
-                       * EP->MinTemperature / (gamma_minus_one);
+                       * opt.Min_Temperature / (gamma_minus_one);
   }
   // **************************************************************
 
@@ -1576,16 +1634,16 @@ int nemo::correct_localvector(
   double T =
       get_temperature(y_species_frac, element_num_density, p_local[E_index]);
 
-  if (T < 0.95 * EP->MinTemperature) {
+  if (T < 0.95 * opt.Min_Temperature) {
     if (function_flag != 4)
       spdlog::debug(
           "nemo::CorrLocalVec flag: {} - Temperature = {} K, below "
           "T_MIN = {} K",
-          function_flag, T, EP->MinTemperature);
+          function_flag, T, opt.Min_Temperature);
 
     // Resetting the internal energy with Minimum Temperature
     p_local[E_index] = get_ntot(y_species_frac, element_num_density) * kB()
-                       * EP->MinTemperature / (gamma_minus_one);
+                       * opt.Min_Temperature / (gamma_minus_one);
   }
   // **************************************************************
 
@@ -1610,8 +1668,8 @@ double nemo::timescales(
     const double  ///< EOS gamma.
 )
 {
-  // spdlog::info("timestep limit: {}", EP->MP_timestep_limit);
-  if (!EP->MP_timestep_limit) return HUGEVALUE;
+  // spdlog::info("timestep limit: {}", opt.timestep_limiter);
+  if (!opt.timestep_limiter) return HUGEVALUE;
 
   // spdlog::info("got past blockage 0");
   // Note: Minimum value of micro-physics trace variables in the primitive
@@ -1839,11 +1897,11 @@ int nemo::ydot(
   T = 1.0e4;
 #endif
 
-  // Restricting temperature within T_min and T_max
-  if (T > T_max)
-    T = T_max;
-  else if (T < T_min)
-    T = T_min;
+  // Restricting temperature within tab_T_min and tab_T_max
+  if (T > tab_T_max)
+    T = tab_T_max;
+  else if (T < tab_T_min)
+    T = tab_T_min;
 
   // SECTION: Species number den/sity
   // *******************************************
@@ -1882,7 +1940,7 @@ int nemo::ydot(
   // END OF SECTION: Species number density ************************************
 
   // SECTION: Cosmic-ray Ionisation ********************************************
-  if (EP->coll_ionisation) {
+  if (opt.cosmicray_ionization) {
     double cosmicray_ydot = 0.0;
     for (int e = 0; e < N_elements; e++) {
       cosmicray_ydot =
@@ -1903,7 +1961,7 @@ int nemo::ydot(
   // END OF SECTION: Cosmic-ray Ionisation *************************************
 
   // SECTION: Collisional Ionisation *******************************************
-  if (EP->coll_ionisation) {
+  if (opt.collisional_ionization) {
     // Calculating RHS terms corresponding to collisional ionisation for
     // species in collion_species. These terms are calculated only once and
     // attached at relevant ydot equations.
@@ -1943,33 +2001,38 @@ int nemo::ydot(
   // SECTION: Recombination (Radiative + Dielectronic) *************************
   double rr_cool = 0.0;
   double cx_cool = 0.0;
-  if (EP->rad_recombination) {
+  if (opt.radiative_recombination) {
     // RHS terms corresponding to Recombination (R) are calculated for
-    // all species. In this case, for specie s, the term rec_rate(s)y(s)ne is
-    // subtracted for ydot(s-1) and the same terms is added for the ydot(s),
-    // provided species s is a ion of same element. Whereas
-    // if the species s is neutral, then only addition performed.
+    // all species. In this case, for species s, the term rec_rate(s)y(s)ne is
+    // added to ydot(s) and the same terms is subtracted from ydot(s+1),
+    // provided species s is a ion of same element.  We calculate recombination
+    // *into* a species s
 
     // Radiative + Di-electronic recombination rate %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    double radiative_recomb_rate = 0.0;
-    double radiative_recomb_ydot = 0.0;
-    double caseA                 = 0.0;
+    double caseB   = 0.0;
+    double rr_ydot = 0.0;
+    double caseA   = 0.0;
     // std::vector<double> temp_rr(recomb_tracer_list.size());  //DEBUG
 
-    for (size_t s = 0; s < recomb_species.size(); s++) {
-      radiative_recomb_rate = recombination_rate(s, T, caseA);
+    for (size_t s = 0; s < rec_s.size(); s++) {
+      recombination_rate(s, T, caseA, caseB);
       // radiative recombination terms
       // If s is a top level ion of an element then
-      if (recomb_top_ion_bool[s]) {
-        radiative_recomb_ydot =
-            caseA * ne * y_top_ion_frac[recomb_species_element[s]];
-        NV_Ith_S(y_dot, s) += radiative_recomb_ydot;
+      if (rec_s[s].top_ion) {
+        if (!opt.onthespot_radiation)
+          rr_ydot = caseB * ne * y_top_ion_frac[rec_s[s].element];
+        else
+          rr_ydot = caseA * ne * y_top_ion_frac[rec_s[s].element];
+        NV_Ith_S(y_dot, rec_s[s].s_into) += rr_ydot;
       }
       // otherwise
       else {
-        radiative_recomb_ydot = caseA * ne * p_local[s + 1];
-        NV_Ith_S(y_dot, s) += radiative_recomb_ydot;
-        NV_Ith_S(y_dot, s + 1) -= radiative_recomb_ydot;
+        if (!opt.onthespot_radiation)
+          rr_ydot = caseB * ne * p_local[rec_s[s].s_from];
+        else
+          rr_ydot = caseA * ne * p_local[rec_s[s].s_from];
+        NV_Ith_S(y_dot, rec_s[s].s_into) += rr_ydot;
+        NV_Ith_S(y_dot, rec_s[s].s_from) -= rr_ydot;
       }
 
       // Cooling due to radiative-recombination of this species
@@ -1977,112 +2040,110 @@ int nemo::ydot(
       // it should be nearly 1 at low temp, and around 0.9 at 1e4 K.
       // It should be lower at high temperature, but here free-free is
       // dominating anyway so it is not important.
-      rr_cool = 0.9 * T * kB() * radiative_recomb_ydot
-                * element_num_density[recomb_species_element[s]];
+      rr_cool =
+          0.9 * T * kB() * rr_ydot * element_num_density[rec_s[s].element];
       Edot -= rr_cool;
 
-      // on-the-spot approximation hack
-#ifdef OTS_HACK
-      // HACK!  Hard-code on-the-spot approx for Lexington benchmark.
-      // on-the-spot approximation for He+: results in ionization of H
-      double xsh = 0.0, xshe = 0.0, xshe2 = 0.0, fh = 0.0, fhe = 0.0,
-             fhe2 = 0.0, ndotgamma = 0.0;
-      if (s == 1) {
-        // Recombination of He+ to ground state result in photons that can
-        // ionize H0 and He0, with photon energy >24.6eV. x-sections from module
-        // output, these variables are n_i * sigma_i for neutral H and neutral
-        // He
-        xsh = 9.551e-19 * element_num_density[recomb_species_element[0]]
-              * p_local[0];
-        xshe = 6.3372e-18 * element_num_density[recomb_species_element[1]]
-               * p_local[1];
-        fh  = xsh / (xsh + xshe);
-        fhe = xshe / (xsh + xshe);
-        ndotgamma =
-            (caseA - radiative_recomb_rate) * p_local[s + 1] * ne
-            * element_num_density[recomb_species_element[1]];  // photons per
-                                                               // cm3 per s
+      if (opt.onthespot_radiation) {
+        // On-the-spot approx for Lexington benchmark.
+        // Assumes that ots_s vector is ordered by recomb into H0, He0, He1+
+        // on-the-spot approximation for He+: results in ionization of H
+        double xsh = 0.0, xshe = 0.0, xshe2 = 0.0, fh = 0.0, fhe = 0.0,
+               fhe2 = 0.0, ndotgamma = 0.0;
+        if (s == ots_s[1].s_into) {
+          // Recombination of He+ to He0 result in photons that can
+          // ionize H0 and He0, with photon energy >24.6eV. x-sections from
+          // module output, these variables are n_i * sigma_i for neutral H and
+          // neutral He
+          xsh = 9.551e-19 * element_num_density[ots_s[0].element]
+                * p_local[ots_s[0].s_into];
+          xshe = 6.3372e-18 * element_num_density[ots_s[1].element]
+                 * p_local[ots_s[1].s_into];
+          fh  = xsh / (xsh + xshe);
+          fhe = xshe / (xsh + xshe);
+          //  photon production rate per unit volume: photons / cm3 / s
+          ndotgamma = (caseA - caseB) * p_local[ots_s[1].s_from] * ne
+                      * element_num_density[ots_s[1].element];
 
-        // H ionizations and heating
-        NV_Ith_S(y_dot, 0) -=
-            ndotgamma * fh / element_num_density[recomb_species_element[0]];
-        Edot += ndotgamma * fh * (24.6 - 13.6) * eV();
+          // H ionizations and heating
+          NV_Ith_S(y_dot, ots_s[0].s_into) -=
+              ndotgamma * fh / element_num_density[ots_s[0].element];
+          Edot += ndotgamma * fh * (24.6 - 13.6) * eV();
 
-        // He ionizations and heating
-        NV_Ith_S(y_dot, 1) -=
-            ndotgamma * fhe / element_num_density[recomb_species_element[1]];
-        NV_Ith_S(y_dot, 2) +=
-            ndotgamma * fhe / element_num_density[recomb_species_element[1]];
-        Edot += 0.0;  // no net heating
+          // He ionizations and heating
+          NV_Ith_S(y_dot, ots_s[1].s_into) -=
+              ndotgamma * fhe / element_num_density[ots_s[1].element];
+          NV_Ith_S(y_dot, ots_s[1].s_from) +=
+              ndotgamma * fhe / element_num_density[ots_s[1].element];
+          // Edot += 0.0;  // no net heating
 
-        // 2.B - case B He+ recombinations can ionize H
-        fh = 1.0;
-        ndotgamma =
-            radiative_recomb_rate * p_local[s + 1] * ne
-            * element_num_density[recomb_species_element[1]];  // photons per
-                                                               // cm3 per s
-        NV_Ith_S(y_dot, 0) -=
-            ndotgamma * fh / element_num_density[recomb_species_element[0]];
-        Edot += ndotgamma * fh * (18.15 - 13.6) * eV();
+          // 2.B - case B He+ recombinations can ionize H
+          fh        = 1.0;
+          ndotgamma = caseB * p_local[ots_s[1].s_from] * ne
+                      * element_num_density[ots_s[1].element];
+          NV_Ith_S(y_dot, ots_s[0].s_into) -=
+              ndotgamma * fh / element_num_density[ots_s[0].element];
+          Edot += ndotgamma * fh * (18.15 - 13.6) * eV();
+        }
+        else if (s == ots_s[2].s_into && 1 == 2) {
+          // Recombination of He2+ can ionize He+ and H.
+          // We skip this for now, because it produces very strong heating.
+          // ** Case 1 **
+          // recombinations to ground state from 54.4eV
+          xsh = 9.7296e-20 * element_num_density[ots_s[0].element]
+                * p_local[ots_s[0].s_into];
+          xshe = 1.4245e-18 * element_num_density[ots_s[1].element]
+                 * p_local[ots_s[1].s_into];
+          xshe2 = 1.2841e-18 * element_num_density[ots_s[2].element]
+                  * p_local[ots_s[2].s_into];
+          fh   = xsh / (xsh + xshe + xshe2);
+          fhe  = xshe / (xsh + xshe + xshe2);
+          fhe2 = xshe2 / (xsh + xshe + xshe2);
+          // photons per cm3 per s
+          ndotgamma = (caseA - caseB) * y_top_ion_frac[ots_s[2].element] * ne
+                      * element_num_density[ots_s[2].element];
+          // spdlog::info("ndotgamma {:8.3e}",ndotgamma);
+          //  H ionizations and heating
+          NV_Ith_S(y_dot, ots_s[0].s_into) -=
+              ndotgamma * fh / element_num_density[ots_s[0].element];
+          Edot += ndotgamma * fh * (54.4 - 13.6) * eV();
+          // He ionizations and heating
+          NV_Ith_S(y_dot, ots_s[1].s_into) -=
+              ndotgamma * fhe / element_num_density[ots_s[1].element];
+          NV_Ith_S(y_dot, ots_s[1].s_from) +=
+              ndotgamma * fhe / element_num_density[ots_s[1].element];
+          Edot += ndotgamma * fhe * (54.4 - 24.6) * eV();
+          // He+ ionizations and heating
+          NV_Ith_S(y_dot, ots_s[2].s_into) -=
+              ndotgamma * fhe2 / element_num_density[ots_s[2].element];
+          // Edot += 0.0;  // re-ionization of He+ is energy neutral
+
+          // ** Case B **
+          // x-sections at 40.8 eV
+          xsh = 2.4664e-19 * element_num_density[ots_s[0].element]
+                * p_local[ots_s[0].s_into];
+          xshe = 2.738e-18 * element_num_density[ots_s[1].element]
+                 * p_local[ots_s[1].s_into];
+          fh  = xsh / (xsh + xshe);
+          fhe = xshe / (xsh + xshe);
+          // photons per cm3 per s
+          ndotgamma = caseB * y_top_ion_frac[ots_s[2].element] * ne
+                      * element_num_density[ots_s[2].element];
+
+          // H ionizations and heating
+          NV_Ith_S(y_dot, ots_s[0].s_into) -=
+              ndotgamma * fh / element_num_density[ots_s[0].element];
+          Edot += ndotgamma * fh * (40.8 - 13.6)
+                  * eV();  // <-- this term v. strong heating
+
+          // He ionizations and heating
+          NV_Ith_S(y_dot, ots_s[1].s_into) -=
+              ndotgamma * fhe / element_num_density[ots_s[1].element];
+          NV_Ith_S(y_dot, ots_s[1].s_from) +=
+              ndotgamma * fhe / element_num_density[ots_s[2].element];
+          Edot += ndotgamma * fhe * (40.8 - 24.6) * eV();
+        }
       }
-      else if (s == 2) {
-        // Recombination of He2+ can ionize He+ and H.
-        // ** Case 1 **
-        // recombinations to ground state from 54.4eV
-        xsh = 9.7296e-20 * element_num_density[recomb_species_element[0]]
-              * p_local[0];
-        xshe = 1.4245e-18 * element_num_density[recomb_species_element[1]]
-               * p_local[1];
-        xshe2 = 1.2841e-18 * element_num_density[recomb_species_element[2]]
-                * p_local[2];
-        fh   = xsh / (xsh + xshe + xshe2);
-        fhe  = xshe / (xsh + xshe + xshe2);
-        fhe2 = xshe2 / (xsh + xshe + xshe2);
-        ndotgamma =
-            (caseA - radiative_recomb_rate) * p_local[s + 1] * ne
-            * element_num_density[recomb_species_element[2]];  // photons per
-                                                               // cm3 per s
-        // H ionizations and heating
-        NV_Ith_S(y_dot, 0) -=
-            ndotgamma * fh / element_num_density[recomb_species_element[0]];
-        Edot += ndotgamma * fh * (54.4 - 13.6) * eV();
-        // He ionizations and heating
-        NV_Ith_S(y_dot, 1) -=
-            ndotgamma * fhe / element_num_density[recomb_species_element[1]];
-        NV_Ith_S(y_dot, 2) +=
-            ndotgamma * fhe / element_num_density[recomb_species_element[1]];
-        Edot += ndotgamma * fhe * (54.4 - 24.6) * eV();
-        // He+ ionizations and heating
-        NV_Ith_S(y_dot, 2) -=
-            ndotgamma * fhe2 / element_num_density[recomb_species_element[2]];
-        Edot += 0.0;  // re-ionization of He+ is energy neutral
-
-        // ** Case B **
-        // x-sections at 40.8 eV
-        xsh = 2.4664e-19 * element_num_density[recomb_species_element[0]]
-              * p_local[0];
-        xshe = 2.738e-18 * element_num_density[recomb_species_element[1]]
-               * p_local[1];
-        fh  = xsh / (xsh + xshe);
-        fhe = xshe / (xsh + xshe);
-        ndotgamma =
-            radiative_recomb_rate * p_local[s + 1] * ne
-            * element_num_density[recomb_species_element[2]];  // photons per
-                                                               // cm3 per s
-
-        // H ionizations and heating
-        NV_Ith_S(y_dot, 0) -=
-            ndotgamma * fh / element_num_density[recomb_species_element[0]];
-        Edot += ndotgamma * fh * (40.8 - 13.6) * eV();
-
-        // He ionizations and heating
-        NV_Ith_S(y_dot, 1) -=
-            ndotgamma * fhe / element_num_density[recomb_species_element[1]];
-        NV_Ith_S(y_dot, 2) +=
-            ndotgamma * fhe / element_num_density[recomb_species_element[1]];
-        Edot += ndotgamma * fhe * (40.8 - 24.6) * eV();
-      }
-#endif
     }
   }
   // END OF SECTION: Recombination *********************************************
@@ -2131,7 +2192,7 @@ int nemo::ydot(
     // END OF SUBSECTION: Charge Exchange Ionisation Reactions *****************
 
     // SUBSECTION: Charge Exchange Recombination Reactions *********************
-    for (size_t s = 0; s < recomb_species.size(); s++) {
+    for (size_t s = 0; s < rec_s.size(); s++) {
 
       if (has_recomb_cx_exist[s]) {
         double cx_recomb_rate        = 0.0;
@@ -2154,9 +2215,8 @@ int nemo::ydot(
         // Inserting the rhs of ydot due to recombination charge exchange
         // reactions of the species s.
         // If s is a top level ion of an element then
-        if (recomb_top_ion_bool[s]) {
-          cx_recomb_ydot =
-              cx_recomb_rate * y_top_ion_frac[recomb_species_element[s]];
+        if (rec_s[s].top_ion) {
+          cx_recomb_ydot = cx_recomb_rate * y_top_ion_frac[rec_s[s].element];
           NV_Ith_S(y_dot, s) += cx_recomb_ydot;
         }
         // otherwise
@@ -2168,8 +2228,7 @@ int nemo::ydot(
 
         // Cooling due to charge exchange recombination reactions
         Edot += 0.5 * cx_recomb_energy_rate
-                * species_number_density[recomb_species_element[s]]
-                                        [recomb_species_charge[s]];
+                * species_number_density[rec_s[s].element][rec_s[s].charge];
       }
     }
     // END OF SUBSECTION: Charge Exchange Recombination Reactions **************
@@ -2178,7 +2237,7 @@ int nemo::ydot(
 
   // SECTION: Photoionisation **************************************************
   double photoheat_rate = 0.0;
-  if (EP->phot_ionisation) {
+  if (opt.photoionization) {
 
     // Calculating RHS terms corresponding to photoionisation for species in
     // photo_tracer_list. These terms are calculated only once and attached
@@ -2230,65 +2289,68 @@ int nemo::ydot(
 
   // SECTION: Cooling Function *************************************************
   // Edot source term associated with Cooling Function is calculated.
-  double Lambda         = 0.0;
-  double L              = 0.0;
-  double number_density = 0.0;
+  if (opt.cooling) {
+    double Lambda         = 0.0;
+    double L              = 0.0;
+    double number_density = 0.0;
 
 #ifdef NEMO_CIE_COOLING
-  cooling_outfile.open("cooling_function.txt", ios::app);
-  cooling_outfile << T << "  ";
+    cooling_outfile.open("cooling_function.txt", ios::app);
+    cooling_outfile << T << "  ";
 #endif
 
-  int cooling_sct = 0;
-  for (size_t e = 0; e < cooling_species.size(); e++) {
-    for (size_t q = 0; q < cooling_species[e].size(); q++) {
-      number_density = species_number_density[e][q];
+    int cooling_sct = 0;
+    for (size_t e = 0; e < cooling_species.size(); e++) {
+      for (size_t q = 0; q < cooling_species[e].size(); q++) {
+        number_density = species_number_density[e][q];
 
 #ifdef MELLEMA
-      // mellema cooling rate
-      L = mellema_cooling_rate(cooling_sct, T, ne);
+        // mellema cooling rate
+        L = mellema_cooling_rate(cooling_sct, T, ne);
 #elif defined CHIANTI
-      // chianti cooling rate
-      L = chianti_cooling_rate(cooling_sct, T, ne);
+        // chianti cooling rate
+        L = chianti_cooling_rate(cooling_sct, T, ne);
 #endif
 
-      Lambda += ne * number_density * L;
-      // if (ne * number_density * L > 4e-23) {
-      //  spdlog::info("{} {:.2f} {:.2f} {:12.3e} {:12.3e}
-      //  {:12.3e}",cooling_sct, T, ne, number_density, L, ne * number_density *
-      //  L); spdlog::info("State vec {}, {}",y_species_frac, y_top_ion_frac);
-      //}
+        Lambda += ne * number_density * L;
+        // if (ne * number_density * L > 4e-23) {
+        //  spdlog::info("{} {:.2f} {:.2f} {:12.3e} {:12.3e}
+        //  {:12.3e}",cooling_sct, T, ne, number_density, L, ne * number_density
+        //  * L); spdlog::info("State vec {}, {}",y_species_frac,
+        //  y_top_ion_frac);
+        //}
 
 #ifdef NEMO_CIE_COOLING
-      // cooling function of individual species ne*number_density*L
-      cooling_outfile << ne * number_density * L << "  ";
+        // cooling function of individual species ne*number_density*L
+        cooling_outfile << ne * number_density * L << "  ";
 #endif
 
-      cooling_sct++;
+        cooling_sct++;
+      }
     }
-  }
 
 #ifdef NEMO_CIE_COOLING
-  cooling_outfile << ne << "  " << element_num_density[0] << "\n";
-  cooling_outfile.close();
+    cooling_outfile << ne << "  " << element_num_density[0] << "\n";
+    cooling_outfile.close();
 #endif
 
-  // Updating Edot due to cooling function.
-  Edot -= Lambda;
-  // spdlog::info("{:12.6e}  {:12.6e}",photoheat_rate, Lambda);
+    // Updating Edot due to cooling function.
+    Edot -= Lambda;
+    // spdlog::info("{:12.6e}  {:12.6e}",photoheat_rate, Lambda);
+  }
 
   // END OF SECTION: Cooling Function ******************************************
 
   //
   // We want to limit cooling as we approach the minimum temperature, so we
-  // scale the rate to linearly approach zero as we reach T_min.
+  // scale the rate to linearly approach zero as we reach tab_T_min.
   //
-  if (Edot < 0.0 && T < 2.0 * EP->MinTemperature) {
-    Edot = min(0.0, (Edot) * (T - EP->MinTemperature) / EP->MinTemperature);
+  if (Edot < 0.0 && T < 2.0 * opt.Min_Temperature) {
+    Edot = min(0.0, (Edot) * (T - opt.Min_Temperature) / opt.Min_Temperature);
   }
 
   // Switch to toggle the time derivative of energy density on and off.
-  if (!EP->update_erg) Edot = 0.0;
+  if (!opt.update_energy) Edot = 0.0;
 
   // Updating the ydot vector element corresponding to the index E_index.
   NV_Ith_S(y_dot, E_index) = Edot;
@@ -2315,32 +2377,29 @@ double nemo::collisional_ionisation_rate(
     const double T            // temperature
 )
 {
-
-  int T_index = int((log10(T) - log10(T_min)) / delta_logT);
+  int T_index = int((log10(T) - log10(tab_T_min)) / delta_logT);
   double dT   = T - T_table[T_index];
-
-  double rate = collisional_rate_table[species_index][T_index]
-                + dT * collisional_slope_table[species_index][T_index];
-
-  return rate;
+  return collisional_rate_table[species_index][T_index]
+         + dT * collisional_slope_table[species_index][T_index];
 }
 
 // GET RECOMBINATION RATE ###################################################
-double nemo::recombination_rate(
+void nemo::recombination_rate(
     const int species_index,  // species identifier
     const double T,           // temperature
-    double &caseA             // case A rate (For H+ and He+)
+    double &caseA,            // case A rate (For all species)
+    double &caseB             // case B rate for H,He, else case A
 )
 {
-
-  int T_index = int((log10(T) - log10(T_min)) / delta_logT);
+  int T_index = int((log10(T) - log10(tab_T_min)) / delta_logT);
   double dT   = T - T_table[T_index];
 
   caseA = caseA_recombination_rate_table[species_index][T_index]
           + dT * caseA_recombination_slope_table[species_index][T_index];
 
-  return recombination_rate_table[species_index][T_index]
-         + dT * recombination_slope_table[species_index][T_index];
+  caseB = caseB_recombination_rate_table[species_index][T_index]
+          + dT * caseB_recombination_slope_table[species_index][T_index];
+  return;
 }
 
 // GET IONISING CHARGE EXCHANGE RATE ###########################################
@@ -2351,7 +2410,7 @@ double nemo::ionise_charge_exchange_rate(
 )
 {
   // calculating temperature index and dT
-  int T_index = int((log10(T) - log10(T_min)) / delta_logT);
+  int T_index = int((log10(T) - log10(tab_T_min)) / delta_logT);
   double dT   = T - T_table[T_index];
   double rate = ionise_cx_rate_table[element][reaction][T_index]
                 + dT * ionise_cx_slope_table[element][reaction][T_index];
@@ -2366,7 +2425,7 @@ double nemo::recomb_charge_exchange_rate(
 )
 {
   // calculating temperature index and dT
-  int T_index = int((log10(T) - log10(T_min)) / delta_logT);
+  int T_index = int((log10(T) - log10(tab_T_min)) / delta_logT);
   double dT   = T - T_table[T_index];
   // calculating rate
   double rate = recomb_cx_rate_table[element][reaction][T_index]
@@ -2412,9 +2471,9 @@ double nemo::mellema_cooling_rate(
   // if ne and T range lie within the table in the database of
   // Mellema_/// rate.cpp
 
-  if (T > T_max) T = T_max;
-  if (T < T_min) T = T_min;
-  if (ne < ne_min) ne = ne_min;
+  if (T > tab_T_max) T = tab_T_max;
+  if (T < tab_T_min) T = tab_T_min;
+  if (ne < tab_ne_min) ne = tab_ne_min;
 
   // Note: Since the Mellema cooling rates are given in log scales,
   // i.e, L(Log T, Log ne), we calculate the differential change dLog_T
@@ -2423,12 +2482,12 @@ double nemo::mellema_cooling_rate(
   // Mellema_cooling_rate.cpp
 
   // Get temperature vector index
-  int T_index = int((log10(T) - log10(T_min)) / delta_logT);
+  int T_index = int((log10(T) - log10(tab_T_min)) / delta_logT);
   // Get the difference in temperature.
   double dT = T - T_table[T_index];
 
   // Get electron number density vector index.
-  int ne_index = int((log10(ne) - log10(ne_min)) / delta_logne);
+  int ne_index = int((log10(ne) - log10(tab_ne_min)) / delta_logne);
   // Get the difference in electron number density.
   double dne = ne - ne_table[ne_index];
 
@@ -2461,9 +2520,9 @@ double nemo::chianti_cooling_rate(
   // if ne and T range lie within the table in the database of
   // Mellema_/// rate.cpp
 
-  if (T > T_max) T = T_max;
-  if (T < T_min) T = T_min;
-  if (ne < ne_min) ne = ne_min;
+  if (T > tab_T_max) T = tab_T_max;
+  if (T < tab_T_min) T = tab_T_min;
+  if (ne < tab_ne_min) ne = tab_ne_min;
 
   // Note: Since the chianti cooling rates are given in log scales,
   // i.e, L(Log T, Log ne), we calculate the differential change dLog_T
@@ -2472,12 +2531,12 @@ double nemo::chianti_cooling_rate(
   // chianti_cooling_rate.cpp
 
   // Get temperature vector index
-  int T_index = int((log10(T) - log10(T_min)) / delta_logT);
+  int T_index = int((log10(T) - log10(tab_T_min)) / delta_logT);
   // Get the difference in temperature.
   double dT = T - T_table[T_index];
 
   // Get electron number density vector index.
-  int ne_index = int((log10(ne) - log10(ne_min)) / delta_logne);
+  int ne_index = int((log10(ne) - log10(tab_ne_min)) / delta_logne);
   // Get the difference in electron number density.
   double dne = ne - ne_table[ne_index];
 
@@ -2653,7 +2712,7 @@ void nemo::print_charge_exchange_LUT(
   double delta = (log10(temp_max) - log10(temp_min)) / (N_points - 1);
   std::vector<double> temp_new;
   for (int i = 0; i < N_points; i++) {
-    double log_temp_new = log10(T_min) + i * delta;
+    double log_temp_new = log10(tab_T_min) + i * delta;
     temp_new.push_back(pow(10.0, log_temp_new));
   }
 

@@ -304,7 +304,7 @@ bool compare_vectors(
 
 
 // *******************************************************************
-int main(int argc, char **argv)
+int main(void)
 {
 #ifdef NDEBUG
   spdlog::set_level(spdlog::level::info);
@@ -317,23 +317,23 @@ int main(int argc, char **argv)
 #ifdef NEMO_OMP
   spdlog::info(
       "NEMO CIE test: git {} running, nth={}", git_version,
-      omp_get_num_procs());
+      omp_get_max_threads());
 #else
   spdlog::info("NEMO CX-CIE test: git {} running, nth=1", git_version);
 #endif
 
-
-  // Microphysics settings
-  struct which_physics wp;
-  wp.coll_ionisation   = 1;
-  wp.rad_recombination = 1;
-  wp.charge_exchange   = 0;
-  wp.cooling           = 0;
-  wp.phot_ionisation   = 0;
-  wp.update_erg        = 0;
-  wp.MP_timestep_limit = 1;
-  wp.MinTemperature    = 1.0e1;
-  wp.MaxTemperature    = 1.0e9;
+  struct nemo_options flags;
+  flags.Min_Temperature         = 1.0e1;
+  flags.Max_Temperature         = 1.0e9;
+  flags.timestep_limiter        = 1;
+  flags.update_energy           = 0;
+  flags.cooling                 = 0;
+  flags.collisional_ionization  = 1;
+  flags.photoionization         = 0;
+  flags.charge_exchange         = 0;
+  flags.cosmicray_ionization    = 1;
+  flags.radiative_recombination = 1;
+  flags.onthespot_radiation     = 1;
 
   struct rad_sources rs;
   rs.Nsources = 0;
@@ -359,11 +359,11 @@ int main(int argc, char **argv)
   #pragma omp parallel
   {
     MP = new class nemo(
-        N_el, N_el - 2, 0, 1, tracer_names.data(), &wp, &rs, eos_gamma);
+        N_el, N_el - 2, 0, 1, tracer_names, flags, &rs, eos_gamma);
   }
 #else
-  MP = new class nemo(
-      N_el, N_el - 2, 0, 1, tracer_names.data(), &wp, &rs, eos_gamma);
+  MP =
+      new class nemo(N_el, N_el - 2, 0, 1, tracer_names, flags, &rs, eos_gamma);
 #endif
 
 
@@ -416,9 +416,16 @@ int main(int argc, char **argv)
 
       // Get temperature from output state
       double output_temperature = MP->Temperature(outputs[i].data(), eos_gamma);
+#ifdef NEMO_OMP
       spdlog::info(
-          "integrated vector {} with T_in= {:8.3e} K, T_out= {:8.3e} K", i,
-          temperatures[i], output_temperature);
+          "integrated vector {} with T_in= {:8.3e} K, T_out= {:8.3e} K, thread {} of {}",
+          i, temperatures[i], output_temperature, omp_get_thread_num(),
+          omp_get_num_threads());
+#else
+    spdlog::info(
+        "integrated vector {} with T_in= {:8.3e} K, T_out= {:8.3e} K", i,
+        temperatures[i], output_temperature);
+#endif
       outputs[i][1] = output_temperature;  // store T in pressure var.
     }
 #ifdef NEMO_OMP

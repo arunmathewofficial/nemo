@@ -80,14 +80,16 @@ class nemo :
 public:
   /// CONSTRUCTOR: sets up the machinery for fast execution
   nemo(
-      const int,            ///< Total number of variables in state vector
-      const int,            ///< Number of passive-tracer vars in state vector
-      const int,            ///< index of density variable in state vector
-      const int,            ///< index of pressure variable in state vector
-      const std::string *,  ///< List of what the tracer variables mean.
-      struct which_physics *,  ///< pointer to extra physics flags.
-      struct rad_sources *,    ///< radiation sources.
-      const double             ///< EOS Gamma
+      const int,  ///< Total number of variables in state vector
+      const int,  ///< Number of passive-tracer vars in state vector
+      const int,  ///< index of density variable in state vector
+      const int,  ///< index of pressure variable in state vector
+      const std::vector<std::string>,  ///< List of what the tracer variables
+                                       ///< mean.
+      const struct nemo_options,  ///< physics options to use with this NEMO
+                                  ///< instance
+      struct rad_sources *,       ///< radiation sources.
+      const double                ///< EOS Gamma
   );
 
   /// DESTRUCTOR: removes all local data
@@ -215,7 +217,10 @@ public:
 protected:
   // --------------------------------------------------------------------------
   // static variables for book-keeping
-  std::vector<string> tracers_replica;  ///< microphysics tracers replica.
+
+  /// Struct with flags for which extra physics we are (not) doing.
+  const struct nemo_options opt;
+  std::vector<string> scalars_names;  ///< microphysics tracers replica.
   int N_prim;             ///< Size of the primitive vector (prim_vec).
   int prim_first_tracer;  ///< Idx of the first tracer variable in the prim_vec.
   int prim_dens_idx;      ///< index of density var in primitive vector
@@ -244,8 +249,6 @@ protected:
 
   // --------------------------------------------------------------------------
   // imported from base class
-  /// Struct with flags for which extra physics we are (not) doing.
-  struct which_physics *EP;
   /// Struct with list of radiation sources
   struct rad_sources *RS;
   /// map tracer names to state-vec index
@@ -278,12 +281,14 @@ protected:
 
   /// Recombination ============================================================
 
-  std::vector<string> recomb_species;  ///< recombination species.
-  std::vector<int>
-      recomb_species_element;  ///< recomb species element position.
-  std::vector<int> recomb_species_charge;
-  std::vector<int> recomb_top_ion_bool;
+  std::vector<string> recomb_species_list;  ///< recombination species.
+  /// Track all species that participate in recombination.
+  std::vector<struct nemo_recomb_species> rec_s;
+  /// Track species reacting with the OTS radiation field from recombining ions
+  std::vector<struct nemo_recomb_species> ots_s;
   // --------------------------------------------------------------------------
+
+
 
   /// Charge exchange reaction =================================================
   bool charge_exchange_enable;
@@ -378,28 +383,29 @@ protected:
   std::vector<double> T_table;   ///< Temperature table
   std::vector<double> ne_table;  ///< electron number density table
 
-  const double T_min;
-  const double T_max;
-  const int Num_temps;  // NB this needs to be const so can initialise arrays
-                        // with it. If this is >=1e4, get stack overflow errors.
+  const double tab_T_min;
+  const double tab_T_max;
+  const int tab_Num_temps;  // NB this needs to be const so can initialise
+                            // arrays with it.
 
-  const int Num_ne;
-  const double ne_min;
-  const double ne_max;
+  const int tab_Num_ne;
+  const double tab_ne_min;
+  const double tab_ne_max;
   // --------------------------------------------------------------------------
 
-  // ****** GET RATES ******
   /// Function to return collisional ionisation rate of the given species for
   /// a given temperature.
   double collisional_ionisation_rate(
       const int,    // Species identifier
       const double  // Temperature
   );
+
   /// Function to return recombination rate.
-  double recombination_rate(
+  void recombination_rate(
       const int,     ///< Species identifier
       const double,  ///< Temperature
-      double &       ///< Case A rate for H+,He+
+      double &,      ///< Case A rate for all species
+      double &       ///< Case B rate for H+,He+,He2+, otherwise case A
   );
 
   /// Function to return ionising reaction rate.
@@ -438,7 +444,7 @@ protected:
   void tracer_species_cataloger(
       const int,  ///< Number of variables in the primitive vector.
       const int,  ///< Number of tracer variables in the primitive vector.
-      const std::string *  ///< List of tracer variables.
+      const std::vector<std::string> &  ///< List of tracer variables.
   );
 
   ///
@@ -581,7 +587,7 @@ protected:
   // #########################################################################
 
   /// This will print collisional ionisation or recombination rate for a
-  /// different set of T points in the range T_min<T<T_max using already
+  /// different set of T points in the range tab_T_min<T<tab_T_max using already
   /// setup rate and slope lookup table.
   void print_CIR_LUT(
       const std::vector<string> &,  // tracer list

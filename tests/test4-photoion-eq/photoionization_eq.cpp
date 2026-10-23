@@ -235,7 +235,7 @@ std::vector<std::vector<double> > load_reference_state(const std::string &path)
 
 
 // *******************************************************************
-int main(int argc, char **argv)
+int main(void)
 {
 #ifdef NDEBUG
   spdlog::set_level(spdlog::level::info);
@@ -250,27 +250,13 @@ int main(int argc, char **argv)
 #ifdef NEMO_OMP
   spdlog::info(
       "NEMO::photoionization_eq test: git {} running, nth={}", git_version,
-      omp_get_num_procs());
+      omp_get_max_threads());
 #else
   spdlog::info(
       "NEMO::photoionization_eq test: git {} running, nth=1", git_version);
 #endif
 
-  struct which_physics wp;
-  // NEMO microphysics settings
-  wp.cooling           = 0;
-  wp.coll_ionisation   = 0;
-  wp.rad_recombination = 1;
-  wp.phot_ionisation   = 1;
-  wp.charge_exchange   = 0;
-  wp.update_erg        = 0;
-  wp.MP_timestep_limit = 1;
-  wp.MinTemperature    = 1.0e3;
-  wp.MaxTemperature    = 1.0e9;
-
-  // Adiabatic index
-  double Gamma = 5.0 / 3.0;
-
+  double Gamma                       = 5.0 / 3.0;
   auto init                          = setup_initial_state();
   std::vector<double> initial_vector = init.first;
   std::vector<string> tracers        = init.second;
@@ -290,6 +276,19 @@ int main(int argc, char **argv)
   star.NTau     = 15;       // No of energy bins
   star.effect   = RT_EFFECT_MP10_BLACKBODY;
 
+  struct nemo_options flags;
+  flags.Min_Temperature         = 1.0e1;
+  flags.Max_Temperature         = 1.0e9;
+  flags.timestep_limiter        = 1;
+  flags.update_energy           = 0;
+  flags.cooling                 = 0;
+  flags.collisional_ionization  = 0;
+  flags.photoionization         = 1;
+  flags.charge_exchange         = 0;
+  flags.cosmicray_ionization    = 0;
+  flags.radiative_recombination = 1;
+  flags.onthespot_radiation     = 1;
+
   // Initialise the NEMO class.
   static class nemo *MP;
 #ifdef NEMO_OMP
@@ -298,19 +297,11 @@ int main(int argc, char **argv)
   #pragma omp parallel
   {
     MP = new class nemo(
-        n_state_vars,    // Total number of variables in the cell state
-        n_tracers,       // Number of tracer variables
-        0,               // Density index in the state vector
-        1,               // Pressure index in the state vector
-        tracers.data(),  // Array of tracer names
-        &wp,             // Pointer to physics settings
-        &rs,             // Pointer to radiation-source settings
-        Gamma            // Adiabatic index
-    );
+        n_state_vars, n_tracers, 0, 1, tracers, flags, &rs, Gamma);
   }
 #else
-  MP = new class nemo(
-      n_state_vars, n_tracers, 0, 1, tracers.data(), &wp, &rs, Gamma);
+  MP =
+      new class nemo(n_state_vars, n_tracers, 0, 1, tracers, flags, &rs, Gamma);
 #endif
 
   // --------------------------------------------------------------
@@ -462,7 +453,7 @@ int main(int argc, char **argv)
     for (int j = 0; j < n_state_vars; j++) {
       outfile << initial_state[i][j] << "  ";
     }
-    for (int j = 0; j < optical_depth[i].size(); j++) {
+    for (unsigned int j = 0; j < optical_depth[i].size(); j++) {
       outfile << optical_depth[i][j] << "  ";
     }
     outfile << "\n";

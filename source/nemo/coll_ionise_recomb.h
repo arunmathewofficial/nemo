@@ -104,9 +104,9 @@ public:
   std::vector<std::vector<double> >
       collisional_slope_table;  ///< Collisional ionisation rate slope LUT
   std::vector<std::vector<double> >
-      recombination_rate_table;  ///< Recombination rate LUT
+      caseB_recombination_rate_table;  ///< Recombination rate LUT
   std::vector<std::vector<double> >
-      recombination_slope_table;  ///< Recombination rate slope LUT
+      caseB_recombination_slope_table;  ///< Recombination rate slope LUT
   std::vector<std::vector<double> >
       caseA_recombination_rate_table;  ///< Recombination rate LUT
   std::vector<std::vector<double> >
@@ -200,10 +200,11 @@ private:
    * Returns Case A rate for most ions, Case B for H+ and He+, in units cm3/s
    * Also adds the Case A rate to an optional 3rd argument to the function.
    **/
-  double get_recombination_rate(
+  void get_recombination_rate(
       const std::string,  ///< species name
       const double,       ///< Temperature
-      double &            ///< Case A rate
+      double &,           ///< Case A rate
+      double &            ///< Case B rate (for H+,He+,He2+)
   );
 };
 // END OF COLLISIONAL IONISATION AND RECOMBINATION CLASS #####################
