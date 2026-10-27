@@ -29,10 +29,8 @@ int main(void)
 
   std::vector<std::string> tr({"X_H", "X_He", "H", "He", "He1+"});
 
-  struct rad_sources rs;
-  rs.Nsources = 0;
-  rs.sources.resize(0);
-  rs.src_data.resize(0);
+  std::vector<struct nemo_star_properties> rs;
+  std::vector<struct nemo_cell_rt_data> cell_rt;
 
   struct nemo_options flags;
   flags.Min_Temperature         = 1.0e1;
@@ -49,7 +47,7 @@ int main(void)
 
   // nemo(ndim, coord-sys, Nel(state vec), Ntracer, tracers, extra-physics,
   // rad-sources, gamma)
-  class nemo MP(15, 5, 0, 1, tr, flags, &rs, 5.0 / 3.0);
+  class nemo MP(15, 5, 0, 1, tr, flags, rs, 5.0 / 3.0);
 
   std::vector<double> input(15, 0.0);
   input[0]  = 1.0e-22;  // density
@@ -65,8 +63,7 @@ int main(void)
   double x = 0.0;
 
   MP.update_single_cell(
-      input.data(), 0, rs.src_data, 0, rs.src_data, output.data(), 1e10,
-      5. / 3., 0, &x);
+      input.data(), cell_rt, output.data(), 1e10, 5. / 3., &x);
 
   spdlog::info("output [{:8.3e}]", fmt::join(output, ", "));
 

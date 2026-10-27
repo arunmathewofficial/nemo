@@ -1,5 +1,5 @@
 
-# HII40 Lexington test
+# 1D photoionization equilibrium test
 add_executable(photoionization_eq photoionization_eq.cpp) # Build the executable
 target_link_libraries(photoionization_eq PRIVATE
         nemo          # Microphysics solver

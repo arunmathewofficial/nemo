@@ -85,28 +85,23 @@ public:
                                        ///< mean.
       const struct nemo_options,  ///< physics options to use with this NEMO
                                   ///< instance
-      struct rad_sources *,       ///< radiation sources.
-      const double                ///< EOS Gamma
+      std::vector<nemo_star_properties>,  ///< radiation sources.
+      const double                        ///< EOS Gamma
   );
 
   /// DESTRUCTOR: removes all local data
   virtual ~nemo();
 
-public:
   ///
   /// Update microphysics including photoionization and photoheating
   ///
   int update_single_cell(
       const double *,  ///< Primitive Vector to be updated.
-      const int,       ///< unused
-      const std::vector<struct rt_source_data> &,  ///< unused
-      const int,                                   ///< unused
-      std::vector<struct rt_source_data> &,
-      ///< list of ionising src column densities and source properties.
+      const std::vector<struct nemo_cell_rt_data>
+          &,         ///< cell data for radiation source
       double *,      ///< Destination Vector for updated values
       const double,  ///< Time Step to advance by.
       const double,  ///< EOS gamma.
-      const int,     ///< unused
       double *       ///< any returned data (final temperature?).
   );
 
@@ -138,14 +133,9 @@ public:
   /// Used for setting a simulation timestep, together with CFL condition.
   ///
   double timescales(
-      const double *,  ///< Current cell.
-      const int,       ///< Number of UV heating sources.
-      const std::vector<struct rt_source_data> &,
-      ///< list of UV-heating column densities and source properties.
-      const int,  ///< number of ionising radiation sources.
-      const std::vector<struct rt_source_data> &,
-      ///< list of ionising src column densities and source properties.
-      const double  ///< EOS gamma.
+      const double *,                                 ///< Current cell.
+      const std::vector<struct nemo_cell_rt_data> &,  ///< radiation field.
+      const double                                    ///< EOS gamma.
   );
 
   /// Return the H mass fraction
@@ -164,11 +154,9 @@ public:
   /// Calculates the change in optical depth over the cell
   /// for use in the Raytracing module
   void get_dtau(
-      const rad_src_info *,  ///< not used in NEMO
-      const double,          ///< ds, thickness of the cell
-      const double *,        ///< input primitive vector from grid
-                             ///< cell (length nv_prim)
-      double *               ///< output dtau vector
+      const std::vector<double> &,  // input primitive vector
+      std::vector<struct nemo_cell_rt_data>
+          &  ///< cell data (including dtau vec)
   );
 
   ///
@@ -200,12 +188,16 @@ public:
     return 1;
   }
 
-  ///
   /// Get the number of extra parameters and the number of equations.
-  ///
   void get_problem_size(
       int *,  ///< number of equations
       int *   ///< number of parameters in user_data vector.
+  );
+
+  /// Check that input stellar properties match those in nemo,
+  /// and add energy binning info to the struct(s)
+  void get_radiation_src_info(
+      std::vector<struct nemo_star_properties> &  ///< list of stars
   );
 
   // ############################################################################
@@ -247,7 +239,9 @@ protected:
   // --------------------------------------------------------------------------
   // imported from base class
   /// Struct with list of radiation sources
-  struct rad_sources *RS;
+  std::vector<struct nemo_star_properties> RS;
+  /// Struct with cell data for the radiation field
+  std::vector<struct nemo_cell_rt_data> cell_rt;
   /// map tracer names to state-vec index
   std::map<std::string, int> tr_map;
   /// map element names to state-vec index
@@ -325,23 +319,16 @@ protected:
   std::vector<double>
       photo_species_IE;  ///< Record the ionisation threshold of photo species
 
-  std::vector<std::vector<double> > ebins;
-  int N_ebins;
-  double photo_Emax;
+  // std::vector<std::vector<double> > ebins;
+  // int N_ebins;
+  // double photo_Emax;
 
-  std::vector<double>
-      bin_luminosity;  ///< luminosity in each energy bin (ergs/s/bins)
-  std::string SED_info;
-  struct star_properties_datatype {
-    int Type;              // identifier
-    double Teff;           // Effective temperature of the star
-    double Radius;         // Stellar radius
-    double Luminosity;     // Total luminosity
-    std::string SED_info;  // SED info
-  };
+  // std::vector<double>
+  //     bin_luminosity;  ///< luminosity in each energy bin (ergs/s/bins)
+  // std::string SED_info;
 
-  star_properties_datatype stellar_properties;
-  // --------------------------------------------------------------------------
+  // struct nemo_star_properties stellar_properties;
+  //  --------------------------------------------------------------------------
 
   /// Cooling ==================================================================
   std::vector<vector<string> > cooling_species;  ///< cooling species.
@@ -353,17 +340,18 @@ protected:
   std::vector<double> element_num_density;  ///< element number density vector.
   /// variable recording species number density for NEMO tracer list
   std::vector<std::vector<double> > species_number_density;
-  double ds     = 0.0;           ///< Path length through the current cell
-  double vshell = 0.0;           ///< Shell volume in the current cell
-  std::vector<double> tau_bins;  ///< Optical depth in each energy bin
+  // double ds     = 0.0;           ///< Path length through the current cell
+  // double vshell = 0.0;           ///< Shell volume in the current cell
+  // std::vector<double> tau_bins;  ///< Optical depth in each energy bin
   ///	Vector to store initial corrector values (used to modify flux according
   /// to
   /// sCMA)
   std::vector<double> prim_copy;
   // Constant data in the cell, received from cell data.
   double mpv_nH;  ///< total hydrogen number density at current cell.
-  int N_rsrc;     ///< number of radiation sources to include.
-  std::vector<struct rt_source_data> rt_data;  ///< data on radiation sources.
+  // int N_rsrc;     ///< number of radiation sources to include.
+  // std::vector<struct rt_source_data> rt_data;  ///< data on radiation
+  // sources.
 
   // --------------------------------------------------------------------------
 
@@ -557,11 +545,8 @@ protected:
   /// ydot() needs to know for both heating and ionisation sources.
   ///
   void setup_radiation_source_parameters(
-      // const double *,  ///< primitive input state vector.
-      // vector<double> &,  ///< local input state vector (x_in,E_int)
-      const int,  ///< number of ionising radiation sources.
-      const std::vector<struct rt_source_data>
-          &  ///< list of ionising src column densities and source properties.
+      const std::vector<struct nemo_cell_rt_data>
+          &  ///< cell data for radiation source
   );
 
   /// Function to return photo-ionisation rate.
@@ -625,10 +610,8 @@ protected:
 
   /// Debug tools: write bin luminosity to a file
   void print_stellar_properties(
-      const star_properties_datatype &,           // stellar properties
-      const std::vector<double> &,                // bin luminosity
-      const std::vector<std::vector<double> > &,  // energy bin
-      std::string                                 // file path
+      const nemo_star_properties &,  // stellar properties
+      std::string                    // file path
   );
 
   /// Print cooling rate look up tables to a file
