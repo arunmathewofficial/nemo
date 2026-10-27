@@ -147,7 +147,7 @@ nemo::nemo(
 
   // Enable the charge-exchange reaction only if both charge_exchange and
   // coll_ionisation are enabled in the parameter file.
-  if (opt.charge_exchange && opt.collisional_ionization) {
+  if (opt.charge_exchange) {
     charge_exchange_enable = true;
     spdlog::debug("Charge-exchange reaction(s) enabled");
   }
