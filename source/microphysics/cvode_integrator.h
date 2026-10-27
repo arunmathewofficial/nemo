@@ -37,12 +37,10 @@
 //
 // Header files with a description of contents used
 //
-
-#if defined CVODE2
-
 #include <cvode/cvode.h>             // prototypes for CVODE
 #include <nvector/nvector_serial.h>  // serial N_Vector types
 
+#if defined CVODE2
 #define CVMatrix DlsMat
 
 #ifdef LAPACK
@@ -55,9 +53,7 @@
 #endif
 
 #elif defined CVODE3 || defined CVODE4 || defined CVODE5
-#include <cvode/cvode.h>  // prototypes for CVODE
 #include <cvode/cvode_direct.h>
-#include <nvector/nvector_serial.h>  // serial N_Vector types
 
 #include <sundials/sundials_types.h>
 #include <sunmatrix/sunmatrix_dense.h>
@@ -73,8 +69,6 @@
 
 #elif defined CVODE6 || CVODE7
 
-#include <cvode/cvode.h>             // prototypes for CVODE
-#include <nvector/nvector_serial.h>  // serial N_Vector types
 #include <sundials/sundials_context.hpp>
 
 #if defined CVODE6

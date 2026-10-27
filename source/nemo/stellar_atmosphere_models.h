@@ -23,6 +23,7 @@
 
 // nemo
 #include "nemo-constants.h"
+#include "nemo-datastructs.h"
 
 struct stellar_model_datatype {
   std::string info;
@@ -35,24 +36,21 @@ public:
   stellar_atmosphere_models();
   virtual ~stellar_atmosphere_models();
 
+  /// define energy bins for stellar radiation
   void setup_stellar_atmosphere_models(
-      std::vector<std::vector<double> >
-          &,    ///< Energy bins (in the units of eV)
-      int &,    ///< Number of energy bins
-      double &  ///< Maximum photo-ionisation energy (in the units of eV)
+      struct nemo_star_properties &  ///< struct to write energy binning to
   );
 
   /** \brief This function calculate the luminosity number in different
    * energy bin for the given radiation source.
    **/
   int generate_bin_luminosity(
-      const int,              ///< Radiation source id
-      const double,           ///< Effective star temperature
-      const double,           ///< Stellar radius
-      const double,           /// Total luminosity of the star
-      std::vector<double> &,  ///< O/P luminosity per energy bin (number/s/bin).
-      std::string &           /// SED info
+      struct nemo_star_properties
+          &  ///< struct with all info on the radiation source
   );
+
+  /// @brief  get number of energy bins used in the atmosphere models
+  int get_N_Ebins() { return N_energy_bins; };
 
 private:
   std::vector<std::vector<double> > energy_bins;

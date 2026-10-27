@@ -322,10 +322,8 @@ int main(void)
   spdlog::info("NEMO CIE test: git {} running, nth=1", git_version);
 #endif
 
-  struct rad_sources rs;
-  rs.Nsources = 0;
-  rs.sources.resize(0);
-  rs.src_data.resize(0);
+  std::vector<struct nemo_star_properties> rs;
+  std::vector<struct nemo_cell_rt_data> cell_rt;
 
   struct nemo_options flags;
   flags.Min_Temperature         = 1.0e1;
@@ -362,11 +360,10 @@ int main(void)
   #pragma omp parallel
   {
     MP = new class nemo(
-        N_el, N_el - 2, 0, 1, tracer_names, flags, &rs, eos_gamma);
+        N_el, N_el - 2, 0, 1, tracer_names, flags, rs, eos_gamma);
   }
 #else
-  MP =
-      new class nemo(N_el, N_el - 2, 0, 1, tracer_names, flags, &rs, eos_gamma);
+  MP = new class nemo(N_el, N_el - 2, 0, 1, tracer_names, flags, rs, eos_gamma);
 #endif
 
 
@@ -408,8 +405,7 @@ int main(void)
 
       // Run the update
       err = MP->update_single_cell(
-          inputs[i].data(), 0, rs.src_data, 0, rs.src_data, outputs[i].data(),
-          1e15, 5. / 3., 0, &x);
+          inputs[i].data(), cell_rt, outputs[i].data(), 1e15, 5. / 3., &x);
       if (err) {
         spdlog::error(
             "error updating cell {}: T = {:12.e}", i, temperatures[i]);

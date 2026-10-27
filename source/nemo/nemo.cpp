@@ -79,8 +79,8 @@ nemo::nemo(
     const std::vector<std::string>
         tracers,  ///< List of what the tracer variables mean.
     const struct nemo_options n_o,
-    struct rad_sources *rsrcs,  ///< radiation sources.
-    const double g              ///< EOS Gamma
+    std::vector<struct nemo_star_properties> rsrc,  ///< radiation sources.
+    const double g                                  ///< EOS Gamma
     ) :
     coll_ionise_recomb(), charge_exchange(CX_MaxQ),
 #ifdef MELLEMA
@@ -103,8 +103,15 @@ nemo::nemo(
   prim_dens_idx = de;
   prim_pres_idx = pr;
 
+  // setup radiation sources.
+  RS     = rsrc;
+  int Nb = get_N_Ebins();
+  for (unsigned int i = 0; i < RS.size(); i++) {
+    RS[i].Nbins = Nb;
+    RS[i].id    = i;
+  }
+
   // ############  from base class - check if needed #########
-  RS = rsrcs;
   // set up a map of tracer names to indices in state vec.
   int offset = nv - ntr;
   n_el       = 0;
@@ -140,7 +147,7 @@ nemo::nemo(
 
   // Setup stellar atmosphere models for stellar luminosity spectrum
   if (opt.photoionization) {
-    setup_stellar_atmosphere_models(ebins, N_ebins, photo_Emax);
+    setup_stellar_atmosphere_models(RS[0]);
     // Note: This will return energy bins, number of energy bins and maximum
     // energy in the energy bin vector.
   }
@@ -272,9 +279,10 @@ nemo::nemo(
 
   // Section: Photo-ionisation and photo-heating *******************************
   if (opt.photoionization) {
-    spdlog::debug(" nemo: Energy bins {}", ebins);
-    spdlog::debug(" nemo: Number of energy bins {}", N_ebins);
-    spdlog::debug(" nemo: Maximum photo-ionisation energy {} eV", photo_Emax);
+    spdlog::debug(" nemo: Energy bins {}", RS[0].Ebins);
+    spdlog::debug(" nemo: Number of energy bins {}", RS[0].Nbins);
+    spdlog::debug(
+        " nemo: Maximum photo-ionisation energy {} eV", RS[0].photo_emax);
 
     // Setup photo-ionisation x-section module: multi_ion_photo_xsection class.
     // This will determine the appropriate size for the x-section and bin
@@ -284,7 +292,7 @@ nemo::nemo(
     spdlog::debug(" nemo: ionisation threshold {}", photo_species_IE);
 
     // Generating mean cross-section and bin fraction table for the energy bins
-    generate_ebin_mean_xsection(ebins);
+    generate_ebin_mean_xsection(RS[0].Ebins);
 
 #ifdef NEMO_DEBUG
     mkdir("NEMO-Tables/photo-tables", 0777);
@@ -305,53 +313,35 @@ nemo::nemo(
 #endif
 
     // Identify the radiation sources
-    N_rsrc = 0;
-    for (int src = 0; src < RS->Nsources; src++) {
+    cell_rt.resize(RS.size());
+    for (unsigned int src = 0; src < RS.size(); src++) {
       // check number of Ntau equals to SED energy bins
       // Size of energy bin in parameter file should match the
       // energy bin hardcoded in SED.
-      if (RS->sources[src].NTau != N_ebins) {
-        spdlog::error(
-            " nemo: Incompatible number of energy bins "
-            "between SED and parameter file-{}.",
-            RS->sources[src].NTau);
-        exit(1);
-      }
-      N_rsrc++;
-      // setting the size of the vector rt_data
-      rt_data.resize(N_rsrc);
+      cell_rt[src].tau.resize(RS[0].Nbins);
+      cell_rt[src].dtau.resize(RS[0].Nbins);
       // Generate the energy flux in different energy bin for the given
       // radiation source.
-      int err = generate_bin_luminosity(
-          RS->sources[src].effect, RS->sources[src].Tstar,
-          RS->sources[src].Rstar, RS->sources[src].strength, bin_luminosity,
-          SED_info);
+      int err = generate_bin_luminosity(RS[src]);
       if (err) {
         spdlog::error(
-            "Attempt to generate stellar spectrum for source-id: {}"
-            " failed.",
-            RS->sources[src].id);
-        exit(1);
+            "Attempt to generate stellar spectrum for source {} with type {} failed.",
+            src, RS[src].SED_info);
+        exit_nemo(1);
       }
     }
-
-    spdlog::debug("nemo: {} radiation source(s) detected.", N_rsrc);
+    spdlog::debug("nemo: {} radiation source(s) detected.", RS.size());
 
     // Setup photo-ionisation module
     setup_photoionisation(
-        ebins, N_photo_species, photo_xsection_table, bin_weight_table,
-        bin_luminosity, photo_species_IE);
+        RS[0].Ebins, N_photo_species, photo_xsection_table, bin_weight_table,
+        RS[0].bin_luminosity, photo_species_IE);
 
 #ifdef NEMO_DEBUG
     mkdir("NEMO-Tables/stellar_model", 0777);
-    stellar_properties = {
-        RS->sources[0].type, RS->sources[0].Tstar, RS->sources[0].Rstar,
-        RS->sources[0].strength, SED_info};
     // print to file photo-ionisation cross-section tables
     spdlog::debug(" nemo: writting bin luminosity into file");
-    print_stellar_properties(
-        stellar_properties, bin_luminosity, ebins,
-        "NEMO-Tables/stellar_model/bin_luminosity");
+    print_stellar_properties(RS[0], "NEMO-Tables/stellar_model/bin_luminosity");
 #endif
   }
 
@@ -796,7 +786,7 @@ void nemo::tracer_species_cataloger(
       // then the tracer is qualified photo species
       if (charge < Z
           & atomic_physics_data.get_ionisation_energy(local_tracers[s])
-                < photo_Emax) {
+                < RS[0].photo_emax) {
         photo_species.push_back(local_tracers[s]);
         // record the photo-species local index.
         photo_species_local_idx.push_back(s);
@@ -1174,36 +1164,70 @@ void nemo::get_ne(const std::vector<double> &y_species_frac, double &ne)
 
 // ##################################################################
 // GET OPTICAL DEPTH
-// Calculate the optical depth of the current cell for individual energy bins
 void nemo::get_dtau(
-    const rad_src_info *,   ///< pointer to radiation source struct
-    const double depth,     ///< ds, thickness of the cell
-    const double *prim_in,  ///< input primitive vector
-    double *dtau_vec        ///< output dtau vector
+    const std::vector<double> &prim_in,             // input primitive vector
+    std::vector<struct nemo_cell_rt_data> &cell_rt  // cell data
 )
 {
-
+  // HARDCODED FOR SINGLE SOURCE
+  if (cell_rt.size() > 1) {
+    spdlog::error("get_dtau only works for one source");
+    exit_nemo(cell_rt.size());
+  }
+  // check that number of energy bins is set correctly
+  if (cell_rt[0].dtau.size() != RS[0].Nbins) {
+    spdlog::error("nemo: dtau vec size mismatch");
+    exit_nemo(1);
+  }
   // Calculate differential optical depth for each energy bin.
-  for (int bin = 0; bin < N_ebins; bin++) {
+  for (int bin = 0; bin < RS[0].Nbins; bin++) {
     double bin_optical_depth = 0.0;
     for (int s = 0; s < N_photo_species; s++) {
       bin_optical_depth += prim_in[photo_massfrac_species_prim_idx[s]]
                            * photo_xsection_table[s][bin]
                            * bin_weight_table[s][bin]
                            / element_atomic_mass[photo_species_element[s]];
-      // if (prim_in[photo_massfrac_species_prim_idx[0]]>0.71 && (s==0 ||
-      // s==10)) {
-      //  spdlog::info("s {}, b {}, dtau
-      //  {:12.3e}",s,bin,bin_optical_depth*prim_in[prim_dens_idx] * depth);
-      //}
     }
-    bin_optical_depth *= prim_in[prim_dens_idx] * depth;
-    dtau_vec[bin] = bin_optical_depth;
-    // if (prim_in[photo_massfrac_species_prim_idx[0]]>0.71) {
-    //  spdlog::info("b {}, dtau {:12.3e}",bin,bin_optical_depth);
-    //}
+    bin_optical_depth *= prim_in[prim_dens_idx] * cell_rt[0].dS;
+    cell_rt[0].dtau[bin] = bin_optical_depth;
   }
+  return;
 }
+
+
+// #############################################################################
+void nemo::get_radiation_src_info(
+    std::vector<struct nemo_star_properties> &rsrc)
+{
+  if (rsrc.size() != RS.size()) {
+    spdlog::error("{}: vec has wrong size", "nemo::get_radiation_src_info");
+    exit_nemo(rsrc.size() - RS.size());
+  }
+  for (size_t i = 0; i < RS.size(); i++) {
+    if (rsrc[i].Luminosity != RS[i].Luminosity)
+      spdlog::warn(
+          "{}: {} don't match", "nemo::get_radiation_src_info", "Luminosity");
+    if (rsrc[i].Teff != RS[i].Teff)
+      spdlog::warn(
+          "{}: {} don't match", "nemo::get_radiation_src_info", "Teff");
+    if (rsrc[i].Radius != RS[i].Radius)
+      spdlog::warn(
+          "{}: {} don't match", "nemo::get_radiation_src_info", "Radius");
+    if (rsrc[i].id != RS[i].id)
+      spdlog::warn("{}: {} don't match", "nemo::get_radiation_src_info", "id");
+    if (rsrc[i].SED_type != RS[i].SED_type)
+      spdlog::warn(
+          "{}: {} don't match", "nemo::get_radiation_src_info", "SED_type");
+    rsrc[i].SED_info       = RS[i].SED_info;
+    rsrc[i].Ebins          = RS[i].Ebins;
+    rsrc[i].bin_luminosity = RS[i].bin_luminosity;
+    rsrc[i].Nbins          = RS[i].Nbins;
+    rsrc[i].photo_emax     = RS[i].photo_emax;
+  }
+
+  return;
+}
+
 
 // #############################################################################
 // CONVERT PRIMITIVE VECTOR TO LOCAL VECTOR
@@ -1444,16 +1468,12 @@ int nemo::Set_Temp(
 // TIME UPDATE MP RT NEW
 int nemo::update_single_cell(
     const double *p_in,  ///< Primitive Vector to be updated.
-    const int,           ///< unused.
-    const std::vector<struct rt_source_data> &,  ///< unused.
-    const int N_ion,  ///< number of ionising radiation sources.
-    std::vector<struct rt_source_data> &ion_src,
-    ///< list of ionising src column densities and source properties.
+    const std::vector<struct nemo_cell_rt_data>
+        &ion_src,         ///< radiation src data
     double *p_out,        ///< Destination Vector for updated values
                           ///< (can be same as first Vector.
     const double dt,      ///< Time Step to advance by.
     const double,         ///< EOS gamma.
-    const int,            ///< Switch (unused)
     double *random_stuff  ///< final temperature (debugging).
 )
 {
@@ -1474,7 +1494,7 @@ int nemo::update_single_cell(
   // issue is here, local vector P and NV_Ith_S(y_in, v) are different
 
   // setup_radiation_source_parameters(p_in, P, ion_src);
-  setup_radiation_source_parameters(N_ion, ion_src);
+  setup_radiation_source_parameters(ion_src);
 
   // Populates CVODE vector with initial conditions (input)
   for (int v = 0; v < N_local; v++) {
@@ -1660,13 +1680,9 @@ int nemo::correct_localvector(
 ///
 double nemo::timescales(
     const double *prim_in,  ///< Current cell state vector.
-    const int N_heat,       ///< Number of UV heating sources.
-    const std::vector<struct rt_source_data> &heat_src,
-    ///< list of UV-heating column densities and source properties.
-    const int N_ion,  ///< number of ionising radiation sources.
-    const std::vector<struct rt_source_data> &ion_src,
-    ///< list of ionising src column densities and source properties.
-    const double  ///< EOS gamma.
+    const std::vector<struct nemo_cell_rt_data>
+        &ion_src,  ///< column densities and source data.
+    const double   ///< EOS gamma.
 )
 {
   // spdlog::info("timestep limit: {}", opt.timestep_limiter);
@@ -1701,7 +1717,7 @@ double nemo::timescales(
   }
 
   // Next set the radiation properties of the current cell.
-  setup_radiation_source_parameters(N_ion, ion_src);
+  setup_radiation_source_parameters(ion_src);
 
   // Now calculate y-dot[]...
   // ydot function returns RHS of ydot equation. Here y_out is RHS of ydot.
@@ -2273,15 +2289,6 @@ int nemo::ydot(
 
       // Heating due to photo-ionisation of this species.
       photoheat_rate += photoheating_rate(s, species_num_density);
-      // if (photoheating_rate(s, species_num_density) < 0.0) {
-      //  spdlog::info("photoheating rate: {} {:12.6e} {:12.6e}",s,
-      //  species_num_density, photoheating_rate(s, species_num_density));
-      //}
-      // if (p_local[0] > 0.99) {
-      //  spdlog::info("s {} {:12.3e} {:12.3e}, pir {:12.6e}", s,
-      //  p_local[photo_species_local_idx[s]], species_num_density,
-      //  photoionise_rate);
-      //}
     }
     Edot += photoheat_rate;
     // spdlog::info("photoheat_rate: {:12.6e}",photoheat_rate);
@@ -2314,13 +2321,6 @@ int nemo::ydot(
 #endif
 
         Lambda += ne * number_density * L;
-        // if (ne * number_density * L > 4e-23) {
-        //  spdlog::info("{} {:.2f} {:.2f} {:12.3e} {:12.3e}
-        //  {:12.3e}",cooling_sct, T, ne, number_density, L, ne * number_density
-        //  * L); spdlog::info("State vec {}, {}",y_species_frac,
-        //  y_top_ion_frac);
-        //}
-
 #ifdef NEMO_CIE_COOLING
         // cooling function of individual species ne*number_density*L
         cooling_outfile << ne * number_density * L << "  ";
@@ -2355,19 +2355,6 @@ int nemo::ydot(
 
   // Updating the ydot vector element corresponding to the index E_index.
   NV_Ith_S(y_dot, E_index) = Edot;
-
-  /*
-  for (int v = 0; v < N_species; v++) {
-    if (y_species_frac[v] < opt.nemo_abstol && NV_Ith_S(y_dot, v) < 0.0)
-      NV_Ith_S(y_dot, v) = 0.0;
-    if (y_species_frac[v] > 1.0 - opt.nemo_abstol && NV_Ith_S(y_dot, v) > 0.0)
-      NV_Ith_S(y_dot, v) = 0.0;
-  }
-   */
-
-  // for (int v = 0; v < N_local; v++) p_local[v] = NV_Ith_S(y_dot, v);
-  // spdlog::info("ydot: {}",p_local);
-
   return 0;
 }
 // END OF YDOT FUNCTION ####################################################
@@ -2440,12 +2427,14 @@ double nemo::photoionisation_rate(
     const double species_num_density  // species number density
 )
 {
+  // HARDCODED FOR JUST ONE RADIATION SOURCE
   // spdlog::info("index = {}, n_H = {}, n_s = {}", species_index,
   // element_num_density, species_num_density);
   double elem_num_density =
       element_num_density[photo_species_element[species_idx]];
   return calculate_photoionisation_rate(
-      species_idx, species_num_density, elem_num_density, vshell, ds, tau_bins);
+      species_idx, species_num_density, elem_num_density, cell_rt[0].Vshell,
+      cell_rt[0].dS, cell_rt[0].tau);
 }
 
 // GET PHOTO-HEATING RATE  ###############################################
@@ -2454,8 +2443,10 @@ double nemo::photoheating_rate(
     const double species_num_density  // species number density
 )
 {
+  // HARDCODED FOR JUST ONE RADIATION SOURCE
   return calculate_photoheating_rate(
-      species_index, species_num_density, vshell, ds, tau_bins);
+      species_index, species_num_density, cell_rt[0].Vshell, cell_rt[0].dS,
+      cell_rt[0].tau);
 }
 
 #ifdef MELLEMA
@@ -2559,32 +2550,25 @@ double nemo::chianti_cooling_rate(
 
 // SET RADIATION SOURCE PARAMETERS ############################################
 void nemo::setup_radiation_source_parameters(
-    const int N_ion, const std::vector<struct rt_source_data> &ion_src
-    ///< list of ionising src column densities and source properties.
-)
+    const std::vector<struct nemo_cell_rt_data> &ion_src)
 {
 
-  if (ion_src.size() != static_cast<unsigned int>(N_ion)) {
-    spdlog::error(
-        "{}: {}",
-        "Timescales: N_ionising_srcs doesn't match vector size in NEMO",
-        ion_src.size());
-    exit(1);
+  if (RS.size() != ion_src.size()) {
+    spdlog::error("setup_radiation_source_parameters: size mismatch");
+    exit_nemo(1);
   }
 
   // proceed if there are any ionizing sources present.
-  if (N_ion > 0) {
-    // IMPO: this is hard coded for a single source.
-    // path length through the current cell
-    ds = ion_src[0].dS;
-    // shell volume in the current cell
-    vshell = ion_src[0].Vshell;
-    // optical depth in each energy bin at the edge of the cell
-    tau_bins.resize(N_ebins, 0.0);
-    for (int b = 0; b < N_ebins; b++)
-      tau_bins[b] = ion_src[0].Column[b];
+  if (ion_src.size() > 0) {
+    // HARDCODED FOR JUST ONE RADIATION SOURCE
+    cell_rt[0].dS     = ion_src[0].dS;
+    cell_rt[0].Vshell = ion_src[0].Vshell;
+    cell_rt[0].tau.resize(RS[0].Nbins, 0.0);
+    for (int b = 0; b < RS[0].Nbins; b++)
+      cell_rt[0].tau[b] = ion_src[0].tau[b];
+    // spdlog::debug("ds {:12.6e}, Vsh {:12.6e}, col {:8.3e}", cell_rt[0].dS,
+    // cell_rt[0].Vshell, fmt::join(cell_rt[0].tau, ", "));
   }
-  // spdlog::debug("ds {:12.6e}, Vsh {:12.6e}, col {}", ds, vshell, tau_bins);
 }
 
 // ############################################################################
@@ -2836,17 +2820,14 @@ void nemo::print_cooling_table(
 // #########################################################################
 // Print stellar attributes and binned luminosity to file
 void nemo::print_stellar_properties(
-    const star_properties_datatype &star_attributes,
-    const std::vector<double> &binned_luminosity,
-    const std::vector<std::vector<double> > &energy_bins,
-    std::string filename)
+    const nemo_star_properties &star_attributes, std::string filename)
 {
   filename =
-      filename + "_srctype" + std::to_string(star_attributes.Type) + ".txt";
+      filename + "_srctype" + std::to_string(star_attributes.SED_type) + ".txt";
   ofstream file;
   file.open(filename);
   file << "#FILE: Generated by PION v3.0 - Stellar Atmosphere Model Module\n\n";
-  file << "#COMMENT: Source id " << star_attributes.Type << endl;
+  file << "#COMMENT: Source id " << star_attributes.SED_type << endl;
   file << "#COMMENT: Teff " << star_attributes.Teff << " K" << endl;
   file << "#COMMENT: Radius " << star_attributes.Radius << " solar radii"
        << endl;
@@ -2856,10 +2837,10 @@ void nemo::print_stellar_properties(
   file << "#UNIT: eV\teV\tegrs/s/bins" << endl;
   file << "#NAME: Bin_Min\tBin_Max\tBin_Luminosity" << endl;
   file << "#DATA:" << endl;
-  for (size_t i = 0; i < binned_luminosity.size(); i++) {
-    file << energy_bins[i][0] << "\t" << energy_bins[i][1] << "\t"
-         << binned_luminosity[i];
-    if (i == binned_luminosity.size() - 1)
+  for (size_t i = 0; i < star_attributes.bin_luminosity.size(); i++) {
+    file << star_attributes.Ebins[i][0] << "\t" << star_attributes.Ebins[i][1]
+         << "\t" << star_attributes.bin_luminosity[i];
+    if (i == star_attributes.bin_luminosity.size() - 1)
       break;
     else
       file << endl;
@@ -2868,8 +2849,9 @@ void nemo::print_stellar_properties(
   file << '\n';
   file << "#COMMENT: Total fraction of Luminosity in the bins ";
   double tot_frac_L = 0.0;
-  for (size_t i = 0; i < bin_luminosity.size(); i++) {
-    tot_frac_L += bin_luminosity[i] / star_attributes.Luminosity;
+  for (size_t i = 0; i < star_attributes.bin_luminosity.size(); i++) {
+    tot_frac_L +=
+        star_attributes.bin_luminosity[i] / star_attributes.Luminosity;
   }
   file << tot_frac_L << endl;
   file.close();

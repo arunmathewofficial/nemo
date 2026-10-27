@@ -455,7 +455,7 @@ test_configuration setup_full_network_cx_test()
       reference_vector};
 }
 
-int main()
+int main(void)
 {
 #ifdef NDEBUG
   spdlog::set_level(spdlog::level::info);
@@ -483,7 +483,8 @@ int main()
   flags.radiative_recombination = 0;
   flags.onthespot_radiation     = 0;
 
-  struct rad_sources rs {};
+  std::vector<struct nemo_star_properties> rs;
+  std::vector<struct nemo_cell_rt_data> cell_rt;
 
   // Adiabatic index
   double eos_gamma = 5. / 3.;
@@ -543,7 +544,7 @@ int main()
 
     // A separate solver allows each cell to use a different composition.
     class nemo MP(
-        N_state_vars, n_tracers, 0, 1, tracer_names[cell], flags, &rs,
+        N_state_vars, n_tracers, 0, 1, tracer_names[cell], flags, rs,
         eos_gamma);
 
     MP.Set_Temp(inputs[cell].data(), temperatures[cell], eos_gamma);
@@ -551,8 +552,8 @@ int main()
     double x = 0.0;
 
     const int err = MP.update_single_cell(
-        inputs[cell].data(), 0, rs.src_data, 0, rs.src_data,
-        outputs[cell].data(), finish_times[cell], eos_gamma, 0, &x);
+        inputs[cell].data(), cell_rt, outputs[cell].data(), finish_times[cell],
+        eos_gamma, &x);
 
     if (err) {
       spdlog::error("Error updating cell {}: code {}", cell + 1, err);

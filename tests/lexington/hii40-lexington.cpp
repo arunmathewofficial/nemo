@@ -36,33 +36,7 @@
 #include "nemo/nemo.h"
 #include "nemo_git_version.h"
 
-
-// *******************************************************************
-// Calculate optical depth to the inner edge of every shell.
-void spherical_optical_depth(
-    nemo &MP,
-    const rad_src_info &star,
-    const std::vector<std::vector<double> > &state,
-    const std::vector<double> &thickness,
-    std::vector<std::vector<double> > &optical_depth)
-{
-  optical_depth.assign(state.size(), std::vector<double>(star.NTau, 0.0));
-
-  std::vector<double> total_tau(star.NTau, 0.0);
-  std::vector<double> shell_tau(star.NTau, 0.0);
-
-  // Shells must be ordered from the star outward.
-  for (std::size_t i = 0; i < state.size(); ++i) {
-    optical_depth[i] = total_tau;  // Optical depth BEFORE this shell
-
-    MP.get_dtau(&star, thickness[i], state[i].data(), shell_tau.data());
-
-    for (int b = 0; b < star.NTau; ++b) {
-      total_tau[b] += shell_tau[b];
-    }
-  }
-}
-// *******************************************************************
+#include "../common_functions.h"
 
 
 std::pair<std::vector<double>, std::vector<std::string> > setup_initial_state()
@@ -325,17 +299,15 @@ int main(void)
   const int n_tracers                = n_state_vars - 2;
 
   // Radiation source(s)
-  struct rad_sources rs;
-  rs.Nsources = 1;
-  rs.sources.resize(1);
-  rs.src_data.resize(1);
-  rad_src_info &star = rs.sources[0];
-  // Stellar Settings
-  star.strength = 3.07e39;  // erg/s
-  star.Tstar    = 4.0e4;    // kelvin
-  star.Rstar    = 18.6517;  // solar radii
-  star.NTau     = 15;       // No of energy bins
-  star.effect   = RT_EFFECT_MP10_BLACKBODY;
+  std::vector<struct nemo_star_properties> rs;
+  struct nemo_star_properties s;
+  s.SED_type   = RT_EFFECT_MP10_BLACKBODY;
+  s.Luminosity = 3.07e39;  // erg/s
+  s.Teff       = 4.0e4;    // K
+  s.Radius     = 18.6517;  // solar radii
+  s.SED_info   = "";       //? do i need to set this?
+  s.id         = 0;
+  rs.push_back(s);
 
   struct nemo_options flags;
   flags.Min_Temperature         = 1.0e3;
@@ -361,12 +333,12 @@ int main(void)
   #pragma omp parallel
   {
     MP = new class nemo(
-        n_state_vars, n_tracers, 0, 1, tracers, flags, &rs, Gamma);
+        n_state_vars, n_tracers, 0, 1, tracers, flags, rs, Gamma);
   }
 #else
-  MP =
-      new class nemo(n_state_vars, n_tracers, 0, 1, tracers, flags, &rs, Gamma);
+  MP = new class nemo(n_state_vars, n_tracers, 0, 1, tracers, flags, rs, Gamma);
 #endif
+  MP->get_radiation_src_info(rs);
 
 
   // Set up the spherical shell grid
@@ -394,8 +366,6 @@ int main(void)
         (4.0 * pi / 3.0) * (std::pow(r_outer[i], 3) - std::pow(r_inner[i], 3));
   }
 
-
-
   // Initial gas state of the simulation
   std::vector<std::vector<double> > initial_state(n_cells, initial_vector);
 
@@ -406,19 +376,17 @@ int main(void)
   int step                = 0;
   std::vector<double> advanced_temperature(n_cells, 0.0);
 
-  // edge optical depth
-  std::vector<std::vector<double> > optical_depth;
 
-  std::vector<std::vector<rt_source_data> > rtdata(n_cells);
+  std::vector<std::vector<struct nemo_cell_rt_data> > cell_rt(n_cells);
   for (int i = 0; i < n_cells; ++i) {
-    rtdata[i].resize(1);
-    rt_source_data &radiation = rtdata[i][0];
-    radiation.id              = star.id;       // Radiation-source identifier
-    radiation.dS              = thickness[i];  // Shell thickness, cm
-    radiation.Vshell          = volume[i];     // Shell volume, cm3
-    radiation.NTau            = star.NTau;     // Number of energy bins
+    cell_rt[i].resize(1);
+    struct nemo_cell_rt_data &rtdata = cell_rt[i][0];
+    rtdata.star_id                   = rs[0].id;  // Radiation-source identifier
+    rtdata.dS                        = thickness[i];  // Shell thickness, cm
+    rtdata.Vshell                    = volume[i];     // Shell volume, cm3
+    rtdata.tau.resize(rs[0].Nbins);                   // Number of energy bins
+    rtdata.dtau.resize(rs[0].Nbins);                  // Number of energy bins
   }
-
   double x                    = 0.0;
   const auto simulation_start = std::chrono::steady_clock::now();
 
@@ -426,12 +394,7 @@ int main(void)
 
     // ---------------------------------------------------------------
     // 1. Calculate attenuation from the current states of all shells.
-    spherical_optical_depth(*MP, star, initial_state, thickness, optical_depth);
-    for (int i = 0; i < n_cells; ++i) {
-      for (int b = 0; b < star.NTau; ++b) {
-        rtdata[i][0].Column[b] = optical_depth[i][b];  // edge optical depth
-      }
-    }
+    spherical_optical_depth(*MP, rs[0], initial_state, cell_rt);
 
     // ---------------------------------------------------------------
     // 2. Select the global timestep from the minimum shell timescale.
@@ -441,8 +404,8 @@ int main(void)
 #pragma omp parallel for schedule(static) reduction(min: dt)
 #endif
     for (int i = 0; i < n_cells; ++i) {
-      const double cell_dt = MP->timescales(
-          initial_state[i].data(), 0, rtdata[i], 1, rtdata[i], Gamma);
+      const double cell_dt =
+          MP->timescales(initial_state[i].data(), cell_rt[i], Gamma);
       dt = std::min(dt, cell_dt);
     }
     dt = std::min(std::max(dt, 0.1 * time), remaining_time);
@@ -463,14 +426,10 @@ int main(void)
         // update all cells
         const int error = MP->update_single_cell(
             initial_state[i].data(),  // Current state of shell i
-            0,                        // Unused
-            rtdata[i],                // Unused
-            1,                        // One ionising source
-            rtdata[i],                // Radiation data for this shell
+            cell_rt[i],               // Radiation data for this shell
             advanced_vector.data(),   // Advanced state
             dt,                       // Timestep, seconds
             Gamma,                    // Adiabatic index
-            0,                        // Unused
             &x                        // Auxiliary output pointer
         );
 
@@ -518,7 +477,7 @@ int main(void)
 
   for (int i = 0; i < n_cells; ++i) {
     spdlog::info(
-        "optical_depth[{}] = {:8.3e}", i, fmt::join(optical_depth[i], ", "));
+        "optical_depth[{}] = {:8.3e}", i, fmt::join(cell_rt[i][0].tau, ", "));
   }
 
   // Load reference data

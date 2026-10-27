@@ -7,12 +7,10 @@
 
 // Calculate optical depth to the inner edge of every shell.
 void spherical_optical_depth(
-    class nemo &,          ///< pointer to NEMO class
-    const rad_src_info &,  ///< struct containing stellar properties
+    class nemo &,                  ///< pointer to NEMO class
+    const nemo_star_properties &,  ///< struct containing stellar properties
     const std::vector<std::vector<double> > &,  ///< vector of state vectors
-    const std::vector<double> &,                ///< vector of cell diameters
-    std::vector<std::vector<double> >
-        &  ///< [output] vector of optical depths to inner edge of shell
+    std::vector<std::vector<struct nemo_cell_rt_data> > &  ///< vec of cell data
 );
 
 

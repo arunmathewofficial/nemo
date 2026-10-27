@@ -6,6 +6,7 @@ target_link_libraries(hii40-lexington PRIVATE
         tools         # Interpolation utilities
         cvode_int     # CVODE integration interface
         constants     # Physical constants
+        common_functions  # some functions for testing code
         MPI::MPI_CXX  # MPI dependencies
 )
 target_compile_features(hii40-lexington PRIVATE cxx_std_14) # Require C++14
