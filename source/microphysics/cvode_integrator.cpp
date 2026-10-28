@@ -139,7 +139,7 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
   }
 
   int err = 0;
-  get_problem_size(&n_eq, &n_xd);
+  get_problem_size(n_eq, n_xd);  // values assigned in function
 #ifdef CVODE_DEBUG
   spdlog::debug("\t\tN_equations={}, N_extra_data={}", n_eq, n_xd);
 #endif
@@ -196,7 +196,7 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
   //
   double reltol = 0.0;
   double *atol  = NV_DATA_S(abstol);
-  get_error_tolerances(&reltol, atol);  // both args passed by reference.
+  get_error_tolerances(reltol, atol);  // both args passed by reference.
 
 #ifdef CVODE_DEBUG
   spdlog::debug("\t\treltol={}, atol=[{}", reltol, NV_Ith_S(abstol, 0));
