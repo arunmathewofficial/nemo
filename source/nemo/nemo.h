@@ -77,15 +77,11 @@ class nemo :
 public:
   /// CONSTRUCTOR: sets up the machinery for fast execution
   nemo(
-      const int,  ///< Total number of variables in state vector
-      const int,  ///< Number of passive-tracer vars in state vector
-      const int,  ///< index of density variable in state vector
-      const int,  ///< index of pressure variable in state vector
-      const std::vector<std::string>,  ///< List of what the tracer variables
-                                       ///< mean.
       const struct nemo_options,  ///< physics options to use with this NEMO
                                   ///< instance
-      std::vector<nemo_star_properties>,  ///< radiation sources.
+      const std::vector<std::string>,     ///< List of names of tracer variables
+                                          ///< (passive scalars).
+      std::vector<nemo_star_properties>,  ///< list of radiation sources.
       const double                        ///< EOS Gamma
   );
 
@@ -96,13 +92,13 @@ public:
   /// Update microphysics including photoionization and photoheating
   ///
   int update_single_cell(
-      const double *,  ///< Primitive Vector to be updated.
+      const std::vector<double> &,  ///< Primitive Vector to be updated.
       const std::vector<struct nemo_cell_rt_data>
-          &,         ///< cell data for radiation source
-      double *,      ///< Destination Vector for updated values
-      const double,  ///< Time Step to advance by.
-      const double,  ///< EOS gamma.
-      double *       ///< any returned data (final temperature?).
+          &,                  ///< cell data for radiation source
+      std::vector<double> &,  ///< Destination Vector for updated values
+      const double,           ///< Time Step to advance by.
+      const double,           ///< EOS gamma.
+      double *                ///< any returned data (final temperature?).
   );
 
   ///
@@ -111,8 +107,8 @@ public:
   /// - Is threadsafe.
   ///
   double Temperature(
-      const double *,  ///< primitive vector
-      const double     ///< eos gamma
+      const std::vector<double> &,  ///< primitive vector
+      const double                  ///< eos gamma
   );
 
   ///
@@ -120,9 +116,9 @@ public:
   /// Needed if you want this feature to set initial conditions.
   ///
   int Set_Temp(
-      double *,      ///< primitive vector.
-      const double,  ///< temperature
-      const double   ///< eos gamma.
+      std::vector<double> &,  ///< primitive vector.
+      const double,           ///< temperature
+      const double            ///< eos gamma.
   );
 
   ///
@@ -133,7 +129,7 @@ public:
   /// Used for setting a simulation timestep, together with CFL condition.
   ///
   double timescales(
-      const double *,                                 ///< Current cell.
+      const std::vector<double> &,                    ///< Current cell.
       const std::vector<struct nemo_cell_rt_data> &,  ///< radiation field.
       const double                                    ///< EOS gamma.
   );
@@ -142,13 +138,13 @@ public:
   double get_X_H();
 
   /// Get electron number density (cm^{-3})
-  double get_n_elec(const double *  ///< primitive state vector.
+  double get_n_elec(const std::vector<double> &  ///< primitive state vector.
   );
 
   /// Get electron number density (cm^{-3})
   double get_n_ion(
-      std::string,    ///< ion name
-      const double *  ///< primitive state vector.
+      std::string,                 ///< ion name
+      const std::vector<double> &  ///< primitive state vector.
   );
 
   /// Calculates the change in optical depth over the cell
@@ -190,8 +186,8 @@ public:
 
   /// Get the number of extra parameters and the number of equations.
   void get_problem_size(
-      int *,  ///< number of equations
-      int *   ///< number of parameters in user_data vector.
+      int &,  ///< number of equations
+      int &   ///< number of parameters in user_data vector.
   );
 
   /// Check that input stellar properties match those in nemo,
@@ -318,16 +314,6 @@ protected:
       photo_massfrac_species_prim_idx;  /// photo-species prim-vec index.
   std::vector<double>
       photo_species_IE;  ///< Record the ionisation threshold of photo species
-
-  // std::vector<std::vector<double> > ebins;
-  // int N_ebins;
-  // double photo_Emax;
-
-  // std::vector<double>
-  //     bin_luminosity;  ///< luminosity in each energy bin (ergs/s/bins)
-  // std::string SED_info;
-
-  // struct nemo_star_properties stellar_properties;
   //  --------------------------------------------------------------------------
 
   /// Cooling ==================================================================
@@ -340,18 +326,9 @@ protected:
   std::vector<double> element_num_density;  ///< element number density vector.
   /// variable recording species number density for NEMO tracer list
   std::vector<std::vector<double> > species_number_density;
-  // double ds     = 0.0;           ///< Path length through the current cell
-  // double vshell = 0.0;           ///< Shell volume in the current cell
-  // std::vector<double> tau_bins;  ///< Optical depth in each energy bin
-  ///	Vector to store initial corrector values (used to modify flux according
-  /// to
-  /// sCMA)
+  ///	Vector to store initial corrector values (modify flux according to sCMA)
   std::vector<double> prim_copy;
-  // Constant data in the cell, received from cell data.
   double mpv_nH;  ///< total hydrogen number density at current cell.
-  // int N_rsrc;     ///< number of radiation sources to include.
-  // std::vector<struct rt_source_data> rt_data;  ///< data on radiation
-  // sources.
 
   // --------------------------------------------------------------------------
 
@@ -436,17 +413,17 @@ protected:
   /// set the relative and absolute error tolerances
   ///
   void get_error_tolerances(
-      double *,  ///< relative error tolerance (single value)
-      double[]   ///< absolute error tolerance (array)
+      double &,  ///< relative error tolerance (single value)
+      double *   ///< absolute error tolerance (array)
   );
 
   ///
   /// convert state vector from grid cell into local microphysics vector.
   ///
   int convert_prim2local(
-      const double *,         ///< primitive vector (nv_prim)
-      std::vector<double> &,  ///< local vector [x(H0),E](n+1).
-      int                     /// flags the function
+      const std::vector<double> &,  ///< primitive vector (nv_prim)
+      std::vector<double> &,        ///< local vector [x(H0),E](n+1).
+      int                           /// flags the function
   );
 
   ///
@@ -455,8 +432,8 @@ protected:
   ///
   int convert_local2prim(
       const std::vector<double> &,  ///< local (updated) vector [x(H0),E](n+1).
-      const double *,               ///< input primitive vector (nv_prim)
-      double *,                     ///< updated primitive vector (nv_prim)
+      const std::vector<double> &,  ///< input primitive vector (nv_prim)
+      std::vector<double> &,        ///< updated primitive vector (nv_prim)
       int                           /// flags the function
   );
 
@@ -529,8 +506,8 @@ protected:
   /// the sum of elemental mass fractions must equal unity.
   ///
   void sCMA(
-      double *,       ///< corrected vector.
-      const double *  ///< input primitive vector.
+      std::vector<double> &,       ///< corrected vector.
+      const std::vector<double> &  ///< input primitive vector.
   );
 
   const double eos_gamma;  ///< EOS gamma for ideal gas.

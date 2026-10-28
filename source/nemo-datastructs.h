@@ -12,6 +12,10 @@ struct nemo_options {
   double nemo_minerg;      ///< absolute tolerance on Eint for ODE integration
   double Min_Temperature;  ///< enforce that T remains above this temperature
   double Max_Temperature;  ///< enforce that T remains below this temperature
+  int nv_prim;             ///< length of primitive state vec
+  int n_scalar;            ///< number of passive scalars in state vec
+  int prim_dens_idx;       ///< index of density var (g/cm3) in state vec
+  int prim_pres_idx;       ///< index of pressure var (dyne/cm2) in state vec
   int timestep_limiter;    ///< integer flag that determines how to set
                            ///< timescales()
   bool update_energy;      ///< do/don't update the energy equation

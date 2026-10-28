@@ -324,6 +324,11 @@ int main(void)
 
   std::vector<struct nemo_star_properties> rs;
   std::vector<struct nemo_cell_rt_data> cell_rt;
+  std::pair<std::vector<double>, std::vector<std::string> > init =
+      setup_initial_state();
+  std::vector<double> initial_state = init.first;
+  std::vector<string> tracer_names  = init.second;
+  int N_el                          = initial_state.size();
 
   struct nemo_options flags;
   flags.Min_Temperature         = 1.0e1;
@@ -331,6 +336,10 @@ int main(void)
   flags.nemo_reltol             = 1.0e-6;
   flags.nemo_abstol             = 1.0e-12;
   flags.nemo_minerg             = 1.0e-20;
+  flags.nv_prim                 = N_el;
+  flags.n_scalar                = N_el - 2;
+  flags.prim_dens_idx           = 0;
+  flags.prim_pres_idx           = 1;
   flags.timestep_limiter        = 1;
   flags.update_energy           = 0;
   flags.cooling                 = 0;
@@ -342,15 +351,6 @@ int main(void)
   flags.onthespot_radiation     = 1;
 
   double eos_gamma = 5. / 3.;
-  // ############################
-  // Get the vector length first
-  std::pair<std::vector<double>, std::vector<std::string> > init =
-      setup_initial_state();
-
-  std::vector<double> initial_state = init.first;
-  std::vector<string> tracer_names  = init.second;
-  int N_el                          = initial_state.size();
-
   // nemo(Nel(state vec), Ntracer, dens-idx, pres-idx, tracer-names,
   // extra-physics, rad-sources, gamma)
   static class nemo *MP;
@@ -359,11 +359,10 @@ int main(void)
 
   #pragma omp parallel
   {
-    MP = new class nemo(
-        N_el, N_el - 2, 0, 1, tracer_names, flags, rs, eos_gamma);
+    MP = new class nemo(flags, tracer_names, rs, eos_gamma);
   }
 #else
-  MP = new class nemo(N_el, N_el - 2, 0, 1, tracer_names, flags, rs, eos_gamma);
+  MP = new class nemo(flags, tracer_names, rs, eos_gamma);
 #endif
 
 
@@ -401,11 +400,11 @@ int main(void)
     for (int i = 0; i < num_vectors; i++) {
       int err = 0;
       // Apply temperature adjustment
-      MP->Set_Temp(inputs[i].data(), temperatures[i], eos_gamma);
+      MP->Set_Temp(inputs[i], temperatures[i], eos_gamma);
 
       // Run the update
       err = MP->update_single_cell(
-          inputs[i].data(), cell_rt, outputs[i].data(), 1e15, 5. / 3., &x);
+          inputs[i], cell_rt, outputs[i], 1e15, 5. / 3., &x);
       if (err) {
         spdlog::error(
             "error updating cell {}: T = {:12.e}", i, temperatures[i]);
@@ -414,7 +413,7 @@ int main(void)
       }
 
       // Get temperature from output state
-      double output_temperature = MP->Temperature(outputs[i].data(), eos_gamma);
+      double output_temperature = MP->Temperature(outputs[i], eos_gamma);
 #ifdef NEMO_OMP
       spdlog::info(
           "integrated vector {} with T_in= {:8.3e} K, T_out= {:8.3e} K, thread {} of {}",

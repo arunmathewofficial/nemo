@@ -280,6 +280,10 @@ int main(void)
   flags.nemo_reltol             = 1.0e-6;
   flags.nemo_abstol             = 1.0e-12;
   flags.nemo_minerg             = 1.0e-20;
+  flags.nv_prim                 = n_state_vars;
+  flags.n_scalar                = n_tracers;
+  flags.prim_dens_idx           = 0;
+  flags.prim_pres_idx           = 1;
   flags.timestep_limiter        = 1;
   flags.update_energy           = 0;
   flags.cooling                 = 0;
@@ -297,11 +301,10 @@ int main(void)
 
   #pragma omp parallel
   {
-    MP = new class nemo(
-        n_state_vars, n_tracers, 0, 1, tracers, flags, rs, Gamma);
+    MP = new class nemo(flags, tracers, rs, Gamma);
   }
 #else
-  MP = new class nemo(n_state_vars, n_tracers, 0, 1, tracers, flags, rs, Gamma);
+  MP = new class nemo(flags, tracers, rs, Gamma);
 #endif
   MP->get_radiation_src_info(rs);
 
@@ -364,7 +367,7 @@ int main(void)
 #endif
     for (int i = 0; i < n_cells; ++i) {
       const double cell_dt =
-          MP->timescales(initial_state[i].data(), cell_rt[i], Gamma);
+          MP->timescales(initial_state[i], cell_rt[i], Gamma);
       dt = std::min(dt, cell_dt);
     }
     // enforce that dt cannot be less than 0.1*time
@@ -379,12 +382,12 @@ int main(void)
     for (int i = 0; i < n_cells; ++i) {
       std::vector<double> advanced_vector(initial_vector.size(), 0.0);
       const int error = MP->update_single_cell(
-          initial_state[i].data(),  // Current state of shell i
-          cell_rt[i],               // Radiation data for this shell
-          advanced_vector.data(),   // Advanced state
-          dt,                       // Timestep, seconds
-          Gamma,                    // Adiabatic index
-          &x                        // Auxiliary output pointer
+          initial_state[i],  // Current state of shell i
+          cell_rt[i],        // Radiation data for this shell
+          advanced_vector,   // Advanced state
+          dt,                // Timestep, seconds
+          Gamma,             // Adiabatic index
+          &x                 // Auxiliary output pointer
       );
 
       if (error != 0) {
@@ -417,7 +420,7 @@ int main(void)
   #pragma omp parallel for
 #endif
   for (int i = 0; i < n_cells; ++i) {
-    initial_state[i][1] = MP->Temperature(initial_state[i].data(), Gamma);
+    initial_state[i][1] = MP->Temperature(initial_state[i], Gamma);
     initial_state[i][0] = r_center[i];
   }
   for (int i = 0; i < n_cells; ++i) {

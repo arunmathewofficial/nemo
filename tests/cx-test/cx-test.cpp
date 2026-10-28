@@ -542,24 +542,27 @@ int main(void)
     const int n_tracers    = tracer_names[cell].size();
     outputs[cell].resize(N_state_vars);
 
-    // A separate solver allows each cell to use a different composition.
-    class nemo MP(
-        N_state_vars, n_tracers, 0, 1, tracer_names[cell], flags, rs,
-        eos_gamma);
+    flags.nv_prim       = N_state_vars;
+    flags.n_scalar      = n_tracers;
+    flags.prim_dens_idx = 0;
+    flags.prim_pres_idx = 1;
 
-    MP.Set_Temp(inputs[cell].data(), temperatures[cell], eos_gamma);
+    // A separate solver allows each cell to use a different composition.
+    class nemo MP(flags, tracer_names[cell], rs, eos_gamma);
+
+    MP.Set_Temp(inputs[cell], temperatures[cell], eos_gamma);
 
     double x = 0.0;
 
     const int err = MP.update_single_cell(
-        inputs[cell].data(), cell_rt, outputs[cell].data(), finish_times[cell],
-        eos_gamma, &x);
+        inputs[cell], cell_rt, outputs[cell], finish_times[cell], eos_gamma,
+        &x);
 
     if (err) {
       spdlog::error("Error updating cell {}: code {}", cell + 1, err);
       return 1;
     }
-    final_temperatures[cell] = MP.Temperature(outputs[cell].data(), eos_gamma);
+    final_temperatures[cell] = MP.Temperature(outputs[cell], eos_gamma);
   }
 
 

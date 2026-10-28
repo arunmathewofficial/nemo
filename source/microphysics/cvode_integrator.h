@@ -221,8 +221,8 @@ public:
   /// (NOT IMPLEMENTED HERE).
   ///
   virtual void get_problem_size(
-      int *,  ///< number of equations
-      int *   ///< number of parameters in user_data vector.
+      int &,  ///< number of equations
+      int &   ///< number of parameters in user_data vector.
       ) = 0;
 
 protected:
@@ -230,8 +230,8 @@ protected:
   /// set the relative and absolute error tolerances
   ///
   virtual void get_error_tolerances(
-      double *,  ///< relative error tolerance (single value)
-      double[]   ///< absolute error tolerance (array)
+      double &,  ///< relative error tolerance (single value)
+      double *   ///< absolute error tolerance (array)
       ) = 0;
 
   //---------------------------------------------------------------------------

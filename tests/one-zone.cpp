@@ -64,6 +64,10 @@ int main(void)
   flags.nemo_reltol             = 1.0e-6;
   flags.nemo_abstol             = 1.0e-12;
   flags.nemo_minerg             = 1.0e-20;
+  flags.nv_prim                 = 7;
+  flags.n_scalar                = 5;
+  flags.prim_dens_idx           = 0;
+  flags.prim_pres_idx           = 1;
   flags.timestep_limiter        = 1;
   flags.update_energy           = 0;
   flags.cooling                 = 0;
@@ -76,7 +80,7 @@ int main(void)
 
   // nemo(Nel(state vec), Ntracer, dens-idx, pres-idx, tracer-names,
   // nemo-flags, rad-sources, gamma)
-  class nemo MP(7, 5, 0, 1, tr, flags, rs, 5.0 / 3.0);
+  class nemo MP(flags, tr, rs, 5.0 / 3.0);
   MP.get_radiation_src_info(rs);
 
   std::vector<double> input(7, 0.0);
@@ -92,11 +96,10 @@ int main(void)
   std::vector<double> output(7, 0.0);
   double x = 0.0;
 
-  MP.update_single_cell(
-      input.data(), cell_rt, output.data(), 1e14, 5. / 3., &x);
+  MP.update_single_cell(input, cell_rt, output, 1e14, 5. / 3., &x);
 
   spdlog::info("output [{:20.16e}]", fmt::join(output, ", "));
-  spdlog::info("Temperature: {:8.3e}", MP.Temperature(output.data(), 5. / 3.));
+  spdlog::info("Temperature: {:8.3e}", MP.Temperature(output, 5. / 3.));
 
   std::vector<double> reference = {
       1.0e-22,
