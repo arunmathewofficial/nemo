@@ -13,8 +13,8 @@
 /// - 2021.04.09 JM: switched GSL for Boost library.
 /// - 2026.09.30 JM: adapted for NEMO
 
-#include "microphysics/interpolate.h"
 #include "nemo-constants.h"
+#include "solver/interpolate.h"
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>

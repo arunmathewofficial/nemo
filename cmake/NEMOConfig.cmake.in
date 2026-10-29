@@ -1,0 +1,20 @@
+@PACKAGE_INIT@
+
+# Dependencies used in NEMO's public headers
+include(CMakeFindDependencyMacro)
+
+find_dependency(Boost 1.73.0 CONFIG)
+find_dependency(MPI COMPONENTS CXX)  # SUNDIALS headers may include mpi.h
+find_dependency(spdlog)
+
+include("${CMAKE_CURRENT_LIST_DIR}/NEMOTargets.cmake")
+
+check_required_components(NEMO)
+
+# Print "-- Found NEMO: <library> (found version ...)" like other packages
+include(FindPackageHandleStandardArgs)
+get_target_property(NEMO_LIBRARY NEMO::nemo LOCATION)
+find_package_handle_standard_args(NEMO
+  REQUIRED_VARS NEMO_LIBRARY
+  VERSION_VAR NEMO_VERSION
+)

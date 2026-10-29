@@ -15,13 +15,38 @@
 #include <string>
 #include <vector>
 
-#ifdef NEMO_OMP
-#include <omp.h>
-#endif
 
 #include "nemo-datastructs.h"
 #include "nemo/nemo.h"
 #include "nemo_git_version.h"
+
+#ifdef NEMO_OMP
+#include <memory>
+#include <mutex>
+#include <omp.h>
+#include <spdlog/sinks/base_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+// Passes on messages from OpenMP thread 0, and warnings/errors from any thread.
+class thread0_sink : public spdlog::sinks::base_sink<std::mutex> {
+public:
+  thread0_sink() : out(std::make_shared<spdlog::sinks::stdout_color_sink_mt>())
+  {
+  }
+
+protected:
+  void sink_it_(const spdlog::details::log_msg &msg) override
+  {
+    if (omp_get_thread_num() == 0 || msg.level >= spdlog::level::warn)
+      out->log(msg);
+  }
+  void flush_() override { out->flush(); }
+
+private:
+  std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> out;
+};
+#endif
+
 
 std::pair<std::vector<double>, std::vector<std::string> > setup_initial_state()
 {
@@ -315,6 +340,8 @@ int main(void)
 #endif
 
 #ifdef NEMO_OMP
+  spdlog::set_default_logger(std::make_shared<spdlog::logger>(
+      "nemo", std::make_shared<thread0_sink>()));
   spdlog::info(
       "NEMO CIE test: git {} running, nth={}", git_version,
       omp_get_max_threads());

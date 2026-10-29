@@ -58,21 +58,12 @@ if(NEMO_OMP)
 endif(NEMO_OMP)
 
 find_package(Boost 1.73.0 REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
 
 find_package(SUNDIALS REQUIRED)
-include_directories(${SUNDIALS_INCLUDE_DIR}/../)
-add_definitions("-DCVODE${SUNDIALS_VERSION_MAJOR}")
 #message(STATUS "SUNDIALS version = ${SUNDIALS_VERSION_MAJOR}.${SUNDIALS_VERSION_MINOR}")
 #message(STATUS "SUNDIALS include = ${SUNDIALS_INCLUDE_DIR}/../")
 
 find_package(MPI REQUIRED)  # Homebrew sundials needs open MPI
-
-if(CMAKE_BUILD_TYPE MATCHES "Debug")
-    find_package(Curses)
-    find_package(READLINE REQUIRED)
-    include_directories(${READLINE_INCLUDE_DIR})
-endif(CMAKE_BUILD_TYPE MATCHES "Debug")
 
 find_package(spdlog REQUIRED)
 add_definitions("-DSPDLOG_COMPILED_LIB")
@@ -82,7 +73,7 @@ message(STATUS "spdlog version: ${spdlog_VERSION}")
 
 if(spdlog_VERSION VERSION_GREATER_EQUAL "1.6.0")
   message(STATUS "spdlog version = ${spdlog_VERSION}")
-  add_definitions("-DSPDLOG_FWD")
+  set(NEMO_SPDLOG_FWD ON)
 endif()
 
 # Create an interface target that abstracts the spdlog+fmt combination
@@ -105,17 +96,69 @@ include_directories(
     SYSTEM PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/source
 )
 
-add_subdirectory(source)
-# Add unit tests to run: 
-enable_testing()
-add_subdirectory(tests)
-
+# Generate nemo_git_version.h in the build directory
 execute_process(
-  COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tools/get-git-ver.sh
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+  COMMAND git log --pretty=format:%h -n 1
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  OUTPUT_VARIABLE NEMO_GIT_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET
+)
+if(NOT NEMO_GIT_VERSION)
+  set(NEMO_GIT_VERSION "unknown")
+endif()
+
+configure_file(
+  ${PROJECT_SOURCE_DIR}/cmake/nemo_git_version.h.in
+  ${PROJECT_BINARY_DIR}/generated/nemo_git_version.h
 )
 
+add_subdirectory(source)
+
+# Install the nemo library, its headers, and the CMake package files so that
+# other projects can use find_package(NEMO) and link to NEMO::nemo
+include(CMakePackageConfigHelpers)
+set(NEMO_INSTALL_CMAKEDIR ${NEMO_INSTALL_LIBDIR}/cmake/NEMO)
+
+install(
+    TARGETS nemo
+    EXPORT NEMOTargets
+    ARCHIVE DESTINATION ${NEMO_INSTALL_LIBDIR}
+)
+
+install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/source/
+    DESTINATION ${NEMO_INSTALL_INCLUDEDIR}/nemo
+    FILES_MATCHING PATTERN "*.h"
+)
+
+install(
+    EXPORT NEMOTargets
+    NAMESPACE NEMO::
+    DESTINATION ${NEMO_INSTALL_CMAKEDIR}
+)
+
+configure_package_config_file(
+    ${PROJECT_SOURCE_DIR}/cmake/NEMOConfig.cmake.in
+    ${PROJECT_BINARY_DIR}/NEMOConfig.cmake
+    INSTALL_DESTINATION ${NEMO_INSTALL_CMAKEDIR}
+)
+
+write_basic_package_version_file(
+    ${PROJECT_BINARY_DIR}/NEMOConfigVersion.cmake
+    COMPATIBILITY SameMajorVersion
+)
+
+install(
+    FILES
+        ${PROJECT_BINARY_DIR}/NEMOConfig.cmake
+        ${PROJECT_BINARY_DIR}/NEMOConfigVersion.cmake
+    DESTINATION ${NEMO_INSTALL_CMAKEDIR}
+)
+
+# Add unit tests to run:
 enable_testing()
+add_subdirectory(tests)
 
 message(STATUS "Build options:")
 message(STATUS "    CMAKE_BUILD_TYPE         = ${CMAKE_BUILD_TYPE}")

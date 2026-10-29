@@ -18,6 +18,7 @@
 ///
 
 #include "nemo.h"
+#include "nemo_git_version.h"
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
 #endif
@@ -88,6 +89,8 @@ nemo::nemo(
     ntracer(n_o.n_scalar), opt(n_o), stellar_atmosphere_models(),
     multi_ion_photo_xsections(), photoionisation()
 {
+  spdlog::info("NEMO: git version {}", git_version);
+
   spdlog::debug(
       "nemo: Setting up tracer variables, assuming tracers"
       " are last {} variables in primitive vector",

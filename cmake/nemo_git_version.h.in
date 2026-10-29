@@ -1,0 +1,5 @@
+#ifndef GIT_VERSION_H
+#define GIT_VERSION_H
+#include <string>
+static std::string git_version = "@NEMO_GIT_VERSION@";
+#endif
