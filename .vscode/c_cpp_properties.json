@@ -1,16 +1,18 @@
 {
     "configurations": [
         {
+            // Debian 13 trixie
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/include/"
             ],
-            "defines": [],
+            "defines": ["CVODE7"],
             "compilerPath": "/usr/bin/mpicxx",
             "cStandard": "gnu17",
             "cppStandard": "gnu++17",
-            "intelliSenseMode": "linux-gcc-x64"
+            "intelliSenseMode": "linux-gcc-x64",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
         }
     ],
     "version": 4

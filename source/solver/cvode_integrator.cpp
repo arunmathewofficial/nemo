@@ -23,7 +23,7 @@
 ///    compatibility with sundials 2.5.0.
 
 // #include "constants.h"
-#include "microphysics/cvode_integrator.h"
+#include "solver/cvode_integrator.h"
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>

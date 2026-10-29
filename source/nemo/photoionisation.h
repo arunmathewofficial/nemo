@@ -13,8 +13,8 @@
 /* prevent clang-format reordering */
 #include <fmt/ranges.h>
 
-#include "microphysics/interpolate.h"
 #include "nemo-constants.h"
+#include "solver/interpolate.h"
 
 class photoionisation :
     virtual public interpolate_arrays,

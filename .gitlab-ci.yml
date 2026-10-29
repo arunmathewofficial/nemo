@@ -108,11 +108,43 @@ Test:
       python3
       python3-numpy
   script:
-    - make -C "${CMAKE_BUILD_DIR}/tests" test 
+    - make -C "${CMAKE_BUILD_DIR}/tests" test
   artifacts:
     name: tests
-    paths: 
+    paths:
       - "${CMAKE_BUILD_DIR}/tests/"
     expire_in: 1 day
+
+# Install NEMO, then build and run the example project against the installed
+# copy, to check that find_package(NEMO) and NEMO::nemo work.
+Install:
+  <<: *default_job
+  stage: test
+  variables:
+    <<: *default_cmake_variables
+    NEMO_INSTALL_PREFIX: "${CI_PROJECT_DIR}/install"
+    EXAMPLE_BUILD_DIR: "${CI_PROJECT_DIR}/build-example"
+  needs:
+    - job: Compile
+      artifacts: true
+  before_script:
+    - apt-get update -y
+    - apt-get install --no-install-recommends -y
+      git
+      g++
+      libsundials-dev
+      openmpi-bin
+      cmake
+      libspdlog-dev
+      libfmt-dev
+      libboost-dev
+      build-essential
+  script:
+    - cmake --install "${CMAKE_BUILD_DIR}" --prefix "${NEMO_INSTALL_PREFIX}"
+    - cmake -S examples/minimal -B "${EXAMPLE_BUILD_DIR}"
+        -DCMAKE_CXX_COMPILER=g++
+        -DCMAKE_PREFIX_PATH="${NEMO_INSTALL_PREFIX}"
+    - cmake --build "${EXAMPLE_BUILD_DIR}"
+    - "${EXAMPLE_BUILD_DIR}/nemo-example"
 
 

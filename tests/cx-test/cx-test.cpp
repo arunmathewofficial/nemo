@@ -164,8 +164,8 @@ test_configuration setup_HOp_charge_exchange_test()
       "Case 1: reference k_reverse / k_forward at T={:.0f} K = {:.10e}",
       temperature, reference_value);
 
-  return {
-      initial_vector, tracer_names, temperature, finish_time, reference_value};
+  return {initial_vector, tracer_names,    temperature,
+          finish_time,    reference_value, {}};
 }
 
 // Case 2: HNp CX relaxation towards equilibrium.
@@ -204,8 +204,8 @@ test_configuration setup_HNp_charge_exchange_test()
       "Case 2: reference k_reverse / k_forward at T={:.0f} K = {:.10e}",
       temperature, reference_value);
 
-  return {
-      initial_vector, tracer_names, temperature, finish_time, reference_value};
+  return {initial_vector, tracer_names,    temperature,
+          finish_time,    reference_value, {}};
 }
 
 // Case 3: HCp CX relaxation towards equilibrium.
@@ -244,8 +244,8 @@ test_configuration setup_HCp_charge_exchange_test()
       "Case 3: reference k_reverse / k_forward at T={:.0f} K = {:.10e}",
       temperature, reference_value);
 
-  return {
-      initial_vector, tracer_names, temperature, finish_time, reference_value};
+  return {initial_vector, tracer_names,    temperature,
+          finish_time,    reference_value, {}};
 }
 
 // Case 4: HeC2p CX relaxation towards equilibrium.
@@ -289,8 +289,8 @@ test_configuration setup_HeC2p_charge_exchange_test()
   spdlog::info(
       "Case 4: reference k_reverse / k_forward at T={:.0f} K = {:.10e}",
       temperature, reference_value);
-  return {
-      initial_vector, tracer_names, temperature, finish_time, reference_value};
+  return {initial_vector, tracer_names,    temperature,
+          finish_time,    reference_value, {}};
 }
 
 

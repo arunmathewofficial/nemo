@@ -17,7 +17,7 @@
 /// The integration method uses the CVODES solver from the SUNDIALS
 /// package by (Cohen, S. D., & Hindmarsh, A. C. 1996, Computers in
 /// Physics, 10, 138) available from
-///  https://computation.llnl.gov/casc/sundials/main.html
+///  https://computing.llnl.gov/projects/sundials
 /// The method is backwards differencing (i.e. implicit) with Newton
 /// iteration.
 
@@ -28,22 +28,21 @@
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
 #endif
-#include <spdlog/spdlog.h>
-/* prevent clang-format reordering */
-#include "microphysics/cvode_integrator.h"
 #include "nemo-constants.h"
 #include "nemo-datastructs.h"
 #include "nemo/atomic_physics_database.h"
 #include "nemo/charge_exchange.h"
 #include "nemo/coll_ionise_recomb.h"
+#include "solver/cvode_integrator.h"
+#include <spdlog/spdlog.h>
 #ifdef MELLEMA
-#include "mellema_cooling.h"
+#include "nemo/mellema_cooling.h"
 #elif defined CHIANTI
-#include "chianti_cooling.h"
+#include "nemo/chianti_cooling.h"
 #endif
-#include "multi_ion_photo_xsections.h"
-#include "photoionisation.h"
-#include "stellar_atmosphere_models.h"
+#include "nemo/multi_ion_photo_xsections.h"
+#include "nemo/photoionisation.h"
+#include "nemo/stellar_atmosphere_models.h"
 #include <algorithm>
 #include <fstream>
 #include <set>

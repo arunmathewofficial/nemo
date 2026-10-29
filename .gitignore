@@ -3,7 +3,6 @@
 /build-*/
 /cmake-build-*/
 
-/source/nemo_git_version.h
 
 # Local compile scripts
 /compile-*.sh

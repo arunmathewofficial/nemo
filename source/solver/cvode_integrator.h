@@ -67,7 +67,7 @@
 #include <sunlinsol/sunlinsol_dense.h>
 #endif
 
-#elif defined CVODE6 || CVODE7
+#elif defined CVODE6 || defined CVODE7
 
 #include <sundials/sundials_context.hpp>
 
