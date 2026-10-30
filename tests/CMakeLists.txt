@@ -40,6 +40,9 @@ add_dependencies(cie-test copy_data)
 add_subdirectory(cx-test)
 add_dependencies(cx-test copy_data)
 
+# Isochoric cooling test
+add_subdirectory(isochoric-cooling)
+
 # photoionization equilibrium test
 add_subdirectory(test4-photoion-eq)
 add_dependencies(photoionization_eq copy_data)
