@@ -1,5 +1,9 @@
+/// common_functions.cpp
+///
+/// purpose: define some commone functions that are used by multiple tests
 
 #include "common_functions.h"
+
 using namespace NEMO;
 
 // *******************************************************************
