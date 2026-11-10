@@ -284,6 +284,8 @@ int main(void)
 
   spdlog::info("[NEMO::hii40-lexington] Initialising H II region simulation");
 #ifdef NEMO_OMP
+  spdlog::set_default_logger(std::make_shared<spdlog::logger>(
+      "nemo", std::make_shared<thread0_sink>()));
   spdlog::info(
       "NEMO::hii40-lexington test: git {} running, nth={}", git_version,
       omp_get_max_threads());
