@@ -1737,7 +1737,8 @@ void nemo::sCMA(
   // This method ensures that the inputted mass fraction satisfies
   // the constraint that the sum of elemental mass fractions must equal unity
   // Similarly the sum of all species fractions of an element must not exceed
-  // the total elemental abundance.
+  // the total elemental abundance.  Species are rescaled together with their
+  // element, so the ionisation state of each element is preserved.
 
   // bool warn = false;
   std::vector<double> prim(N_prim);
@@ -1756,8 +1757,10 @@ void nemo::sCMA(
     //}
     // spdlog::info("e {}, el {}, val {:12.3e}, N_prim
     // {}",e,massfrac_el_prim_idx[e],prim[massfrac_el_prim_idx[e]], N_prim);
-    prim[massfrac_el_prim_idx[e]] =
-        min(1.0, max(1.0e-20, prim[massfrac_el_prim_idx[e]]));
+    // (no upper limit is needed: once all elements are positive, the
+    // renormalisation below ensures each is <=1, and clipping at 1 first
+    // would change the ratios between elements.)
+    prim[massfrac_el_prim_idx[e]] = max(1.0e-20, prim[massfrac_el_prim_idx[e]]);
   }
   // Then apply sCMA criterion to elements
   double element_massfrac = 0.0;
@@ -1775,23 +1778,19 @@ void nemo::sCMA(
     spdlog::warn(
         "renormalisation of element mass fracs failed: {}", element_massfrac);
 
-  // now for each element, ensure species fractions of each ion are within
-  // allowed range
+  // now for each element, scale its species mass fractions by the same
+  // factor as the element, so that the fraction of the element in each
+  // species (X_s/X_e) is unchanged by the renormalisation.  Otherwise, if
+  // the element mass fractions sum to <1 (>1), the untracked top ion of each
+  // element is spuriously increased (decreased).  Then ensure species
+  // fractions of each ion are within the allowed range.
   int sct = 0, s = 0;
   for (int e = 0; e < N_elements; e++) {
     for (int q = 0; q < element_species_count[e]; q++) {
-      // if (prim[massfrac_species_prim_idx[sct]] < 0.0 ||
-      //    prim[massfrac_species_prim_idx[sct]] >
-      //    prim[massfrac_el_prim_idx[e]]*(1.0+1e-12)) {
-      //  spdlog::warn("species {},{} out of range: {}, {}", e,sct,
-      //               prim[massfrac_el_prim_idx[e]],prim[massfrac_species_prim_idx[sct]]);
-      //  spdlog::info("prim: {}",std::vector<double>(prim,prim+N_prim));
-      //  warn=true;
-      //}
-
       prim[massfrac_species_prim_idx[sct]] =
           min(prim[massfrac_el_prim_idx[e]],
-              max(1.0e-20, prim[massfrac_species_prim_idx[sct]]));
+              max(1.0e-20,
+                  prim[massfrac_species_prim_idx[sct]] * element_correction));
       sct++;
     }
   }
