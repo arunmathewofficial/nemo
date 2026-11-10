@@ -202,7 +202,11 @@ public:
   /// grid. We utilize the sCMA (Simple Consistent Multi-fluid Advection, Plewa
   /// and Muller, Astron. Astrophys. 342, 179, 1999) scheme. The utility of this
   /// method requires the inputted mass fraction to satisfy the constraint that
-  /// the sum of elemental mass fractions must equal unity.
+  /// the sum of elemental mass fractions must equal unity.  The element mass
+  /// fractions are renormalised to sum to 1, the species of each element
+  /// are scaled by the same factor (preserving the fraction of the element
+  /// in each ionisation state), and then the species of each element are
+  /// limited so that their sum does not exceed the element mass fraction.
   /// Public so that a hydrodynamics code can use it when advecting the
   /// tracers (both vectors have length nv_prim).
   ///

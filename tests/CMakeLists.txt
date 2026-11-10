@@ -13,6 +13,13 @@ add_custom_target(
 )
 add_test(NAME one-zone COMMAND one-zone)
 
+# sCMA (consistent multi-species advection) unit test
+add_executable(scma-test scma-test.cpp)
+target_link_libraries(scma-test PRIVATE nemo)
+target_link_libraries(scma-test PRIVATE MPI::MPI_CXX)
+target_compile_features(scma-test PRIVATE cxx_std_14)
+add_test(NAME scma-test COMMAND scma-test)
+
 # Add data files from sub-directory to cmake
 file(GLOB DATA_FILES "${CMAKE_CURRENT_SOURCE_DIR}/data/*.txt")
 add_custom_target(copy_data ALL
