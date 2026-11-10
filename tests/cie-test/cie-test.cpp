@@ -26,6 +26,7 @@
 #include <omp.h>
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+using namespace NEMO;
 
 // Passes on messages from OpenMP thread 0, and warnings/errors from any thread.
 class thread0_sink : public spdlog::sinks::base_sink<std::mutex> {

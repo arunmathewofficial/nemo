@@ -5,8 +5,8 @@
  *  \date     10-02-2023
  **/
 
-#ifndef CHIANTI_COOLING_H
-#define CHIANTI_COOLING_H
+#ifndef NEMO_CHIANTI_COOLING_H
+#define NEMO_CHIANTI_COOLING_H
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
@@ -22,6 +22,8 @@
 /**
  * \brief Struct to hold chianti cooling table attributes.
  **/
+namespace NEMO {
+
 struct database_datatype {
   std::string Name;                        ///< Species name
   std::vector<std::vector<double> > rate;  ///< chianti cooling rate table
@@ -141,4 +143,7 @@ private:
       species;  ///< Cooling table database data type.
 };
 // END OF CHIANTI COOLING CLASS #############################################
-#endif  // CHIANTI_COOLING_H
+
+}  // namespace NEMO
+
+#endif  // NEMO_CHIANTI_COOLING_H

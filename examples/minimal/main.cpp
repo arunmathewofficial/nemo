@@ -2,18 +2,18 @@
 #include <string>
 #include <vector>
 
-#include "nemo/nemo.h"
+#include "nemo/nemo.h"  // everything in NEMO is in namespace NEMO
 
 int main()
 {
   // State vector: density, pressure, then the tracers named below.
   std::vector<std::string> tracers = {
       "unrelated_mass_scalar", "X_H", "X_He", "H", "He", "He1+"};
-  std::vector<nemo_star_properties> sources;  // no radiation sources
-  std::vector<nemo_cell_rt_data> cell_rt;
+  std::vector<NEMO::nemo_star_properties> sources;  // no radiation sources
+  std::vector<NEMO::nemo_cell_rt_data> cell_rt;
   const double gamma = 5.0 / 3.0;
 
-  nemo_options flags;
+  NEMO::nemo_options flags;
   flags.Min_Temperature         = 1.0e1;
   flags.Max_Temperature         = 1.0e9;
   flags.nemo_reltol             = 1.0e-6;
@@ -33,7 +33,7 @@ int main()
   flags.radiative_recombination = true;
   flags.onthespot_radiation     = false;
 
-  nemo solver(flags, tracers, sources, gamma);
+  NEMO::nemo solver(flags, tracers, sources, gamma);
 
   std::vector<double> input = {1.0e-22, 1.0e-9, 1.0,  0.72,
                                0.28,    0.36,   0.05, 0.1};

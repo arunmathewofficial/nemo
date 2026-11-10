@@ -23,6 +23,8 @@
 /* prevent clang-format reordering */
 #include <fmt/ranges.h>
 
+namespace NEMO {
+
 ///
 /// global instance of class, defined in interpolate.cpp.
 ///
@@ -492,3 +494,5 @@ double interpolate_arrays::root_find_trilinear_vec(
 
 // ##################################################################
 // ##################################################################
+
+}  // namespace NEMO

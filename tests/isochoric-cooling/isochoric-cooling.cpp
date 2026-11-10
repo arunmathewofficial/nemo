@@ -25,6 +25,7 @@
 
 #include "nemo/nemo.h"
 #include "nemo_git_version.h"
+using namespace NEMO;
 
 bool compare_scalar(
     double result,

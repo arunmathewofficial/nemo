@@ -40,6 +40,7 @@
 #include "nemo_git_version.h"
 
 #include "../common_functions.h"
+using namespace NEMO;
 
 
 std::pair<std::vector<double>, std::vector<std::string> > setup_initial_state()

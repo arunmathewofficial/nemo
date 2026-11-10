@@ -4,8 +4,8 @@
  *  \date     03-07-2023
  **/
 
-#ifndef PION_PHOTOIONISATION_H
-#define PION_PHOTOIONISATION_H
+#ifndef NEMO_PHOTOIONISATION_H
+#define NEMO_PHOTOIONISATION_H
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
 #endif
@@ -15,6 +15,8 @@
 
 #include "nemo-constants.h"
 #include "solver/interpolate.h"
+
+namespace NEMO {
 
 class photoionisation :
     virtual public interpolate_arrays,
@@ -66,4 +68,7 @@ private:
   std::vector<double> bin_spectrum;
   std::vector<double> ionisation_thres;
 };
-#endif  // PION_PHOTOIONISATION_H
+
+}  // namespace NEMO
+
+#endif  // NEMO_PHOTOIONISATION_H

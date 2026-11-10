@@ -7,6 +7,8 @@
 #include "atomic_physics_database.h"
 #include <algorithm>
 
+namespace NEMO {
+
 // Global instance of class
 class atomic_physics_database atomic_physics_data;
 
@@ -443,3 +445,5 @@ void atomic_physics_database::database()
 }
 
 // **************************************************************
+
+}  // namespace NEMO

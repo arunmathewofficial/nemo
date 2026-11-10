@@ -16,6 +16,7 @@
 #include "nemo-datastructs.h"
 #include "nemo/nemo.h"
 #include "nemo_git_version.h"
+using namespace NEMO;
 
 struct test_configuration {
   std::vector<double> initial_vector;

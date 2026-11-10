@@ -2,8 +2,8 @@
 // Created by tony on 19/06/2023.
 //
 
-#ifndef PION_MULTI_ION_PHOTO_XSECTIONS_H
-#define PION_MULTI_ION_PHOTO_XSECTIONS_H
+#ifndef NEMO_MULTI_ION_PHOTO_XSECTIONS_H
+#define NEMO_MULTI_ION_PHOTO_XSECTIONS_H
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
@@ -14,6 +14,8 @@
 
 #include "atomic_physics_database.h"
 #include <map>
+
+namespace NEMO {
 
 /// \brief Struct to hold fit parameters of photo-ionisation cross-sections.
 ///
@@ -85,4 +87,6 @@ private:
   std::vector<double> photo_threshold;  ///< Ionisation threshold energy vector
 };
 
-#endif  // PION_MULTI_ION_PHOTO_XSECTIONS_H
+}  // namespace NEMO
+
+#endif  // NEMO_MULTI_ION_PHOTO_XSECTIONS_H

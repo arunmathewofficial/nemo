@@ -30,19 +30,25 @@ cmake --install build
 
 In your own project's `CMakeLists.txt`:
 ```cmake
-find_package(NEMO 1.0 REQUIRED)
+find_package(NEMO 1.1 REQUIRED)
 target_link_libraries(my-program PRIVATE NEMO::nemo)
 ```
 and configure it with `-DCMAKE_PREFIX_PATH="$HOME/.local"`.  Then
-`#include "nemo/nemo.h"` in your code.  `NEMO::nemo` brings in all of the
-include paths, compile definitions and libraries that NEMO needs (SUNDIALS,
-Boost, MPI, spdlog).
+`#include "nemo/nemo.h"` in your code.  The CMake target `NEMO::nemo` brings
+in all of the include paths, compile definitions and libraries that NEMO needs
+(SUNDIALS, Boost, MPI, spdlog).
+
+All of NEMO's classes, structs, functions and global data are in the C++
+namespace `NEMO`, e.g. `NEMO::nemo`, `NEMO::nemo_options`,
+`NEMO::nemo_star_properties` and `NEMO::nemo_cell_rt_data`, so that NEMO's
+internal classes (e.g. its ODE solver and interpolation classes) cannot clash
+with classes of the same name in the code that uses it.
 
 See [examples/minimal](examples/minimal) for a complete example project.
 
 # Using NEMO to integrate the ionisation and thermal state of a plasma
 
-NEMO requires as inputs a vector containing gas density (g/cm3), pressure (dyne/cm2) and mass fractions of elements and ions (collectively called tracer variables).  The constructor takes as an argument a `struct nemo_constants` (declared in `nemo-datastructs.h`) where the relevant fields are:
+NEMO requires as inputs a vector containing gas density (g/cm3), pressure (dyne/cm2) and mass fractions of elements and ions (collectively called tracer variables).  The constructor takes as an argument a `struct NEMO::nemo_options` (declared in `nemo-datastructs.h`) where the relevant fields are:
 + nv_prim: length of primitive state vec
 + n_scalar: number of passive scalars in state vec
 + prim_dens_idx: index of density var (g/cm3) in state vec (usuallly 0)

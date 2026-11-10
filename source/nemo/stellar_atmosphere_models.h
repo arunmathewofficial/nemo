@@ -4,8 +4,8 @@
  *  \date     05-07-2023
  **/
 
-#ifndef PION_STELLAR_ATMOSPHERE_MODELS_H
-#define PION_STELLAR_ATMOSPHERE_MODELS_H
+#ifndef NEMO_STELLAR_ATMOSPHERE_MODELS_H
+#define NEMO_STELLAR_ATMOSPHERE_MODELS_H
 
 // logging
 #ifdef SPDLOG_FWD
@@ -24,6 +24,8 @@
 // nemo
 #include "nemo-constants.h"
 #include "nemo-datastructs.h"
+
+namespace NEMO {
 
 struct stellar_model_datatype {
   std::string info;
@@ -68,4 +70,6 @@ private:
   stellar_model_datatype blackbody;        ///< BLACKBODY
 };
 
-#endif  // PION_STELLAR_ATMOSPHERE_MODELS_H
+}  // namespace NEMO
+
+#endif  // NEMO_STELLAR_ATMOSPHERE_MODELS_H

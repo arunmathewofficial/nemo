@@ -10,6 +10,8 @@
 
 #include "chianti_cooling.h"
 
+namespace NEMO {
+
 // ##################################################################
 // CONSTRUCTOR
 chianti_cooling::chianti_cooling()
@@ -17011,3 +17013,5 @@ void chianti_cooling::cooling_table_database()
        -50.0, -50.0, -50.0}};
 }
 // END OF CHIANTI  COOLING DATABASE ###########################################
+
+}  // namespace NEMO

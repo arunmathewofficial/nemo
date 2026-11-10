@@ -1,5 +1,6 @@
 
 #include "common_functions.h"
+using namespace NEMO;
 
 // *******************************************************************
 // Calculate optical depth to the inner edge of every shell.

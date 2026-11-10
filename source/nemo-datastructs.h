@@ -1,9 +1,11 @@
-#ifndef DATASTRUCTS_H
-#define DATASTRUCTS_H
+#ifndef NEMO_DATASTRUCTS_H
+#define NEMO_DATASTRUCTS_H
 
 #include <array>
 #include <string>
 #include <vector>
+
+namespace NEMO {
 
 /// List of options for NEMO setting out how it functions
 struct nemo_options {
@@ -74,5 +76,6 @@ struct nemo_recomb_species {
   bool top_ion;  ///< true if species is highest ionization stage tracked
 };
 
+}  // namespace NEMO
 
-#endif  // DATASTRUCTS_H
+#endif  // NEMO_DATASTRUCTS_H

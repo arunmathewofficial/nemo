@@ -11,6 +11,8 @@
 
 #include "multi_ion_photo_xsections.h"
 
+namespace NEMO {
+
 // ##################################################################
 // Constructor
 multi_ion_photo_xsections::multi_ion_photo_xsections()
@@ -586,3 +588,5 @@ void multi_ion_photo_xsections::multi_ion_photo_xsections_database()
                               0.000E+00, 0.000E+00, 0.000E+00, 0.000E+00};
 }
 // END OF COLLISIONAL IONISATION DATABASE ***********************************
+
+}  // namespace NEMO

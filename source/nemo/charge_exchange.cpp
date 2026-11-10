@@ -10,6 +10,8 @@
 #include <string>     // for std::string
 #include <vector>     // for std::vector
 
+namespace NEMO {
+
 // #############################################################################
 // Constructor
 charge_exchange::charge_exchange(const int max_reactant_charge)
@@ -876,3 +878,5 @@ void charge_exchange::charge_exchange_database()
   // Reaction: Fe + S1+ -> Fe1+ + S, Already in Database
   // Reaction: Fe1+ + S - > Fe + S1+,  Not in Database
 }
+
+}  // namespace NEMO
