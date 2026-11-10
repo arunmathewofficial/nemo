@@ -19,16 +19,16 @@ Temperature: 74897.4 K
   output[0] = 1e-22
   output[1] = 1e-09
   output[2] = 1
-  output[2] = 0.72
-  output[3] = 0.28
-  output[4] = 1.45928e-05
-  output[5] = 4.84255e-05
-  output[6] = 0.130434
+  output[3] = 0.72
+  output[4] = 0.28
+  output[5] = 1.45928e-05
+  output[6] = 4.84255e-05
+  output[7] = 0.130434
 ```
 
 The only NEMO-specific CMake lines are in [CMakeLists.txt](CMakeLists.txt):
 ```cmake
-find_package(NEMO 1.0 REQUIRED)
+find_package(NEMO 1.1 REQUIRED)
 target_link_libraries(nemo-example PRIVATE NEMO::nemo)
 ```
 No MPI compiler wrapper is needed: `NEMO::nemo` passes on the MPI include

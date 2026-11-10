@@ -5,8 +5,8 @@
  *  \date     18-01-2022
  **/
 
-#ifndef MELLEMA_COOLING_H
-#define MELLEMA_COOLING_H
+#ifndef NEMO_MELLEMA_COOLING_H
+#define NEMO_MELLEMA_COOLING_H
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
@@ -22,6 +22,8 @@
 /**
  * \brief Struct to hold original Mellema table attributes.
  **/
+namespace NEMO {
+
 struct database_datatype {
   std::string Name;           ///< Species name
   std::vector<double> logT;   ///< Original temperature table (log10)
@@ -114,4 +116,7 @@ private:
       species;  ///< Cooling table database data type.
 };
 // END OF MELLEMA COOLING CLASS #############################################
-#endif  // MELLEMA_COOLING_H
+
+}  // namespace NEMO
+
+#endif  // NEMO_MELLEMA_COOLING_H

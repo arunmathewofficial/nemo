@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 # Finds NEMO's installed package files (lib/cmake/NEMO/NEMOConfig.cmake).
 # Point CMake at the install prefix with e.g. -DCMAKE_PREFIX_PATH=$HOME/.local
-find_package(NEMO 1.0 REQUIRED)
+find_package(NEMO 1.1 REQUIRED)
 
 add_executable(nemo-example main.cpp)
 

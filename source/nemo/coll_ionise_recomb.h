@@ -4,8 +4,8 @@
  *  \date     19-12-2022
  **/
 
-#ifndef PION_COLL_IONISE_RECOMB_H
-#define PION_COLL_IONISE_RECOMB_H
+#ifndef NEMO_COLL_IONISE_RECOMB_H
+#define NEMO_COLL_IONISE_RECOMB_H
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
@@ -26,6 +26,8 @@
  * \brief Struct to hold fit parameters of collisional ionisation rate
  * coefficient.
  **/
+namespace NEMO {
+
 struct coll_ionise_datatype {
   int P;     ///< Collisional ionisation fit parameter P (dimensionless)
   double A;  ///< Collisional ionisation fit parameter A (in units of cm^3/s)
@@ -209,4 +211,6 @@ private:
 };
 // END OF COLLISIONAL IONISATION AND RECOMBINATION CLASS #####################
 
-#endif  // PION_COLL_IONISE_RECOMB_H
+}  // namespace NEMO
+
+#endif  // NEMO_COLL_IONISE_RECOMB_H

@@ -4,8 +4,8 @@
  *  \date     12/12/2022
  **/
 
-#ifndef PION_ATOMIC_PHYSICS_DATABASE_H
-#define PION_ATOMIC_PHYSICS_DATABASE_H
+#ifndef NEMO_ATOMIC_PHYSICS_DATABASE_H
+#define NEMO_ATOMIC_PHYSICS_DATABASE_H
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
@@ -17,6 +17,8 @@
 /** \brief
  * Struct to hold atomic physics species attributes.
  **/
+namespace NEMO {
+
 struct species_datatype {
   std::string element;  ///< Element to which the ion belong to.
   int atomic_number;    ///< Atomic number
@@ -111,4 +113,6 @@ private:
 extern class atomic_physics_database atomic_physics_data;
 // END OF ATOMIC PHYSICS DATABASE CLASS ####################################
 
-#endif  // PION_ATOMIC_PHYSICS_DATABASE_H
+}  // namespace NEMO
+
+#endif  // NEMO_ATOMIC_PHYSICS_DATABASE_H

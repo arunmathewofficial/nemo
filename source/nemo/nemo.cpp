@@ -44,6 +44,8 @@ using namespace std;
 // Maximum charge of the reactant in charge exchange reactions
 #define CX_MaxQ 4  // Note: CX_MaxQ can only take values 1, 2, 3, or 4
 
+namespace NEMO {
+
 // GET ERROR TOLERANCES #################################################
 void nemo::get_error_tolerances(
     double &reltol,  ///< relative error tolerance.
@@ -2825,3 +2827,5 @@ void nemo::print_stellar_properties(
   file << tot_frac_L << endl;
   file.close();
 }
+
+}  // namespace NEMO

@@ -13,6 +13,8 @@
 #include "mellema_cooling.h"
 #include "nemo-constants.h"
 
+namespace NEMO {
+
 // ##################################################################
 // CONSTRUCTOR
 mellema_cooling::mellema_cooling()
@@ -8333,3 +8335,5 @@ void mellema_cooling::cooling_table_database()
        -50.0, -50.0, -50.0}};
 }
 // END OF MELLEMA COOLING DATABASE ###########################################
+
+}  // namespace NEMO

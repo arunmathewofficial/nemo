@@ -4,6 +4,7 @@
 
 #include "nemo-datastructs.h"
 #include "nemo/nemo.h"
+using namespace NEMO;
 
 // Calculate optical depth to the inner edge of every shell.
 void spherical_optical_depth(

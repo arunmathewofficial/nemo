@@ -5,6 +5,8 @@
  **/
 #include "photoionisation.h"
 
+namespace NEMO {
+
 photoionisation::photoionisation() {}
 photoionisation::~photoionisation() {}
 
@@ -205,3 +207,5 @@ double photoionisation::calculate_photoheating_rate(
   // spdlog::debug("{}");
   return heat_rate;
 }
+
+}  // namespace NEMO

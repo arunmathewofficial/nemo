@@ -27,6 +27,8 @@
 #include <mathimf.h>
 #endif
 
+namespace NEMO {
+
 ///
 /// Physical constants are from CODATA 2014, converted to CGS.
 /// http://dx.doi.org/10.5281/zenodo.22826
@@ -158,5 +160,7 @@ inline int exit_nemo(const int i)
   spdlog::shutdown();  // should flush the logfile buffer to file.
   exit(i);
 }
+
+}  // namespace NEMO
 
 #endif  // NEMO_CONSTANTS_H

@@ -9,12 +9,14 @@
 /// - 2015.03.23 JM: added bilinear interpolation function.
 /// - 2021.04.09 JM: switched GSL for Boost library.
 
-#ifndef INTERPOLATE_H
-#define INTERPOLATE_H
+#ifndef NEMO_INTERPOLATE_H
+#define NEMO_INTERPOLATE_H
 
 #include <boost/math/interpolators/makima.hpp>
 #include <vector>
 using namespace std;
+
+namespace NEMO {
 
 ///
 /// Interpolation class, including cubic spline (adapted from Numerical
@@ -148,4 +150,6 @@ protected:
 ///
 extern class interpolate_arrays interpolate;
 
-#endif  // INTERPOLATE_H
+}  // namespace NEMO
+
+#endif  // NEMO_INTERPOLATE_H

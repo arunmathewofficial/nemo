@@ -5,8 +5,8 @@
  *  \date      10-03-2024
  **/
 
-#ifndef PION_CHARGE_EXCHANGE_H
-#define PION_CHARGE_EXCHANGE_H
+#ifndef NEMO_CHARGE_EXCHANGE_H
+#define NEMO_CHARGE_EXCHANGE_H
 
 #include <spdlog/spdlog.h>
 /* prevent clang-format reordering */
@@ -14,6 +14,8 @@
 #include <fmt/ranges.h>
 #include <map>
 #include <variant>
+
+namespace NEMO {
 
 // UMIST charge exchange datatype
 struct UMIST_datatype {
@@ -118,4 +120,7 @@ private:
       const double                                  ///< Temperature
   );
 };
-#endif  // PION_CHARGE_EXCHANGE_H
+
+}  // namespace NEMO
+
+#endif  // NEMO_CHARGE_EXCHANGE_H

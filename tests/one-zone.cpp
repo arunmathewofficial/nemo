@@ -15,6 +15,7 @@
 #include "nemo-datastructs.h"
 #include "nemo/nemo.h"
 #include "nemo_git_version.h"
+using namespace NEMO;
 
 // *******************************************************************
 // check that result and reference are compatible.

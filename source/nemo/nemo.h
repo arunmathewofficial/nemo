@@ -50,6 +50,8 @@
 #include <utility>
 
 
+namespace NEMO {
+
 // ############################################################################
 //  NEMO CLASS VARIABLES AND FUNCTIONS
 ///
@@ -193,6 +195,20 @@ public:
   /// and add energy binning info to the struct(s)
   void get_radiation_src_info(
       std::vector<struct nemo_star_properties> &  ///< list of stars
+  );
+
+  ///
+  /// This function is utilized to correct the input primitive vector of the
+  /// grid. We utilize the sCMA (Simple Consistent Multi-fluid Advection, Plewa
+  /// and Muller, Astron. Astrophys. 342, 179, 1999) scheme. The utility of this
+  /// method requires the inputted mass fraction to satisfy the constraint that
+  /// the sum of elemental mass fractions must equal unity.
+  /// Public so that a hydrodynamics code can use it when advecting the
+  /// tracers (both vectors have length nv_prim).
+  ///
+  void sCMA(
+      std::vector<double> &,       ///< corrected vector.
+      const std::vector<double> &  ///< input primitive vector.
   );
 
   // ############################################################################
@@ -497,18 +513,6 @@ protected:
   ///
   void setup_local_vectors();
 
-  ///
-  /// This function is utilized to correct the input primitive vector of the
-  /// grid. We utilize the sCMA (Simple Consistent Multi-fluid Advection, Plewa
-  /// and Muller, Astron. Astrophys. 342, 179, 1999) scheme. The utility of this
-  /// method requires the inputted mass fraction to satisfy the constraint that
-  /// the sum of elemental mass fractions must equal unity.
-  ///
-  void sCMA(
-      std::vector<double> &,       ///< corrected vector.
-      const std::vector<double> &  ///< input primitive vector.
-  );
-
   const double eos_gamma;  ///< EOS gamma for ideal gas.
   double gamma_minus_one;  ///< as named.
   double Min_NeutralFrac;  ///< minimum H0 fraction allowed (eps=1.0e-12)
@@ -599,4 +603,7 @@ protected:
       std::string                           // file path
   );
 };
+
+}  // namespace NEMO
+
 #endif  // NEMO_H

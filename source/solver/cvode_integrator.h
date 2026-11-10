@@ -21,8 +21,8 @@
 ///    compatibility with sundials 2.5.0.
 ///
 
-#ifndef CVODE_INTEGRATOR_H
-#define CVODE_INTEGRATOR_H
+#ifndef NEMO_CVODE_INTEGRATOR_H
+#define NEMO_CVODE_INTEGRATOR_H
 
 // #define CVODE_DEBUG
 
@@ -93,6 +93,8 @@
 #else
 #error "must define a CVODE version"
 #endif
+
+namespace NEMO {
 
 //
 // ydot needs to be a stand-alone function for cvode, so this function will
@@ -240,4 +242,6 @@ protected:
   //---------------------------------------------------------------------------
 };
 
-#endif  // CVODE_INTEGRATOR_H
+}  // namespace NEMO
+
+#endif  // NEMO_CVODE_INTEGRATOR_H

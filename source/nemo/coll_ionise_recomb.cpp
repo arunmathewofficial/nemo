@@ -8,6 +8,8 @@
 #include "coll_ionise_recomb.h"
 #include <iostream>
 
+namespace NEMO {
+
 // ##################################################################
 // Constructor
 coll_ionise_recomb::coll_ionise_recomb()
@@ -1652,3 +1654,5 @@ void coll_ionise_recomb::recombination_database()
       {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
 }
 // End of database for recombination fitting parameters ################
+
+}  // namespace NEMO

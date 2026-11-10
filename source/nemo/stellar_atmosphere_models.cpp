@@ -8,6 +8,8 @@
 
 #define SAM_DEBUG
 
+namespace NEMO {
+
 stellar_atmosphere_models::stellar_atmosphere_models() {}
 stellar_atmosphere_models::~stellar_atmosphere_models() {}
 
@@ -1128,3 +1130,5 @@ void stellar_atmosphere_models::stellar_atmosphere_model_database()
 
   // ###########################################################################
 }
+
+}  // namespace NEMO
