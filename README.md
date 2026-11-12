@@ -45,6 +45,8 @@ internal classes (e.g. its ODE solver and interpolation classes) cannot clash
 with classes of the same name in the code that uses it.
 
 See [examples/minimal](examples/minimal) for a complete example project.
+[examples/sundials-logger](examples/sundials-logger) shows how to send
+CVODE's error messages to their own log file.
 
 # Using NEMO to integrate the ionisation and thermal state of a plasma
 

@@ -32,6 +32,8 @@
 /* prevent clang-format reordering */
 #include <fmt/ranges.h>
 
+#include <atomic>
+
 using namespace std;
 
 #define MAX_TRYS 50
@@ -42,6 +44,66 @@ using namespace std;
 
 namespace NEMO {
 
+namespace {
+
+std::atomic<long int> cvode_mxstep_count(0);
+
+/// Send a SUNDIALS error message to the "sundials" logger, or to the default
+/// logger if there is none.
+void log_sundials_message(
+    const char *func, const char *file, int line, int code, const char *msg)
+{
+  auto lg = spdlog::get(sundials_logger_name);
+  if (!lg) lg = spdlog::default_logger();
+  if (file)
+    lg->warn("[{}:{}][{}] code {}: {}", file, line, func, code, msg);
+  else
+    lg->warn("[{}] code {}: {}", func, code, msg);
+}
+
+#if defined CVODE7
+/// SUNDIALS 7 error handler: count mxstep errors, log the others.
+void sundials_err_handler(
+    int line,
+    const char *func,
+    const char *file,
+    const char *msg,
+    SUNErrCode code,
+    void *,
+    SUNContext)
+{
+  if (code == CV_TOO_MUCH_WORK) {
+    cvode_mxstep_count++;
+    return;
+  }
+  log_sundials_message(func, file, line, code, msg);
+}
+#else
+/// CVODE (SUNDIALS < 7) error handler: count mxstep errors, log the others.
+void sundials_err_handler(
+    int code, const char *module, const char *func, char *msg, void *)
+{
+  if (code == CV_TOO_MUCH_WORK) {
+    cvode_mxstep_count++;
+    return;
+  }
+  log_sundials_message(func, module, 0, code, msg);
+}
+#endif
+
+}  // namespace
+
+// ##################################################################
+// ##################################################################
+
+long int get_and_reset_cvode_mxstep_count()
+{
+  return cvode_mxstep_count.exchange(0);
+}
+
+// ##################################################################
+// ##################################################################
+
 cvode_solver::cvode_solver()
 {
   abstol    = 0;
@@ -50,7 +112,6 @@ cvode_solver::cvode_solver()
   n_xd = -1;  // number of extra paramaters needed in ydot/jacobian functions
               // (maybe none).
   have_setup_cvodes = false;
-  fp                = 0;
 }
 
 // ##################################################################
@@ -64,10 +125,6 @@ cvode_solver::~cvode_solver()
   N_VDestroy(abstol);
 #endif
   CVodeFree(&cvode_mem);
-
-#if !defined CVODE7
-  fclose(fp);
-#endif
 }
 
 // ##################################################################
@@ -260,17 +317,12 @@ int cvode_solver::setup_cvode_solver_without_Jacobian()
 
 #endif
 
-  // redirect cvode error messages to a file
+  // Send CVODE error messages to our handler instead of stderr.
 #if defined CVODE7
-  // SUNLogger *logger;
-  // SUNLogger_Create(SUN_COMM_NULL,0,logger);
-  ////SUNContext_GetLogger(sunctx,logger);
-  // SUNLogger_SetErrorFilename(*logger,"/dev/null");
-  // SUNContext_SetLogger(sunctx, *logger);
-  ////SUNContext_ClearErrHandlers(sunctx);
+  SUNContext_ClearErrHandlers(sunctx);
+  SUNContext_PushErrHandler(sunctx, sundials_err_handler, nullptr);
 #else
-  fp = fopen("/dev/null", "w");
-  CVodeSetErrFile(cvode_mem, fp);
+  CVodeSetErrHandlerFn(cvode_mem, sundials_err_handler, nullptr);
 #endif
 
   // Should be all done now, so return.

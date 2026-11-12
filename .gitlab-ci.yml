@@ -146,5 +146,10 @@ Install:
         -DCMAKE_PREFIX_PATH="${NEMO_INSTALL_PREFIX}"
     - cmake --build "${EXAMPLE_BUILD_DIR}"
     - "${EXAMPLE_BUILD_DIR}/nemo-example"
+    - cmake -S examples/sundials-logger -B "${EXAMPLE_BUILD_DIR}-sundials"
+        -DCMAKE_CXX_COMPILER=g++
+        -DCMAKE_PREFIX_PATH="${NEMO_INSTALL_PREFIX}"
+    - cmake --build "${EXAMPLE_BUILD_DIR}-sundials"
+    - cd "${EXAMPLE_BUILD_DIR}-sundials" && ./nemo-sundials-logger
 
 
