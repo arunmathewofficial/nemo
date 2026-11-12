@@ -159,20 +159,6 @@ void mellema_cooling::generate_mellema_table(
       for (int i = 0; i < NT; i++)
         mellema_table[mellema_species_index].rate[i].resize(Nne);
 
-      // Resizing rate slope table along log T and log ne
-      // Note: If one generate NT*Ne table for Rate, then it is only possible to
-      // create slope table of order (NT-1)*(Nne-1). However, here we resize the
-      // slope tables to NT*Ne order and keep the last row and the last column
-      // set to zero.
-
-      mellema_table[mellema_species_index].T_rateslope.resize(NT);
-      for (int i = 0; i < NT; i++)
-        mellema_table[mellema_species_index].T_rateslope[i].resize(Nne);
-
-      mellema_table[mellema_species_index].ne_rateslope.resize(NT);
-      for (int i = 0; i < NT; i++)
-        mellema_table[mellema_species_index].ne_rateslope[i].resize(Nne);
-
       spdlog::debug(
           "Mellema cooling: Generating cooling LUT[{}] {:s}",
           mellema_species_index, mellema_table[mellema_species_index].Name);
@@ -194,24 +180,6 @@ void mellema_cooling::generate_mellema_table(
                           rate_table_size,          // Array sizes
                           {logT[i], logne[j]}       // Point of evaluation.
                           ));
-        }
-      }
-
-      // setting up rate slope tables in T and ne directions.
-      for (size_t i = 0;
-           i < mellema_table[mellema_species_index].rate.size() - 1; i++) {
-        for (size_t j = 0;
-             j < mellema_table[mellema_species_index].rate[i].size() - 1; j++) {
-
-          mellema_table[mellema_species_index].T_rateslope[i][j] =
-              (mellema_table[mellema_species_index].rate[i + 1][j]
-               - mellema_table[mellema_species_index].rate[i][j])
-              / (T[i + 1] - T[i]);
-
-          mellema_table[mellema_species_index].ne_rateslope[i][j] =
-              (mellema_table[mellema_species_index].rate[i][j + 1]
-               - mellema_table[mellema_species_index].rate[i][j])
-              / (ne[j + 1] - ne[j]);
         }
       }
 

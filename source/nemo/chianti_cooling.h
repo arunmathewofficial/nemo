@@ -35,12 +35,9 @@ struct database_datatype {
 struct LUT_datatype {
   /// Name of the species
   std::string Name;
-  /// New chianti cooling rate lookup table
+  /// Chianti cooling rate lookup table rate[T][ne] (bilinear interpolation
+  /// between the table nodes is done in nemo::chianti_cooling_rate()).
   std::vector<std::vector<double> > rate;
-  /// Chianti rate slope along T-axis
-  std::vector<std::vector<double> > T_rateslope;
-  /// Chianti rate slope along ne-axis
-  std::vector<std::vector<double> > ne_rateslope;
 };
 // END OF USER DEFINED DATATYPE #########################################
 

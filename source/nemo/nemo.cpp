@@ -26,10 +26,32 @@
 /* prevent clang-format reordering */
 #include <fmt/ranges.h>
 
+#include <atomic>
+
 #ifndef NDEBUG
 #endif
 
 using namespace std;
+
+namespace {
+///
+/// Electron densities above the top of the cooling-rate tables are clamped to
+/// the top of the table.  The cooling rates are then unreliable (no
+/// collisional de-excitation beyond the table), so warn, but only once per
+/// process: the cooling functions are called for every species in every cell
+/// at every ODE right-hand-side evaluation, by all OpenMP threads.
+///
+void warn_ne_above_cooling_table(const double ne, const double ne_max)
+{
+  static std::atomic<bool> warned(false);
+  if (!warned.exchange(true))
+    spdlog::warn(
+        "NEMO cooling: n_e = {:.3e} cm^-3 is above the cooling-table maximum "
+        "{:.3e}; using the rates at n_e = {:.3e}, so cooling rates may be "
+        "unreliable (this warning is printed only once)",
+        ne, ne_max, ne_max);
+}
+}  // namespace
 
 // #define NEMO_CIE_TEST
 // #define NEMO_CIE_COOLING
@@ -87,7 +109,10 @@ nemo::nemo(
 #error "must define MELLEMA or CHIANTI"
 #endif
     eos_gamma(g), tab_T_min(1e1), tab_T_max(1e9), tab_Num_temps(300),
-    tab_Num_ne(100), tab_ne_min(1.0), tab_ne_max(1.0e6), nv_prim(n_o.nv_prim),
+    tab_Num_ne(216), tab_ne_min(1.0),
+    // same log-spacing as the original table (1 to 1e6 in 99 intervals),
+    // extended to ne ~ 1.07e13, so the original table nodes are unchanged.
+    tab_ne_max(std::pow(10.0, 215.0 * 6.0 / 99.0)), nv_prim(n_o.nv_prim),
     ntracer(n_o.n_scalar), opt(n_o), stellar_atmosphere_models(),
     multi_ion_photo_xsections(), photoionisation()
 {
@@ -2440,6 +2465,10 @@ double nemo::mellema_cooling_rate(
   if (T > tab_T_max) T = tab_T_max;
   if (T < tab_T_min) T = tab_T_min;
   if (ne < tab_ne_min) ne = tab_ne_min;
+  if (ne > tab_ne_max) {
+    warn_ne_above_cooling_table(ne, tab_ne_max);
+    ne = tab_ne_max;
+  }
 
   // Note: Since the Mellema cooling rates are given in log scales,
   // i.e, L(Log T, Log ne), we calculate the differential change dLog_T
@@ -2447,28 +2476,24 @@ double nemo::mellema_cooling_rate(
   // Delta_Log_ne is a constant step size calculated in the
   // Mellema_cooling_rate.cpp
 
-  // Get temperature vector index
-  int T_index = int((log10(T) - log10(tab_T_min)) / delta_logT);
-  // Get the difference in temperature.
-  double dT = T - T_table[T_index];
+  // Find the table cell containing (T, ne).  The table nodes are evenly
+  // spaced in log10(T) and log10(ne); T and ne have been clamped to the
+  // table range above, and the indices are limited so that i+1 and j+1 are
+  // inside the table.
+  int i = static_cast<int>((log10(T) - log10(tab_T_min)) / delta_logT);
+  int j = static_cast<int>((log10(ne) - log10(tab_ne_min)) / delta_logne);
+  i     = std::min(std::max(i, 0), tab_Num_temps - 2);
+  j     = std::min(std::max(j, 0), tab_Num_ne - 2);
 
-  // Get electron number density vector index.
-  int ne_index = int((log10(ne) - log10(tab_ne_min)) / delta_logne);
-  // Get the difference in electron number density.
-  double dne = ne - ne_table[ne_index];
+  // Fractional position of (T, ne) in the cell, in linear T and ne.
+  const double fT = (T - T_table[i]) / (T_table[i + 1] - T_table[i]);
+  const double fn = (ne - ne_table[j]) / (ne_table[j + 1] - ne_table[j]);
 
-  // cout<<"T= "<<T<< ", "<<"T_index= "<<T_Index<<", "<<"T= "<<Vec_T[T_Index]
-  // << endl; cout<<"ne= "<<ne<< ", "<<"ne_index= "<<ne_Index<<", "<<"ne=
-  // "<<Vec_ne[ne_Index] << endl;
-
-  // Calculating Mellema Cooling Rate.
-  double L = 0.0;
-  // Calculating cooling from the LookUp Table (LUT) with the location of
-  // each Ion and atom in the database.
-  L = mellema_table[location].rate[T_index][ne_index]
-      + dT * mellema_table[location].T_rateslope[T_index][ne_index]
-      + dne * mellema_table[location].ne_rateslope[T_index][ne_index];
-  return L;
+  // Bilinear interpolation between the four corners of the cell, which is
+  // continuous across the table nodes in both T and ne.
+  const std::vector<std::vector<double> > &r = mellema_table[location].rate;
+  return (1.0 - fT) * ((1.0 - fn) * r[i][j] + fn * r[i][j + 1])
+         + fT * ((1.0 - fn) * r[i + 1][j] + fn * r[i + 1][j + 1]);
 }
 #endif
 
@@ -2489,6 +2514,10 @@ double nemo::chianti_cooling_rate(
   if (T > tab_T_max) T = tab_T_max;
   if (T < tab_T_min) T = tab_T_min;
   if (ne < tab_ne_min) ne = tab_ne_min;
+  if (ne > tab_ne_max) {
+    warn_ne_above_cooling_table(ne, tab_ne_max);
+    ne = tab_ne_max;
+  }
 
   // Note: Since the chianti cooling rates are given in log scales,
   // i.e, L(Log T, Log ne), we calculate the differential change dLog_T
@@ -2496,25 +2525,24 @@ double nemo::chianti_cooling_rate(
   // Delta_Log_ne is a constant step size calculated in the
   // chianti_cooling_rate.cpp
 
-  // Get temperature vector index
-  int T_index = int((log10(T) - log10(tab_T_min)) / delta_logT);
-  // Get the difference in temperature.
-  double dT = T - T_table[T_index];
+  // Find the table cell containing (T, ne).  The table nodes are evenly
+  // spaced in log10(T) and log10(ne); T and ne have been clamped to the
+  // table range above, and the indices are limited so that i+1 and j+1 are
+  // inside the table.
+  int i = static_cast<int>((log10(T) - log10(tab_T_min)) / delta_logT);
+  int j = static_cast<int>((log10(ne) - log10(tab_ne_min)) / delta_logne);
+  i     = std::min(std::max(i, 0), tab_Num_temps - 2);
+  j     = std::min(std::max(j, 0), tab_Num_ne - 2);
 
-  // Get electron number density vector index.
-  int ne_index = int((log10(ne) - log10(tab_ne_min)) / delta_logne);
-  // Get the difference in electron number density.
-  double dne = ne - ne_table[ne_index];
+  // Fractional position of (T, ne) in the cell, in linear T and ne.
+  const double fT = (T - T_table[i]) / (T_table[i + 1] - T_table[i]);
+  const double fn = (ne - ne_table[j]) / (ne_table[j + 1] - ne_table[j]);
 
-  // Calculating chianti cooling rate.
-  double L = 0.0;
-  // Calculating cooling from the LookUp Table (LUT) with the location of
-  // each Ion and atom in the database.
-  L = chianti_table[location].rate[T_index][ne_index]
-      + dT * chianti_table[location].T_rateslope[T_index][ne_index]
-      + dne * chianti_table[location].ne_rateslope[T_index][ne_index];
-
-  return L;
+  // Bilinear interpolation between the four corners of the cell, which is
+  // continuous across the table nodes in both T and ne.
+  const std::vector<std::vector<double> > &r = chianti_table[location].rate;
+  return (1.0 - fT) * ((1.0 - fn) * r[i][j] + fn * r[i][j + 1])
+         + fT * ((1.0 - fn) * r[i + 1][j] + fn * r[i + 1][j + 1]);
 }
 #endif
 
