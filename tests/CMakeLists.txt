@@ -50,6 +50,9 @@ add_dependencies(cx-test copy_data)
 # Isochoric cooling test
 add_subdirectory(isochoric-cooling)
 
+# Non-equilibrium isochoric cooling (regression) test
+add_subdirectory(isochoric-nei)
+
 # photoionization equilibrium test
 add_subdirectory(test4-photoion-eq)
 add_dependencies(photoionization_eq copy_data)
