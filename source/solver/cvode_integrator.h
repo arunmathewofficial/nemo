@@ -96,6 +96,17 @@
 
 namespace NEMO {
 
+/// Name of the spdlog logger that SUNDIALS (CVODE) error messages are sent
+/// to.  If the calling code has not registered a logger with this name, the
+/// messages go to the default logger.
+constexpr const char *sundials_logger_name = "sundials";
+
+/// Number of CVODE "mxstep steps taken before reaching tout" errors
+/// (CV_TOO_MUCH_WORK) since the last call, summed over all threads.  These
+/// are counted instead of logged, because NEMO recovers from them by
+/// splitting the step.  Resets the count to zero.
+long int get_and_reset_cvode_mxstep_count();
+
 //
 // ydot needs to be a stand-alone function for cvode, so this function will
 // just provide the interface to call solver::ydot();
@@ -180,7 +191,6 @@ private:
   int n_eq;                ///< number of equations to solve.
   int n_xd;                ///< number of elements in user-data array.
   bool have_setup_cvodes;  ///< flag to make sure we only set up CVODES once.
-  FILE *fp;                ///< pointer to file for CVODE error messages.
 
 protected:
 #if defined(CVODE6) || defined CVODE7
