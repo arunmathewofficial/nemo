@@ -11,9 +11,20 @@
 /// Radiative cooling updates the gas pressure while mass density and all
 /// elemental and ion mass fractions remain fixed.
 ///
-/// NEMO advances the gas to each elapsed time in the reference data, cooling
-/// the gas using the same time intervals. At each step, the test calculates
-/// the temperature and compares it with the reference temperature.
+/// The reference data (tests/data/isochoric_cooling_reference.txt, written
+/// by make_reference.py) give the exact times t_i at which the gas reaches
+/// temperatures T_i, and the cooling rate dT/dt at T_i, calculated with
+/// NEMO's cooling tables and interpolation scheme.
+///
+/// For each interval, NEMO starts from the reference temperature T_{i-1} and
+/// cools the gas for t_i - t_{i-1}.  The test checks that NEMO reaches T_i at
+/// the right time: the temperature error is converted to a time error,
+/// |T - T_i| / |dT/dt|, which must be less than a fraction time_tolerance of
+/// the interval (or the temperature must agree to temperature_tolerance).
+/// Comparing times instead of temperatures makes the test equally strict
+/// where the temperature falls slowly and where it falls very steeply (near
+/// 1e5 K).  Starting each interval from the reference state means that each
+/// interval tests the cooling rate in its own temperature range.
 
 #include <algorithm>
 #include <cmath>
@@ -109,35 +120,41 @@ setup_isochoric_cooling_test()
 }
 
 
-std::pair<std::vector<double>, std::vector<double> > load_reference_data()
+struct reference_data {
+  std::vector<double> time;         ///< elapsed time [s]
+  std::vector<double> temperature;  ///< temperature [K]
+  std::vector<double> dTdt;         ///< cooling rate dT/dt [K/s]
+};
+
+reference_data load_reference_data()
 {
-  // Load NebulaPy reference times and temperatures.
+  // Load reference times, temperatures and cooling rates.
   std::ifstream reference_file(ISOCHORIC_REFERENCE_FILE);
   if (!reference_file.is_open()) {
     spdlog::error("Failed to open {}", ISOCHORIC_REFERENCE_FILE);
     exit_nemo(1);
   }
-  std::vector<double> reference_elapsed_times;
-  std::vector<double> reference_temperatures;
+  reference_data ref;
   std::string line;
   while (std::getline(reference_file, line)) {
     std::istringstream row(line);
     row >> std::ws;
     if (row.eof() || row.peek() == '#') continue;
-    double time, temperature;
-    if (!(row >> time >> temperature)) {
+    double time, temperature, dTdt;
+    if (!(row >> time >> temperature >> dTdt)) {
       spdlog::error("Invalid reference row: {}", line);
       exit_nemo(1);
     }
-    reference_elapsed_times.push_back(time);
-    reference_temperatures.push_back(temperature);
+    ref.time.push_back(time);
+    ref.temperature.push_back(temperature);
+    ref.dTdt.push_back(dTdt);
   }
   if (reference_file.bad()) {
     spdlog::error("Error reading reference data");
     exit_nemo(1);
   }
 
-  return {reference_elapsed_times, reference_temperatures};
+  return ref;
 }
 
 int main(void)
@@ -171,11 +188,9 @@ int main(void)
   auto initial_state                     = setup_isochoric_cooling_test();
   std::vector<double> &initial_vector    = initial_state.first;
   std::vector<std::string> &tracer_names = initial_state.second;
-  auto reference_data                    = load_reference_data();
-  const std::vector<double> &reference_elapsed_times = reference_data.first;
-  const std::vector<double> &reference_temperatures  = reference_data.second;
-  const int N_state_vars                             = initial_vector.size();
-  const int n_tracers                                = tracer_names.size();
+  const reference_data ref               = load_reference_data();
+  const int N_state_vars                 = initial_vector.size();
+  const int n_tracers                    = tracer_names.size();
 
   flags.nv_prim       = N_state_vars;
   flags.n_scalar      = n_tracers;
@@ -183,67 +198,74 @@ int main(void)
   flags.prim_pres_idx = 1;
   class nemo MP(flags, tracer_names, rs, eos_gamma);
 
-  std::vector<double> input_vector = initial_vector;
-  std::vector<double> output_vector(N_state_vars);
+  // The temperature must agree to temperature_tolerance, or the time at
+  // which NEMO reaches the reference temperature must agree to
+  // time_tolerance times the length of the interval.
+  const double temperature_tolerance = 1.0e-6;
+  const double time_tolerance        = 1.0e-5;
 
+  const double T_start = MP.Temperature(initial_vector, eos_gamma);
+  std::vector<double> input_vector(N_state_vars);
+  std::vector<double> output_vector(N_state_vars);
   bool test_status = true;
   double x         = 0.0;
 
-  for (size_t step = 0; step < reference_elapsed_times.size(); ++step) {
+  for (size_t step = 1; step < ref.time.size(); ++step) {
+    // Start from the reference temperature at the start of the interval:
+    // at fixed density and composition, the pressure is proportional to T.
+    input_vector = initial_vector;
+    input_vector[1] *= ref.temperature[step - 1] / T_start;
 
-    if (step > 0) {
-      // CVODE advances from the previous reference time to this exact time.
-      const double timestep =
-          reference_elapsed_times[step] - reference_elapsed_times[step - 1];
-      const int err = MP.update_single_cell(
-          input_vector, cell_rt, output_vector, timestep, eos_gamma, &x);
-      if (err) {
-        spdlog::error("Error updating cooling at step {}: code {}", step, err);
-        return 1;
-      }
-      input_vector.swap(output_vector);
+    // CVODE advances over the interval between two reference times.
+    const double interval = ref.time[step] - ref.time[step - 1];
+    const int err         = MP.update_single_cell(
+        input_vector, cell_rt, output_vector, interval, eos_gamma, &x);
+    if (err) {
+      spdlog::error("Error updating cooling at step {}: code {}", step, err);
+      return 1;
     }
 
     // Isochoric evolution requires constant mass density (fixed cell volume).
     // Compare the density ratio to detect relative changes in the small CGS
     // density.
     const bool density_passed =
-        compare_scalar(input_vector[0] / initial_vector[0], 1.0, 1.0e-8, 0.0);
+        compare_scalar(output_vector[0] / initial_vector[0], 1.0, 1.0e-8, 0.0);
     if (!density_passed) {
       spdlog::error(
           "Step {}: density changed: initial={:.10e}, current={:.10e} g/cm^3",
-          step, initial_vector[0], input_vector[0]);
+          step, initial_vector[0], output_vector[0]);
     }
 
     // Verify that elemental and ion mass fractions remain unchanged during
     // cooling.
     bool mass_fractions_passed = true;
     for (int i = 2; i < N_state_vars; ++i) {
-      if (!compare_scalar(input_vector[i], initial_vector[i], 1.0e-8, 0.0)) {
+      if (!compare_scalar(output_vector[i], initial_vector[i], 1.0e-8, 0.0)) {
         spdlog::error(
             "Step {}: mass fraction {} changed", step, tracer_names[i - 2]);
         mass_fractions_passed = false;
       }
     }
 
-    const bool constraints_passed = density_passed && mass_fractions_passed;
-    test_status                   = test_status && constraints_passed;
+    // Compare the temperature with the reference, as a temperature error
+    // and as the equivalent time error, relative to the interval.
+    const double T                = MP.Temperature(output_vector, eos_gamma);
+    const double T_ref            = ref.temperature[step];
+    const double dT               = std::abs(T - T_ref);
+    const double time_error       = dT / std::abs(ref.dTdt[step]) / interval;
+    const bool temperature_passed = std::isfinite(T)
+                                    && (dT <= temperature_tolerance * T_ref
+                                        || time_error <= time_tolerance);
 
-    // Compare temperature with the reference only if both constraints pass.
-    if (constraints_passed) {
-      const double temperature = MP.Temperature(input_vector, eos_gamma);
-      const double reference_temperature = reference_temperatures[step];
-      const bool test_passed =
-          compare_scalar(temperature, reference_temperature);
-      test_status = test_status && test_passed;
-      spdlog::info(
-          "Time step: {:.6e} s | Constraints check: {} | Temperature check: {}",
-          reference_elapsed_times[step],
-          constraints_passed ? "PASSED" : "FAILED",
-          test_passed ? "PASSED" : "FAILED");
-    }
+    const bool step_passed =
+        density_passed && mass_fractions_passed && temperature_passed;
+    test_status = test_status && step_passed;
+    spdlog::info(
+        "Step {:2d}: T_ref = {:.6e} K, T = {:.6e} K, T error = {:.2e}, "
+        "time error = {:.2e} of interval: {}",
+        step, T_ref, T, dT / T_ref, time_error,
+        step_passed ? "PASSED" : "FAILED");
   }
-
 
   spdlog::info(
       "NEMO isochoric cooling test: {}", test_status ? "PASSED" : "FAILED");

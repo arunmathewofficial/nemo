@@ -36,11 +36,7 @@ struct database_datatype {
  **/
 struct LUT_datatype {
   std::string Name;                        /// Name of the species
-  std::vector<std::vector<double> > rate;  /// New Mellema cooling rate LUT
-  std::vector<std::vector<double> >
-      T_rateslope;  /// Mellema rate slope along T-axis
-  std::vector<std::vector<double> >
-      ne_rateslope;  /// Mellema rate slope along ne-axis
+  std::vector<std::vector<double> > rate;  /// Mellema cooling rate LUT [T][ne]
 };
 // END OF USER DEFINED DATATYPE #########################################
 
