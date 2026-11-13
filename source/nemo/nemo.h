@@ -533,18 +533,6 @@ protected:
           &  ///< cell data for radiation source
   );
 
-  /// Function to return photo-ionisation rate.
-  double photoionisation_rate(
-      const int,    // Species identifier
-      const double  // Species number density
-  );
-
-  /// Function to return photo-heating rate.
-  double photoheating_rate(
-      const int,    // Species identifier
-      const double  // Species number density
-  );
-
   /// index matching photo_ion xsection to ion in local vector
   std::vector<std::vector<double> > y_ion_xsections;
 
