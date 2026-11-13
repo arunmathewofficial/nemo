@@ -16,24 +16,25 @@ void spherical_optical_depth(
         &cell_rt  // vec of cell data
 )
 {
-  int NTau = star.Nbins;
-  // HARDCODED FOR JUST ONE RADIATION SOURCE
-  // Each grid cell has a cell_rt vector of length 1 (for 1 source)
-  for (auto el : cell_rt) {
-    std::fill(el[0].tau.begin(), el[0].tau.end(), 0.0);
-    std::fill(el[0].dtau.begin(), el[0].dtau.end(), 0.0);
-  }
-  std::vector<double> total_tau(NTau, 0.0);
-  std::vector<double> shell_tau(NTau, 0.0);
+  // Every grid cell has a cell_rt vector with one entry per radiation
+  // source.  All sources are at the centre, and use the same energy bins.
+  const int NTau = star.Nbins;
+  if (cell_rt.empty()) return;
+  const std::size_t n_src = cell_rt[0].size();
+  std::vector<std::vector<double> > total_tau(
+      n_src, std::vector<double>(NTau, 0.0));
 
   // Shells must be ordered from the star outward.
   for (std::size_t i = 0; i < state.size(); ++i) {
-    cell_rt[i][0].tau = total_tau;  // Optical depth BEFORE this shell
+    // Optical depth BEFORE this shell
+    for (std::size_t src = 0; src < n_src; ++src)
+      cell_rt[i][src].tau = total_tau[src];
 
     MP.get_dtau(state[i], cell_rt[i]);
 
-    for (int b = 0; b < NTau; ++b) {
-      total_tau[b] += cell_rt[i][0].dtau[b];
+    for (std::size_t src = 0; src < n_src; ++src) {
+      for (int b = 0; b < NTau; ++b)
+        total_tau[src][b] += cell_rt[i][src].dtau[b];
     }
   }
 }

@@ -10,7 +10,7 @@
 
 namespace NEMO {
 
-stellar_atmosphere_models::stellar_atmosphere_models() {}
+stellar_atmosphere_models::stellar_atmosphere_models() : N_energy_bins(0) {}
 stellar_atmosphere_models::~stellar_atmosphere_models() {}
 
 // SETTING UP STELLAR ATMOSPHERE MODELS ###################################
@@ -119,6 +119,7 @@ int stellar_atmosphere_models::generate_bin_luminosity(
   T_upper = model_data[T_index][0];
 
   double frac_luminosity = 0.0;
+  s.bin_luminosity.clear();
   for (int j = 1; j < model_data[0].size(); j++) {
     frac_luminosity = model_data[T_index - 1][j]
                           * (1 - (s.Teff - T_lower) / (T_upper - T_lower))

@@ -10,6 +10,18 @@
 /// containing H, He, C, N, O and Ne on a one-dimensional spherical grid.
 /// Includes radial attenuation, heating and cooling, without hydrodynamics.
 ///
+/// Usage: hii40-lexington [<mode> <output file>]
+/// Without arguments the benchmark is run with one star, and the result is
+/// written to output_states_hii40.txt.  The modes test NEMO with more than
+/// one radiation source (see run-hii40-2src.sh); the results of all modes
+/// should be the same, and are written to <output file> with more digits:
+///  - "single": one star, as in the benchmark.
+///  - "split":  two identical stars at the centre, each with half of the
+///              luminosity (and the same effective temperature).
+///  - "absent": the star, and a second, different star that does not
+///              illuminate any cell (zero path length and infinite
+///              Vshell, as PION sets for sources that do not reach a cell).
+///
 
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
@@ -272,8 +284,17 @@ bool compare_state(
 
 
 // *******************************************************************
-int main(void)
+int main(int argc, char **argv)
 {
+  const std::string mode = (argc > 1) ? argv[1] : "single";
+  const std::string output_file =
+      (argc > 2) ? argv[2] : "output_states_hii40.txt";
+  if (argc == 2 || argc > 3
+      || (mode != "single" && mode != "split" && mode != "absent")) {
+    spdlog::error("usage: {} [<single|split|absent> <output file>]", argv[0]);
+    return 1;
+  }
+
 #ifdef NDEBUG
   spdlog::set_level(spdlog::level::info);
   spdlog::flush_on(spdlog::level::err);
@@ -310,7 +331,28 @@ int main(void)
   s.Radius     = 18.6517;  // solar radii
   s.SED_info   = "";       //? do i need to set this?
   s.id         = 0;
-  rs.push_back(s);
+  if (mode == "split") {
+    // two identical stars with half of the luminosity each, and the same
+    // effective temperature.
+    s.Luminosity *= 0.5;
+    s.Radius /= std::sqrt(2.0);
+    rs.push_back(s);
+    s.id = 1;
+    rs.push_back(s);
+  }
+  else {
+    rs.push_back(s);
+    if (mode == "absent") {
+      // a second, cooler star that does not illuminate any cell.
+      s.Teff       = 3.0e4;
+      s.Radius     = 10.0;
+      s.Luminosity = 4.0 * 3.141592653589793 * 5.670374e-5 * std::pow(s.Teff, 4)
+                     * std::pow(s.Radius * 6.957e10, 2);
+      s.id = 1;
+      rs.push_back(s);
+    }
+  }
+  const int n_src = rs.size();
 
   struct nemo_options flags;
   flags.Min_Temperature         = 1.0e3;
@@ -385,13 +427,20 @@ int main(void)
 
   std::vector<std::vector<struct nemo_cell_rt_data> > cell_rt(n_cells);
   for (int i = 0; i < n_cells; ++i) {
-    cell_rt[i].resize(1);
-    struct nemo_cell_rt_data &rtdata = cell_rt[i][0];
-    rtdata.star_id                   = rs[0].id;  // Radiation-source identifier
-    rtdata.dS                        = thickness[i];  // Shell thickness, cm
-    rtdata.Vshell                    = volume[i];     // Shell volume, cm3
-    rtdata.tau.resize(rs[0].Nbins);                   // Number of energy bins
-    rtdata.dtau.resize(rs[0].Nbins);                  // Number of energy bins
+    cell_rt[i].resize(n_src);
+    for (int src = 0; src < n_src; ++src) {
+      struct nemo_cell_rt_data &rtdata = cell_rt[i][src];
+      rtdata.star_id = rs[src].id;      // Radiation-source identifier
+      rtdata.dS      = thickness[i];    // Shell thickness, cm
+      rtdata.Vshell  = volume[i];       // Shell volume, cm3
+      rtdata.tau.resize(rs[0].Nbins);   // Number of energy bins
+      rtdata.dtau.resize(rs[0].Nbins);  // Number of energy bins
+    }
+    if (mode == "absent") {
+      // the second star does not reach this cell.
+      cell_rt[i][1].dS     = 0.0;
+      cell_rt[i][1].Vshell = 1.0e200;
+    }
   }
   double x                    = 0.0;
   const auto simulation_start = std::chrono::steady_clock::now();
@@ -497,7 +546,7 @@ int main(void)
 
 
   // Open file for writing final state
-  std::ofstream outfile("output_states_hii40.txt");
+  std::ofstream outfile(output_file);
   if (!outfile.is_open()) {
     spdlog::error("Failed to open output file");
     return 1;
@@ -508,7 +557,9 @@ int main(void)
     header += " " + tracers[i - 2];
   outfile << header << "\n";
   outfile.setf(std::ios::scientific);
-  outfile.precision(6);  // 6 decimal places in scientific notation
+  // 6 decimal places in scientific notation for the benchmark output,
+  // more for the comparison of the modes with each other.
+  outfile.precision(argc > 2 ? 14 : 6);
   // save data in sequence (not in OMP loop)
   for (int i = 0; i < n_cells; i++) {
     for (int j = 0; j < n_state_vars; j++) {
@@ -517,7 +568,7 @@ int main(void)
     outfile << "\n";
   }
   outfile.close();
-  spdlog::info("Output saved to output_states_hii40.txt");
+  spdlog::info("Output saved to {}", output_file);
 
   // TODO: Remove the rest later
   // Save the final temperature at each shell's radial midpoint.

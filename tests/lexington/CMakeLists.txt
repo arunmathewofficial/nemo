@@ -15,3 +15,10 @@ add_custom_target(
 add_test(NAME hii40-lexington COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run-hii40-test.sh")
 
 
+# The same problem with two radiation sources (see run-hii40-2src.sh)
+add_custom_target(
+  test-hii40-2src
+  COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run-hii40-2src.sh"
+  VERBATIM
+)
+add_test(NAME hii40-2src COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run-hii40-2src.sh")

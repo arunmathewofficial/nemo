@@ -16,8 +16,9 @@ void photoionisation::setup_photoionisation(
     const int N_photo_species,                       // number of photo species
     const std::vector<std::vector<double> > &photo_xsection_table,  //
     const std::vector<std::vector<double> >
-        &bin_weight_table,                       // bin weight table
-    const std::vector<double> &bin_luminosity,   // stellar spectrum
+        &bin_weight_table,  // bin weight table
+    const std::vector<std::vector<double> >
+        &bin_luminosity,  // stellar spectrum of each source [src][bin]
     const std::vector<double> &photo_tracer_Eth  // photoionisation threshold
 )
 {
@@ -76,136 +77,96 @@ void photoionisation::setup_photoionisation(
         mean_energy_table[s].push_back(0.0);
         continue;
       }
-      // if the bin weight is <1, then set the e_bin_min as ionisation threshold
-      // of the specific species while calculating the mean bin energy
-      if (bin_frac_table[s][b] < 1.0) {
-        E_bins[b][0]    = ionisation_thres[s];
-        mean_bin_energy = 0.5 * (E_bins[b][0] + E_bins[b][1]);
-      }
-      // otherwise, that is, if bin weight is 1, then use the following
-      // calculation to estimate mean bin energy
-      else
-        mean_bin_energy = 0.5 * (E_bins[b][0] + E_bins[b][1]);
+      // If the bin weight is <1, the ionisation threshold of this species
+      // lies inside the bin, so the mean energy is taken between the
+      // threshold and the upper edge of the bin; otherwise over the full
+      // bin.  (E_bins is shared by all species and must not be changed.)
+      const double e_min =
+          (bin_frac_table[s][b] < 1.0) ? ionisation_thres[s] : E_bins[b][0];
+      mean_bin_energy = 0.5 * (e_min + E_bins[b][1]);
       // append the mean bin energy to the table for the species
       mean_energy_table[s].push_back(mean_bin_energy * eV());
     }  // bin loop
   }  // species loop
+
+  // 3. Tables used by the rate calculation: optical depth per unit column
+  // density, 1/(mean photon energy), and the fraction of the photon energy
+  // that goes into heating (the excess over the ionisation threshold).
+  // They are zero in bins below the threshold of the species.
+  tau_coeff.assign(N_photo_species, std::vector<double>(bin_size, 0.0));
+  inv_energy.assign(N_photo_species, std::vector<double>(bin_size, 0.0));
+  heat_frac.assign(N_photo_species, std::vector<double>(bin_size, 0.0));
+  for (int s = 0; s < N_photo_species; s++) {
+    for (int b = species_threshold_bin_index[s]; b < bin_size; b++) {
+      tau_coeff[s][b]  = bin_frac_table[s][b] * xsection_table[s][b];
+      inv_energy[s][b] = 1.0 / mean_energy_table[s][b];
+      heat_frac[s][b] =
+          1.0 - ionisation_thres[s] * eV() / mean_energy_table[s][b];
+    }
+  }
+
+  // 4. Radiation field at the current cell, for each source (no flux
+  // until set_cell_radiation() is called).
+  cell_flux.assign(bin_spectrum.size(), std::vector<double>(bin_size, 0.0));
+  cell_ds.assign(bin_spectrum.size(), 0.0);
 }
 
-// CALCULATING PHOTO-IONISATION RATE #####################################
-double photoionisation::calculate_photoionisation_rate(
-    const int species,                   // Species_identifier
-    const double species_num_density,    // Species number density,
-    const double element_num_density,    // Element number density,
+// SET RADIATION FIELD AT THE CURRENT CELL ###############################
+void photoionisation::set_cell_radiation(
+    const int src,                       // source index
     const double vshell,                 // vshell
     const double ds,                     // ds
     const std::vector<double> &tau_bins  // Optical depth in each energy bin
 )
 {
-  double rate              = 0.0;
-  double bin_rate          = 0.0;
-  double delta_species_tau = 0.0;
-
-  // spdlog::debug("species = {}", species);
-
-  // spdlog::debug("tau_bins ={}", tau_bins);
-
-  // We calculate the photo-ionization rate for a specific species by summing
-  // the following expression over all energy bins:
-  // Gamma = (L_b * exp(-tau_b) * (1 - exp(-tau_b^s))) / (E_b * vshell * n_s)
-  // where the subscript "b" represents the value of the corresponding
-  // quantities in the bin.
-  // double localrate = 0.0;
-  for (int b = species_threshold_bin_index[species]; b < bin_size; b++) {
-    bin_rate =
-        bin_spectrum[b] * exp(-tau_bins[b]) / mean_energy_table[species][b];
-    // calculating dtau for the specific species
-    delta_species_tau = species_num_density * bin_frac_table[species][b]
-                        * xsection_table[species][b] * ds;
-    // if dtau << 1 then take the following value
-    if (delta_species_tau < 1.0E-02)
-      bin_rate *= delta_species_tau / (vshell * element_num_density);
-    // if dtau approx 1 then take the following value
-    else
-      bin_rate *=
-          (1.0 - exp(-delta_species_tau)) / (vshell * element_num_density);
-    // adding bin rate to the total rate
-    rate += bin_rate;
-    // localrate += bin_spectrum[b] * exp(-tau_bins[b]) *
-    // bin_frac_table[species][b] * xsection_table[species][b] * ds *
-    // species_num_density / (vshell * element_num_density *
-    // mean_energy_table[species][b]);
-    // if ((species==10 || species==0) && vshell>2.2e56) {
-    //  spdlog::info("bin {}, species_threshold_bin_index {}, delta tau_bins
-    //  ={:12.3e}, bin rate {:12.3e}", b, species_threshold_bin_index[species],
-    //  delta_species_tau, bin_rate); spdlog::info("star: {:12.3e} {:12.3e}
-    //  {:12.3e}", bin_spectrum[b], exp(-tau_bins[b]),
-    //  mean_energy_table[species][b]);
-    //}
+  if (vshell <= 0.0 || ds <= 0.0) {
+    cell_ds[src] = 0.0;
+    return;
   }
-  // if ((species==10 || species==0) && vshell>2.14e56) {
-  //  spdlog::info("total rate: {:12.3e}",rate);
-  //  spdlog::info("");
-  //}
-  return rate;
+  cell_ds[src] = ds;
+  for (int b = 0; b < bin_size; b++)
+    cell_flux[src][b] = bin_spectrum[src][b] * exp(-tau_bins[b]) / vshell;
 }
 
-// CALCULATING PHOTO-HEATING RATE #####################################
-double photoionisation::calculate_photoheating_rate(
-    const int species,                   ///< Species_identifier
-    const double species_num_density,    ///< Species number density,
-    const double vshell,                 ///< vshell
-    const double ds,                     ///< ds
-    const std::vector<double> &tau_bins  ///< Optical depth in each energy bin
-)
+// CALCULATING PHOTO-IONISATION AND PHOTO-HEATING RATES ##################
+void photoionisation::calculate_photo_rates(
+    const int species,                 // Species_identifier
+    const double species_num_density,  // Species number density,
+    const double element_num_density,  // Element number density,
+    double &ion_rate,                  // photoionisation rate
+    double &heat_rate                  // photoheating rate
+) const
 {
-  double heat_rate;
-  double bin_heat_rate;
-  double delta_species_tau;
-  double frac_excess_energy;
-  double exponential;
-  // We calculate the photo-heating rate for a specific species by summing
-  // the following expression over all energy bins:
-  // Gamma = (L_b * exp(-tau_b) * (1 - exp(-tau_b^s))) (E_b - E_th) / (E_b *
-  // vshell * n_s) where the subscript "b" represents the value of the
-  // corresponding quantities in the bin.
-  heat_rate = 0.0;
-  for (int b = species_threshold_bin_index[species]; b < bin_size; b++) {
-
-    exponential = exp(-tau_bins[b]);
-
-    // if (exponent  < 1.0e-50) {
-    //  heat_rate += 0.0;
-    //  continue; // Skip to the next iteration
-    //}
-
-    bin_heat_rate = bin_spectrum[b] * exponential;
-
-    // the fractional excess energy
-    frac_excess_energy =
-        1.0 - ionisation_thres[species] * eV() / mean_energy_table[species][b];
-
-    bin_heat_rate *= frac_excess_energy;
-
-    // calculating dtau for the specific species
-    delta_species_tau = species_num_density * bin_frac_table[species][b]
-                        * xsection_table[species][b] * ds;
-
-    // if dtau << 1 then take the following value
-    if (delta_species_tau < 1.0E-02) {
-      bin_heat_rate *= delta_species_tau / vshell;
+  // For each source and each energy bin b at or above the threshold of
+  // the species, the energy absorbed by the species per unit volume and
+  // time is
+  //   A_b = L_b * exp(-tau_b) * (1 - exp(-dtau_b)) / Vshell
+  // where tau_b is the optical depth from the source to the cell and
+  // dtau_b = n_s * sigma_b * ds is the optical depth of this species
+  // through the cell (photon-conserving form).  Then
+  //   photoionisation rate = sum_b A_b / E_b / n_element
+  //   photoheating rate    = sum_b A_b * (1 - E_threshold / E_b)
+  // where E_b is the mean photon energy in the bin.
+  ion_rate                      = 0.0;
+  heat_rate                     = 0.0;
+  const std::vector<double> &tc = tau_coeff[species];
+  const std::vector<double> &ie = inv_energy[species];
+  const std::vector<double> &hf = heat_frac[species];
+  const int b0                  = species_threshold_bin_index[species];
+  for (size_t src = 0; src < cell_ds.size(); src++) {
+    if (cell_ds[src] <= 0.0) continue;
+    const double column             = species_num_density * cell_ds[src];
+    const std::vector<double> &flux = cell_flux[src];
+    for (int b = b0; b < bin_size; b++) {
+      const double dtau = column * tc[b];
+      // if dtau << 1 then 1 - exp(-dtau) = dtau
+      const double absorbed =
+          flux[b] * ((dtau < 1.0E-02) ? dtau : (1.0 - exp(-dtau)));
+      ion_rate += absorbed * ie[b];
+      heat_rate += absorbed * hf[b];
     }
-    // if dtau approx > 1.0E-03 then take the following value
-    else {
-      bin_heat_rate *= (1.0 - exp(-delta_species_tau)) / vshell;
-    }
-    // spdlog::debug("bin ={}, bin_heat_rate = {} ", b, bin_heat_rate);
-    // summing over energy bins
-    heat_rate += bin_heat_rate;
   }
-
-  // spdlog::debug("{}");
-  return heat_rate;
+  ion_rate /= element_num_density;
 }
 
 }  // namespace NEMO

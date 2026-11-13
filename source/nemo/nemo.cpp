@@ -127,10 +127,9 @@ nemo::nemo(
   prim_pres_idx = n_o.prim_pres_idx;
 
   // setup radiation sources.
-  RS     = rsrc;
-  int Nb = get_N_Ebins();
+  RS = rsrc;
   for (unsigned int i = 0; i < RS.size(); i++) {
-    RS[i].Nbins = Nb;
+    RS[i].Nbins = 0;  // set below, if photoionisation is on.
     RS[i].id    = i;
   }
 
@@ -170,9 +169,18 @@ nemo::nemo(
 
   // Setup stellar atmosphere models for stellar luminosity spectrum
   if (opt.photoionization) {
+    if (RS.empty()) {
+      spdlog::error("nemo: photoionisation is on, but there are no sources");
+      exit_nemo(1);
+    }
     setup_stellar_atmosphere_models(RS[0]);
     // Note: This will return energy bins, number of energy bins and maximum
-    // energy in the energy bin vector.
+    // energy in the energy bin vector.  All sources use the same energy bins.
+    for (unsigned int i = 1; i < RS.size(); i++) {
+      RS[i].Ebins      = RS[0].Ebins;
+      RS[i].Nbins      = RS[0].Nbins;
+      RS[i].photo_emax = RS[0].photo_emax;
+    }
   }
 
   // Enable the charge-exchange reaction only if both charge_exchange and
@@ -302,6 +310,7 @@ nemo::nemo(
 
   // Section: Photo-ionisation and photo-heating *******************************
   if (opt.photoionization) {
+    // All sources use the same energy bins (those of source 0).
     spdlog::debug(" nemo: Energy bins {}", RS[0].Ebins);
     spdlog::debug(" nemo: Number of energy bins {}", RS[0].Nbins);
     spdlog::debug(
@@ -355,16 +364,22 @@ nemo::nemo(
     }
     spdlog::debug("nemo: {} radiation source(s) detected.", RS.size());
 
-    // Setup photo-ionisation module
+    // Setup photo-ionisation module, with the spectrum of every source.
+    std::vector<std::vector<double> > bin_luminosities;
+    for (unsigned int src = 0; src < RS.size(); src++)
+      bin_luminosities.push_back(RS[src].bin_luminosity);
     setup_photoionisation(
         RS[0].Ebins, N_photo_species, photo_xsection_table, bin_weight_table,
-        RS[0].bin_luminosity, photo_species_IE);
+        bin_luminosities, photo_species_IE);
 
 #ifdef NEMO_DEBUG
     mkdir("NEMO-Tables/stellar_model", 0777);
     // print to file photo-ionisation cross-section tables
     spdlog::debug(" nemo: writting bin luminosity into file");
-    print_stellar_properties(RS[0], "NEMO-Tables/stellar_model/bin_luminosity");
+    for (unsigned int src = 0; src < RS.size(); src++)
+      print_stellar_properties(
+          RS[src],
+          "NEMO-Tables/stellar_model/bin_luminosity_src" + std::to_string(src));
 #endif
   }
 
@@ -1193,27 +1208,33 @@ void nemo::get_dtau(
     std::vector<struct nemo_cell_rt_data> &cell_rt  // cell data
 )
 {
-  // HARDCODED FOR SINGLE SOURCE
-  if (cell_rt.size() > 1) {
-    spdlog::error("get_dtau only works for one source");
-    exit_nemo(cell_rt.size());
-  }
-  // check that number of energy bins is set correctly
-  if (cell_rt[0].dtau.size() != RS[0].Nbins) {
-    spdlog::error("nemo: dtau vec size mismatch");
+  // Optical depth through the cell in each energy bin, for each entry of
+  // cell_rt.  All sources use the same energy bins, so the opacity is the
+  // same for all of them and only the path length dS differs.  cell_rt can
+  // have any number of entries (e.g. just the source being ray-traced).
+  if (!opt.photoionization) {
+    spdlog::error("nemo: get_dtau called without photoionisation");
     exit_nemo(1);
   }
-  // Calculate differential optical depth for each energy bin.
-  for (int bin = 0; bin < RS[0].Nbins; bin++) {
-    double bin_optical_depth = 0.0;
-    for (int s = 0; s < N_photo_species; s++) {
-      bin_optical_depth += prim_in[photo_massfrac_species_prim_idx[s]]
-                           * photo_xsection_table[s][bin]
-                           * bin_weight_table[s][bin]
-                           / element_atomic_mass[photo_species_element[s]];
+  const int Nb = RS[0].Nbins;
+  for (size_t i = 0; i < cell_rt.size(); i++) {
+    // check that number of energy bins is set correctly
+    if (static_cast<int>(cell_rt[i].dtau.size()) != Nb) {
+      spdlog::error("nemo: dtau vec size mismatch");
+      exit_nemo(1);
     }
-    bin_optical_depth *= prim_in[prim_dens_idx] * cell_rt[0].dS;
-    cell_rt[0].dtau[bin] = bin_optical_depth;
+  }
+  // Calculate differential optical depth for each energy bin.
+  for (int bin = 0; bin < Nb; bin++) {
+    double opacity = 0.0;  // per unit length
+    for (int s = 0; s < N_photo_species; s++) {
+      opacity += prim_in[photo_massfrac_species_prim_idx[s]]
+                 * photo_xsection_table[s][bin] * bin_weight_table[s][bin]
+                 / element_atomic_mass[photo_species_element[s]];
+    }
+    opacity *= prim_in[prim_dens_idx];
+    for (size_t i = 0; i < cell_rt.size(); i++)
+      cell_rt[i].dtau[bin] = opacity * cell_rt[i].dS;
   }
   return;
 }
@@ -2267,6 +2288,7 @@ int nemo::ydot(
 
     double photoionise_rate = 0.0;
     double photoionise_ydot = 0.0;
+    double species_heating  = 0.0;
 
     for (int s = 0; s < N_photo_species; s++)  // loop over ci species
     {
@@ -2276,8 +2298,11 @@ int nemo::ydot(
           species_number_density[photo_species_element[s]]
                                 [photo_species_charge[s]];
 
-      // get photo-ionisation rate for the species s
-      photoionise_rate = photoionisation_rate(s, species_num_density);
+      // get photo-ionisation and photo-heating rates for the species s,
+      // summed over all radiation sources.
+      calculate_photo_rates(
+          s, species_num_density, element_num_density[photo_species_element[s]],
+          photoionise_rate, species_heating);
       photoionise_ydot = photoionise_rate;
 
       // if the upper ionisation state exist then add photoionise_ydot
@@ -2287,7 +2312,7 @@ int nemo::ydot(
       NV_Ith_S(y_dot, photo_species_local_idx[s]) -= photoionise_ydot;
 
       // Heating due to photo-ionisation of this species.
-      photoheat_rate += photoheating_rate(s, species_num_density);
+      photoheat_rate += species_heating;
     }
     Edot += photoheat_rate;
     // spdlog::info("photoheat_rate: {:12.6e}",photoheat_rate);
@@ -2420,34 +2445,6 @@ double nemo::recomb_charge_exchange_rate(
   return rate;
 }
 
-// GET PHOTO-IONISATION RATE  ###############################################
-double nemo::photoionisation_rate(
-    const int species_idx,            // photo species index (first index)
-    const double species_num_density  // species number density
-)
-{
-  // HARDCODED FOR JUST ONE RADIATION SOURCE
-  // spdlog::info("index = {}, n_H = {}, n_s = {}", species_index,
-  // element_num_density, species_num_density);
-  double elem_num_density =
-      element_num_density[photo_species_element[species_idx]];
-  return calculate_photoionisation_rate(
-      species_idx, species_num_density, elem_num_density, cell_rt[0].Vshell,
-      cell_rt[0].dS, cell_rt[0].tau);
-}
-
-// GET PHOTO-HEATING RATE  ###############################################
-double nemo::photoheating_rate(
-    const int species_index,          // photo species index (first index)
-    const double species_num_density  // species number density
-)
-{
-  // HARDCODED FOR JUST ONE RADIATION SOURCE
-  return calculate_photoheating_rate(
-      species_index, species_num_density, cell_rt[0].Vshell, cell_rt[0].dS,
-      cell_rt[0].tau);
-}
-
 #ifdef MELLEMA
 // GET MELLEMA COOLING RATE #################################################
 double nemo::mellema_cooling_rate(
@@ -2550,22 +2547,34 @@ double nemo::chianti_cooling_rate(
 void nemo::setup_radiation_source_parameters(
     const std::vector<struct nemo_cell_rt_data> &ion_src)
 {
+  // Nothing to do without photoionisation (cell_rt is not set up).
+  if (!opt.photoionization) return;
 
+  // ion_src[k] is the radiation field of source RS[k] at this cell.
   if (RS.size() != ion_src.size()) {
-    spdlog::error("setup_radiation_source_parameters: size mismatch");
+    spdlog::error(
+        "setup_radiation_source_parameters: got cell data for {} sources, "
+        "expected {}",
+        ion_src.size(), RS.size());
     exit_nemo(1);
   }
 
-  // proceed if there are any ionizing sources present.
-  if (ion_src.size() > 0) {
-    // HARDCODED FOR JUST ONE RADIATION SOURCE
-    cell_rt[0].dS     = ion_src[0].dS;
-    cell_rt[0].Vshell = ion_src[0].Vshell;
-    cell_rt[0].tau.resize(RS[0].Nbins, 0.0);
-    for (int b = 0; b < RS[0].Nbins; b++)
-      cell_rt[0].tau[b] = ion_src[0].tau[b];
-    // spdlog::debug("ds {:12.6e}, Vsh {:12.6e}, col {:8.3e}", cell_rt[0].dS,
-    // cell_rt[0].Vshell, fmt::join(cell_rt[0].tau, ", "));
+  for (size_t src = 0; src < RS.size(); src++) {
+    const int Nb = RS[src].Nbins;
+    if (static_cast<int>(ion_src[src].tau.size()) < Nb) {
+      spdlog::error(
+          "setup_radiation_source_parameters: source {} has {} optical "
+          "depths, expected {}",
+          src, ion_src[src].tau.size(), Nb);
+      exit_nemo(1);
+    }
+    cell_rt[src].dS     = ion_src[src].dS;
+    cell_rt[src].Vshell = ion_src[src].Vshell;
+    for (int b = 0; b < Nb; b++)
+      cell_rt[src].tau[b] = ion_src[src].tau[b];
+    // attenuated flux of this source at the cell, for the rate calculation.
+    set_cell_radiation(
+        src, cell_rt[src].Vshell, cell_rt[src].dS, cell_rt[src].tau);
   }
 }
 
