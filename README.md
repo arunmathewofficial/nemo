@@ -47,6 +47,8 @@ with classes of the same name in the code that uses it.
 See [examples/minimal](examples/minimal) for a complete example project.
 [examples/sundials-logger](examples/sundials-logger) shows how to send
 CVODE's error messages to their own log file.
+[examples/wind-ionisation](examples/wind-ionisation) sets the wind tracers
+of a PION parameter file to photoionisation equilibrium.
 
 # Using NEMO to integrate the ionisation and thermal state of a plasma
 

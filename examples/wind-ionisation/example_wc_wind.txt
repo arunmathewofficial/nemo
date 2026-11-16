@@ -1,0 +1,84 @@
+# Example PION parameter file (only the parameters that wind-ionisation
+# reads): a WC Wolf-Rayet star, like the WR star in WR 140, with a wind
+# boundary of radius 1.5e13 cm on a 2D cylindrical grid.  The wind tracers
+# below put all carbon in C2+, but the star's radiation keeps the gas at the
+# boundary as C3+: wind-ionisation prints the corrected values.
+
+ndim        2
+coordinates cylindrical
+NGridX      128
+NGridY      64
+Xmin        -1.75e14
+Xmax         1.75e14
+Ymin         0.0
+Ymax         1.75e14
+grid_nlevels 1
+
+ntracer 19
+Tracer000 X_He
+Tracer001 He
+Tracer002 He1+
+Tracer003 X_C
+Tracer004 C
+Tracer005 C1+
+Tracer006 C2+
+Tracer007 C3+
+Tracer008 C4+
+Tracer009 C5+
+Tracer010 X_O
+Tracer011 O
+Tracer012 O1+
+Tracer013 O2+
+Tracer014 O3+
+Tracer015 O4+
+Tracer016 O5+
+Tracer017 O6+
+Tracer018 O7+
+
+EP_coll_ionisation    1
+EP_rad_recombination  1
+EP_charge_exchange    1
+EP_cooling            1
+EP_Min_Temperature    5.0e3
+EP_Max_Temperature    1.0e9
+
+# Radiation source: PoWR WC model atmosphere (RT_effect 8).
+RT_Nsources 1
+RT_position_0_0  0.0
+RT_position_0_1  0.0
+RT_position_0_2  0.0
+RT_strength_0    0.782e+39   # luminosity, erg/s
+RT_Rstar____0    1.73        # radius, Rsun
+RT_Tstar____0    9.3e4       # effective temperature, K
+RT_effect___0    8
+
+# Wind source at the same position (mdot in Msun/yr, vinf in km/s).
+WIND_NSRC 1
+WIND_0_pos0          0.0
+WIND_0_pos1          0.0
+WIND_0_pos2          0.0
+WIND_0_radius        1.5e13
+WIND_0_Rstr          1.5e11
+WIND_0_mdot          2.2e-5
+WIND_0_vinf          2860.0
+WIND_0_temp          93200.0
+WIND_0_acceleration  0
+WIND_0_TR0   0.55       # X_He
+WIND_0_TR1   1.0e-12    # He
+WIND_0_TR2   0.549999999999  # He1+
+WIND_0_TR3   0.40       # X_C
+WIND_0_TR4   1.0e-12    # C
+WIND_0_TR5   1.0e-12    # C1+
+WIND_0_TR6   0.399999999996  # C2+
+WIND_0_TR7   1.0e-12    # C3+
+WIND_0_TR8   1.0e-12    # C4+
+WIND_0_TR9   1.0e-12    # C5+
+WIND_0_TR10  0.05       # X_O
+WIND_0_TR11  1.0e-12    # O
+WIND_0_TR12  1.0e-12    # O1+
+WIND_0_TR13  0.049999999994  # O2+
+WIND_0_TR14  1.0e-12    # O3+
+WIND_0_TR15  1.0e-12    # O4+
+WIND_0_TR16  1.0e-12    # O5+
+WIND_0_TR17  1.0e-12    # O6+
+WIND_0_TR18  1.0e-12    # O7+

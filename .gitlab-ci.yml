@@ -151,5 +151,11 @@ Install:
         -DCMAKE_PREFIX_PATH="${NEMO_INSTALL_PREFIX}"
     - cmake --build "${EXAMPLE_BUILD_DIR}-sundials"
     - cd "${EXAMPLE_BUILD_DIR}-sundials" && ./nemo-sundials-logger
+    - cd "${CI_PROJECT_DIR}"
+    - cmake -S examples/wind-ionisation -B "${EXAMPLE_BUILD_DIR}-wind"
+        -DCMAKE_CXX_COMPILER=g++
+        -DCMAKE_PREFIX_PATH="${NEMO_INSTALL_PREFIX}"
+    - cmake --build "${EXAMPLE_BUILD_DIR}-wind"
+    - "${EXAMPLE_BUILD_DIR}-wind/wind-ionisation examples/wind-ionisation/example_wc_wind.txt"
 
 
