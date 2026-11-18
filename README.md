@@ -44,6 +44,19 @@ namespace `NEMO`, e.g. `NEMO::nemo`, `NEMO::nemo_options`,
 internal classes (e.g. its ODE solver and interpolation classes) cannot clash
 with classes of the same name in the code that uses it.
 
+### Building without installed dependencies
+
+With `-DNEMO_FETCH_DEPS=ON` (CMake 3.28 or later), CMake downloads and builds
+pinned versions of SUNDIALS (CVODE only), spdlog, fmt and Boost.Math (header
+only) as part of the NEMO build, as static, position-independent libraries
+without MPI.  No MPI, SUNDIALS, Boost or spdlog installation is needed, and a
+plain C++ compiler is enough.  This is how the Python package is built.  NEMO
+is not installed in this mode (`cmake --install` does nothing for it).  The
+versions are set in [cmake/NEMOFetchDependencies.cmake](cmake/NEMOFetchDependencies.cmake);
+to build offline, point CMake at local copies, e.g.
+`-DFETCHCONTENT_SOURCE_DIR_SUNDIALS=/path/to/sundials-7.9.0`.
+Set `-DNEMO_BUILD_TESTS=OFF` to skip the tests.
+
 See [examples/minimal](examples/minimal) for a complete example project.
 [examples/sundials-logger](examples/sundials-logger) shows how to send
 CVODE's error messages to their own log file.

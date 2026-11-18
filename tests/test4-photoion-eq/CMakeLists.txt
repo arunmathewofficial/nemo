@@ -1,6 +1,6 @@
 # 1D photoionization equilibrium test
 add_executable(photoionization_eq photoionization_eq.cpp) # Build the executable
-target_link_libraries(photoionization_eq PRIVATE nemo common_functions MPI::MPI_CXX)
+target_link_libraries(photoionization_eq PRIVATE nemo common_functions)
 target_compile_features(photoionization_eq PRIVATE cxx_std_14) # Require C++14
 if(NEMO_OMP)
     target_link_libraries(photoionization_eq PRIVATE OpenMP::OpenMP_CXX)

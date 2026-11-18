@@ -37,6 +37,20 @@ option(
     OFF
 )
 
+option(
+    NEMO_FETCH_DEPS
+    "Download and build SUNDIALS (CVODE), spdlog, fmt and Boost.Math as part \
+of the NEMO build (static, no MPI), instead of using installed packages. \
+NEMO is then not installed.  Used for the Python package."
+    OFF
+)
+
+option(
+    NEMO_BUILD_TESTS
+    "Build the NEMO tests."
+    ON
+)
+
 #  This is required on OSX so that the Boost code will compile successfully
 set(CMAKE_CXX_STANDARD 14)
 
@@ -57,38 +71,48 @@ if(NEMO_OMP)
   include_directories(${OpenMP_CXX_INCLUDE_DIR})
 endif(NEMO_OMP)
 
-find_package(Boost 1.73.0 REQUIRED)
+if(NEMO_FETCH_DEPS)
+  include(NEMOFetchDependencies)
+  set(NEMO_MPI_TARGET "")
+else()
+  find_package(Boost 1.73.0 REQUIRED)
 
-find_package(SUNDIALS REQUIRED)
-#message(STATUS "SUNDIALS version = ${SUNDIALS_VERSION_MAJOR}.${SUNDIALS_VERSION_MINOR}")
-#message(STATUS "SUNDIALS include = ${SUNDIALS_INCLUDE_DIR}/../")
+  find_package(SUNDIALS REQUIRED)
+  #message(STATUS "SUNDIALS version = ${SUNDIALS_VERSION_MAJOR}.${SUNDIALS_VERSION_MINOR}")
+  #message(STATUS "SUNDIALS include = ${SUNDIALS_INCLUDE_DIR}/../")
 
-find_package(MPI REQUIRED)  # Homebrew sundials needs open MPI
+  find_package(MPI REQUIRED)  # Homebrew sundials needs open MPI
 
-find_package(spdlog REQUIRED)
-add_definitions("-DSPDLOG_COMPILED_LIB")
-# Get spdlog version
-message(STATUS "spdlog version: ${spdlog_VERSION}")
+  find_package(spdlog REQUIRED)
+  add_definitions("-DSPDLOG_COMPILED_LIB")
+  # Get spdlog version
+  message(STATUS "spdlog version: ${spdlog_VERSION}")
 
+  # Create an interface target that abstracts the spdlog+fmt combination
+  add_library(spdlog_deps INTERFACE)
+
+  if(spdlog_VERSION VERSION_LESS "1.13.0" OR APPLE)
+    message(STATUS "using external fmt b/c old spdlog or apple")
+    find_package(fmt REQUIRED)
+    message(STATUS "fmt version = ${fmt_VERSION}")
+    target_compile_definitions(spdlog_deps INTERFACE SPDLOG_FMT_EXTERNAL)
+    target_link_libraries(spdlog_deps INTERFACE spdlog::spdlog fmt::fmt)
+    # Suppress deprecation warnings from fmt/spdlog version mismatch in Homebrew
+    target_compile_options(spdlog_deps INTERFACE -Wno-deprecated-declarations)
+  else()
+    target_link_libraries(spdlog_deps INTERFACE spdlog::spdlog)
+  endif()
+
+  set(NEMO_BOOST_TARGET Boost::boost)
+  set(NEMO_MPI_TARGET MPI::MPI_CXX)
+  set(NEMO_SUNDIALS_TARGETS ${SUNDIALS_LIBRARY})
+  if(${SUNDIALS_VERSION_STRING} VERSION_GREATER_EQUAL 7.0.0)
+    list(APPEND NEMO_SUNDIALS_TARGETS ${SUNDIALS_sundials_core_LIBRARY})
+  endif()
+endif(NEMO_FETCH_DEPS)
 
 if(spdlog_VERSION VERSION_GREATER_EQUAL "1.6.0")
-  message(STATUS "spdlog version = ${spdlog_VERSION}")
   set(NEMO_SPDLOG_FWD ON)
-endif()
-
-# Create an interface target that abstracts the spdlog+fmt combination
-add_library(spdlog_deps INTERFACE)
-
-if(spdlog_VERSION VERSION_LESS "1.13.0" OR APPLE)
-  message(STATUS "using external fmt b/c old spdlog or apple")
-  find_package(fmt REQUIRED)
-  message(STATUS "fmt version = ${fmt_VERSION}")
-  target_compile_definitions(spdlog_deps INTERFACE SPDLOG_FMT_EXTERNAL)
-  target_link_libraries(spdlog_deps INTERFACE spdlog::spdlog fmt::fmt)
-  # Suppress deprecation warnings from fmt/spdlog version mismatch in Homebrew
-  target_compile_options(spdlog_deps INTERFACE -Wno-deprecated-declarations)
-else()
-  target_link_libraries(spdlog_deps INTERFACE spdlog::spdlog)
 endif()
 
 # Include optional subdirectories
@@ -115,52 +139,58 @@ configure_file(
 
 add_subdirectory(source)
 
-# Install the nemo library, its headers, and the CMake package files so that
-# other projects can use find_package(NEMO) and link to NEMO::nemo
-include(CMakePackageConfigHelpers)
-set(NEMO_INSTALL_CMAKEDIR ${NEMO_INSTALL_LIBDIR}/cmake/NEMO)
+if(NOT NEMO_FETCH_DEPS)
+  # Install the nemo library, its headers, and the CMake package files so that
+  # other projects can use find_package(NEMO) and link to NEMO::nemo
+  include(CMakePackageConfigHelpers)
+  set(NEMO_INSTALL_CMAKEDIR ${NEMO_INSTALL_LIBDIR}/cmake/NEMO)
 
-install(
-    TARGETS nemo
-    EXPORT NEMOTargets
-    ARCHIVE DESTINATION ${NEMO_INSTALL_LIBDIR}
-)
+  install(
+      TARGETS nemo
+      EXPORT NEMOTargets
+      ARCHIVE DESTINATION ${NEMO_INSTALL_LIBDIR}
+  )
 
-install(
-    DIRECTORY ${PROJECT_SOURCE_DIR}/source/
-    DESTINATION ${NEMO_INSTALL_INCLUDEDIR}/nemo
-    FILES_MATCHING PATTERN "*.h"
-)
+  install(
+      DIRECTORY ${PROJECT_SOURCE_DIR}/source/
+      DESTINATION ${NEMO_INSTALL_INCLUDEDIR}/nemo
+      FILES_MATCHING PATTERN "*.h"
+  )
 
-install(
-    EXPORT NEMOTargets
-    NAMESPACE NEMO::
-    DESTINATION ${NEMO_INSTALL_CMAKEDIR}
-)
+  install(
+      EXPORT NEMOTargets
+      NAMESPACE NEMO::
+      DESTINATION ${NEMO_INSTALL_CMAKEDIR}
+  )
 
-configure_package_config_file(
-    ${PROJECT_SOURCE_DIR}/cmake/NEMOConfig.cmake.in
-    ${PROJECT_BINARY_DIR}/NEMOConfig.cmake
-    INSTALL_DESTINATION ${NEMO_INSTALL_CMAKEDIR}
-)
+  configure_package_config_file(
+      ${PROJECT_SOURCE_DIR}/cmake/NEMOConfig.cmake.in
+      ${PROJECT_BINARY_DIR}/NEMOConfig.cmake
+      INSTALL_DESTINATION ${NEMO_INSTALL_CMAKEDIR}
+  )
 
-write_basic_package_version_file(
-    ${PROJECT_BINARY_DIR}/NEMOConfigVersion.cmake
-    COMPATIBILITY SameMajorVersion
-)
+  write_basic_package_version_file(
+      ${PROJECT_BINARY_DIR}/NEMOConfigVersion.cmake
+      COMPATIBILITY SameMajorVersion
+  )
 
-install(
-    FILES
-        ${PROJECT_BINARY_DIR}/NEMOConfig.cmake
-        ${PROJECT_BINARY_DIR}/NEMOConfigVersion.cmake
-    DESTINATION ${NEMO_INSTALL_CMAKEDIR}
-)
+  install(
+      FILES
+          ${PROJECT_BINARY_DIR}/NEMOConfig.cmake
+          ${PROJECT_BINARY_DIR}/NEMOConfigVersion.cmake
+      DESTINATION ${NEMO_INSTALL_CMAKEDIR}
+  )
+endif(NOT NEMO_FETCH_DEPS)
 
 # Add unit tests to run:
-enable_testing()
-add_subdirectory(tests)
+if(NEMO_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
 
 message(STATUS "Build options:")
 message(STATUS "    CMAKE_BUILD_TYPE         = ${CMAKE_BUILD_TYPE}")
 message(STATUS "    NEMO_OMP                 = ${NEMO_OMP}")
+message(STATUS "    NEMO_FETCH_DEPS          = ${NEMO_FETCH_DEPS}")
+message(STATUS "    SUNDIALS version         = ${SUNDIALS_VERSION_STRING}")
 

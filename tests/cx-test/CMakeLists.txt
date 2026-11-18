@@ -1,6 +1,5 @@
 add_executable(cx-test cx-test.cpp)
 target_link_libraries(cx-test PRIVATE nemo)
-target_link_libraries(cx-test PRIVATE MPI::MPI_CXX)
 target_compile_features(cx-test PRIVATE cxx_std_14)
 if(NEMO_OMP)
     target_link_libraries(cx-test PRIVATE OpenMP::OpenMP_CXX)
