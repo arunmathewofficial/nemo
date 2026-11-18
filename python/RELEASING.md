@@ -15,7 +15,16 @@
 The cibuildwheel settings (Python versions, platforms, test command) are in
 `[tool.cibuildwheel]` in `pyproject.toml`. To build Linux wheels locally,
 install docker or podman and run `pipx run cibuildwheel --platform linux`
-(with podman, set `CIBW_CONTAINER_ENGINE=podman`).
+(with podman, set `CIBW_CONTAINER_ENGINE=podman`).  If rootless podman fails
+with `sd-bus call: ... Input/output error` (e.g. in an ssh session, where
+`DBUS_SESSION_BUS_ADDRESS` is not the systemd user bus), set
+`DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus`.
+
+`pip install .` builds in a new temporary directory each time, which takes
+about 30 s because SUNDIALS is compiled too.  For faster rebuilds while
+developing, keep the build directory with
+`pip install . -C build-dir=build-python`, but delete `build-python/` before
+running cibuildwheel, which copies the source tree into its container.
 
 ## The package version
 
