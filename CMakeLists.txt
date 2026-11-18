@@ -32,6 +32,18 @@ set(
 )
 
 option(
+    NEMO_PYTHON
+    "Build the Python module nemo_plasma._core (sets NEMO_FETCH_DEPS=ON, \
+NEMO_BUILD_TESTS=OFF, NEMO_OMP=OFF).  Normally set by pip via pyproject.toml."
+    OFF
+)
+if(NEMO_PYTHON)
+  set(NEMO_FETCH_DEPS ON)
+  set(NEMO_BUILD_TESTS OFF)
+  set(NEMO_OMP OFF)
+endif()
+
+option(
     NEMO_OMP
     "Build NEMO with OpenMP. Default is disbled."
     OFF
@@ -188,9 +200,14 @@ if(NEMO_BUILD_TESTS)
   add_subdirectory(tests)
 endif()
 
+if(NEMO_PYTHON)
+  add_subdirectory(python)
+endif()
+
 message(STATUS "Build options:")
 message(STATUS "    CMAKE_BUILD_TYPE         = ${CMAKE_BUILD_TYPE}")
 message(STATUS "    NEMO_OMP                 = ${NEMO_OMP}")
 message(STATUS "    NEMO_FETCH_DEPS          = ${NEMO_FETCH_DEPS}")
+message(STATUS "    NEMO_PYTHON              = ${NEMO_PYTHON}")
 message(STATUS "    SUNDIALS version         = ${SUNDIALS_VERSION_STRING}")
 
