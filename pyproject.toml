@@ -58,3 +58,4 @@ regex = '''project\(\s*NEMO\s+VERSION\s+(?P<value>[0-9.]+)'''
 
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
+markers = ["slow: takes more than a few seconds (deselect with -m 'not slow')"]

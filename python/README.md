@@ -51,3 +51,17 @@ messages.
 A `Nemo` object can be used from several Python threads (calls are
 serialised); for parallel work use one object per thread.  The computation
 runs without the GIL.
+
+## Tests
+
+From a clone of the NEMO repository:
+
+```bash
+pip install ".[test]"
+pytest -m "not slow"   # about 5 s
+pytest                 # all tests, about 2 minutes
+```
+
+The tests in `python/tests/test_reference.py` are the Python versions of
+NEMO's C++ regression tests, and compare with the same reference data
+(`tests/data`) and tolerances.
