@@ -60,7 +60,7 @@ void photoionisation::setup_photoionisation(
     // indexing has failed. It is necessary to reset the energy
     // bin properly.
     spdlog::error("photoionisation: species bin indexing failed.");
-    exit(1);
+    throw nemo_error("photoionisation: species bin indexing failed");
   }
   else {
     spdlog::debug("photoionisation: species bin indexing successful");

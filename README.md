@@ -80,3 +80,12 @@ An example of a valid tracer list is:
 std::vector<double> primitive_vec = {1.0e-22, 1.0e-9, 1.0, 0.72, 0.28, 0.36, 0.05, 0.1};
 std::vector<std::string> tracers = {"unrelated-mass-scalar", "X_H", "X_He", "H", "He", "He1+"};
 ```
+
+# Error handling
+
+NEMO never exits the calling program.  `update_single_cell()` and `Set_Temp()`
+return a non-zero error code on failure (e.g. a bad input state, or a failed
+CVODE integration).  All other functions, including the constructor, throw a
+`NEMO::nemo_error` (derived from `std::runtime_error`, with an error code from
+`code()`) if they cannot continue, for example because the tracer list is
+invalid.  The error is also logged through spdlog before it is reported.

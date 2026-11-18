@@ -171,7 +171,8 @@ nemo::nemo(
   if (opt.photoionization) {
     if (RS.empty()) {
       spdlog::error("nemo: photoionisation is on, but there are no sources");
-      exit_nemo(1);
+      throw nemo_error(
+          "photoionisation is on, but there are no radiation sources");
     }
     setup_stellar_atmosphere_models(RS[0]);
     // Note: This will return energy bins, number of energy bins and maximum
@@ -359,7 +360,9 @@ nemo::nemo(
         spdlog::error(
             "Attempt to generate stellar spectrum for source {} with type {} failed.",
             src, RS[src].SED_info);
-        exit_nemo(1);
+        throw nemo_error(
+            "failed to generate the spectrum of radiation source "
+            + std::to_string(src));
       }
     }
     spdlog::debug("nemo: {} radiation source(s) detected.", RS.size());
@@ -512,9 +515,10 @@ void nemo::tracer_species_cataloger(
       scalars_names[s].erase(0, 2);
       element_tracers.push_back(scalars_names[s]);
       if (!atomic_physics_data.find_species(scalars_names[s])) {
-        spdlog::warn(
+        spdlog::error(
             "no species match for tracer: {}  {}", s, scalars_names[s]);
-        exit_nemo(1);
+        throw nemo_error(
+            "no species match for element tracer X_" + scalars_names[s]);
       }
       else
         all_species_list.push_back(
@@ -533,7 +537,7 @@ void nemo::tracer_species_cataloger(
   if (charge_exchange_enable && N_elements == 1) {
     spdlog::error("Insufficient elements for charge exchange."
                   " Check config file.");
-    exit(1);
+    throw nemo_error("charge exchange needs at least two elements");
   }
 
   // Sort element tracers according to position in period table.
@@ -547,7 +551,7 @@ void nemo::tracer_species_cataloger(
   if (!isElementOrdered) {
     spdlog::error(" NEMO: Elemental mass fraction are not arranged correctly"
                   " within the primitive vector.");
-    exit_nemo(1);
+    throw nemo_error("element tracers are not ordered by atomic number");
   }
 
   int tr = 0;
@@ -630,7 +634,7 @@ void nemo::tracer_species_cataloger(
         " NEMO: local tracers size mismatch with local variables"
         " in prim_vec {} ",
         local_tracers.size());
-    exit_nemo(1);
+    throw nemo_error("number of ion tracers does not match the tracer list");
   }
 
   // Check whether the local tracer is arranged in ascending order based on both
@@ -650,7 +654,7 @@ void nemo::tracer_species_cataloger(
   if (!isSorted) {
     spdlog::error(" NEMO: Incorrect arrangement of local tracers within the "
                   "primitive vector.");
-    exit_nemo(1);
+    throw nemo_error("ion tracers are not in the required order");
   }
 
   spdlog::debug(
@@ -733,7 +737,8 @@ void nemo::tracer_species_cataloger(
         spdlog::error(
             " NEMO: Species cannot be collisionally ionized {} ",
             local_tracers[s]);
-        exit_nemo(1);
+        throw nemo_error(
+            "species cannot be collisionally ionised: " + local_tracers[s]);
       }
     }
     // end of collisional ionisation species ***********************************
@@ -1071,7 +1076,7 @@ double nemo::get_n_ion(
     species_primitive_idx = it->second;
   else {
     spdlog::error(" NEMO: Species {} do not found in tracer list", s);
-    exit_nemo(1);
+    throw nemo_error("species not found in tracer list: " + s);
   }
 
   std::string element_name = atomic_physics_data.get_element_name(s);
@@ -1085,7 +1090,7 @@ double nemo::get_n_ion(
 double nemo::get_X_H()
 {
   spdlog::error("don't call get_X_H() in NEMO");
-  exit_nemo(1);
+  throw nemo_error("get_X_H() is not available in NEMO");
   return 0.0;
 }
 
@@ -1195,7 +1200,7 @@ void nemo::get_ne(const std::vector<double> &y_species_frac, double &ne)
         "nemo: Negative ne = {:12.3e}, resetting to {:12.3e}", ne, 1.0e-10);
     ne = max(1.0e-10, ne);
     spdlog::warn("y_species_frac: {}", y_species_frac);
-    exit_nemo(1);
+    throw nemo_error("negative electron density");
   }
 
   return;
@@ -1214,14 +1219,15 @@ void nemo::get_dtau(
   // have any number of entries (e.g. just the source being ray-traced).
   if (!opt.photoionization) {
     spdlog::error("nemo: get_dtau called without photoionisation");
-    exit_nemo(1);
+    throw nemo_error("get_dtau() called without photoionisation");
   }
   const int Nb = RS[0].Nbins;
   for (size_t i = 0; i < cell_rt.size(); i++) {
     // check that number of energy bins is set correctly
     if (static_cast<int>(cell_rt[i].dtau.size()) != Nb) {
       spdlog::error("nemo: dtau vec size mismatch");
-      exit_nemo(1);
+      throw nemo_error(
+          "get_dtau(): dtau vector has the wrong number of energy bins");
     }
   }
   // Calculate differential optical depth for each energy bin.
@@ -1246,7 +1252,8 @@ void nemo::get_radiation_src_info(
 {
   if (rsrc.size() != RS.size()) {
     spdlog::error("{}: vec has wrong size", "nemo::get_radiation_src_info");
-    exit_nemo(rsrc.size() - RS.size());
+    throw nemo_error(
+        "get_radiation_src_info(): wrong number of radiation sources");
   }
   for (size_t i = 0; i < RS.size(); i++) {
     if (rsrc[i].Luminosity != RS[i].Luminosity)
@@ -1327,7 +1334,7 @@ int nemo::convert_prim2local(
     spdlog::error(
         "nemo: Input pressure is not finite: {} {}", prim_copy[prim_pres_idx],
         prim_in[prim_pres_idx]);
-    exit_nemo(4);
+    return 4;
   }
 
   return 0;
@@ -1419,7 +1426,7 @@ double nemo::Temperature(
   if (!isfinite(prim[prim_pres_idx])) {
     spdlog::error(
         "NEMO Temperature() pressure: {:8.3e}", fmt::join(prim, ", "));
-    exit_nemo(1);
+    throw nemo_error("Temperature(): pressure is not finite");
   }
 
   // generate vector of (y_s, nE, Eint) to calculate Temperature  **************
@@ -1523,19 +1530,25 @@ int nemo::update_single_cell(
   err = convert_prim2local(p_in, p_local, 2);
   if (err) {
     spdlog::error("Bad input state to nemo::TimeUpdateMP(): {}", err);
-    exit_nemo(1);
+    return 1;
   }
 
   err = correct_localvector(p_local, 1);
   if (err) {
     spdlog::error("Bad input vector to update_single_cell_RT");
-    exit(1);
+    return 1;
   }
 
   // issue is here, local vector P and NV_Ith_S(y_in, v) are different
 
   // setup_radiation_source_parameters(p_in, P, ion_src);
-  setup_radiation_source_parameters(ion_src);
+  try {
+    setup_radiation_source_parameters(ion_src);
+  }
+  catch (const nemo_error &e) {
+    spdlog::error("update_single_cell: {}", e.what());
+    return e.code();
+  }
 
   // Populates CVODE vector with initial conditions (input)
   for (int v = 0; v < N_local; v++) {
@@ -1553,7 +1566,7 @@ int nemo::update_single_cell(
     for (int v = 0; v < N_local; v++)
       p_local[v] = NV_Ith_S(y_out, v);
     spdlog::error("y_out: {}", p_local);
-    exit(1);
+    return 2;
   }
 
   //
@@ -1565,7 +1578,7 @@ int nemo::update_single_cell(
   err = correct_localvector(p_local, 2);
   if (err) {
     spdlog::error("bad output vector from update_single_cell");
-    exit(2);
+    return 3;
   }
   err = convert_local2prim(p_local, p_in, p_out, 2);
 
@@ -1576,7 +1589,7 @@ int nemo::update_single_cell(
       spdlog::debug("Pin  : {:8.3e}", fmt::join(p_in, ", "));
       spdlog::debug("Pout : {:8.3e}", fmt::join(p_out, ", "));
       spdlog::debug("Ploc  : {:8.3e}", fmt::join(p_local, ", "));
-      exit_nemo(v);
+      return 4;
     }
   }
 #endif
@@ -1726,7 +1739,7 @@ double nemo::timescales(
   err = convert_prim2local(prim_in, p_local, 3);
   if (err) {
     spdlog::error("{}: {}", "Bad input state to nemo::timescales()", err);
-    exit_nemo(1);
+    throw nemo_error("timescales(): bad input state");
   }
 
   // correct local vector
@@ -1735,7 +1748,7 @@ double nemo::timescales(
   // spdlog::debug("after correcting - p_local = {}", p_local);
   if (err) {
     spdlog::error("bad input vector to timescales_RT");
-    exit_nemo(1);
+    throw nemo_error("timescales(): bad input state");
   }
 
   // v runs over all species and internal energy
@@ -1751,7 +1764,7 @@ double nemo::timescales(
   err = ydot(0, y_in, y_out, 0);
   if (err) {
     spdlog::error("dYdt() error in nemo::timescales(): {}", err);
-    exit_nemo(1);
+    throw nemo_error("timescales(): ydot() failed");
   }
 
   // And finally get the smallest timescale over which things are varying.
@@ -1970,7 +1983,7 @@ int nemo::ydot(
           "species counting is wrong {}: species {}, \n\t\t values {}",
           excess_elemental_frac, cooling_species[e], species_frac);
       if (fabs(excess_elemental_frac - 1.0) > 1e-5) {
-        exit(1);
+        throw nemo_error("species fractions of an element do not sum to 1");
       }
     }
   }
@@ -2556,7 +2569,7 @@ void nemo::setup_radiation_source_parameters(
         "setup_radiation_source_parameters: got cell data for {} sources, "
         "expected {}",
         ion_src.size(), RS.size());
-    exit_nemo(1);
+    throw nemo_error("wrong number of radiation sources in cell data");
   }
 
   for (size_t src = 0; src < RS.size(); src++) {
@@ -2566,7 +2579,9 @@ void nemo::setup_radiation_source_parameters(
           "setup_radiation_source_parameters: source {} has {} optical "
           "depths, expected {}",
           src, ion_src[src].tau.size(), Nb);
-      exit_nemo(1);
+      throw nemo_error(
+          "too few optical depths in cell data for source "
+          + std::to_string(src));
     }
     cell_rt[src].dS     = ion_src[src].dS;
     cell_rt[src].Vshell = ion_src[src].Vshell;
@@ -2614,7 +2629,7 @@ void nemo::print_CIR_LUT(
 
   if (!outfile.is_open()) {
     spdlog::error("NEMO {} : {}", "couldn't open outfile", 1);
-    exit_nemo(1);
+    throw nemo_error("could not open file " + filename + ".txt");
   }
 
   outfile.setf(ios_base::scientific);
@@ -2689,7 +2704,7 @@ void nemo::print_charge_exchange_LUT(
 
   if (!outfile.is_open()) {
     spdlog::error("NEMO {} : {}", "couldn't open outfile", 1);
-    exit_nemo(1);
+    throw nemo_error("could not open file " + filename + ".txt");
   }
 
   outfile.setf(ios_base::scientific);
@@ -2736,7 +2751,7 @@ void nemo::print_to_file_photoionisation(
   std::ofstream outfile(filename + ".txt");
   if (!outfile.is_open()) {
     spdlog::error("NEMO {} : {}", "couldn't open outfile", 1);
-    exit(1);
+    throw nemo_error("could not open file " + filename + ".txt");
   }
 
   outfile << "#FILE: Generated by PION v3.0 - NEMO Module \n";
@@ -2785,7 +2800,8 @@ void nemo::print_cooling_table(
   std::ofstream outfile(filename + "_" + ion_name + ".txt");
   if (!outfile.is_open()) {
     spdlog::error("NEMO {} : {}", "couldn't open outfile", 1);
-    exit(1);
+    throw nemo_error(
+        "could not open file " + filename + "_" + ion_name + ".txt");
   }
 
   outfile << "#FILE: Generated by PION 3.0.0 - NEMO Module \n";

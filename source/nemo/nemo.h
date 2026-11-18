@@ -74,6 +74,10 @@ class nemo :
   // ############################################################################
   // ############################################################################
   // The public interface to NEMO
+  //
+  // Errors: NEMO never exits the program.  update_single_cell() and
+  // Set_Temp() return a non-zero error code on failure; the other functions,
+  // including the constructor, throw NEMO::nemo_error (nemo-constants.h).
   // ############################################################################
 public:
   /// CONSTRUCTOR: sets up the machinery for fast execution
@@ -90,7 +94,10 @@ public:
   virtual ~nemo();
 
   ///
-  /// Update microphysics including photoionization and photoheating
+  /// Update microphysics including photoionization and photoheating.
+  /// Returns 0 on success, or non-zero if the input state or radiation data
+  /// are bad (1 or the nemo_error code), the ODE integration fails (2), or
+  /// the result is bad (3).  The output vector is not valid on failure.
   ///
   int update_single_cell(
       const std::vector<double> &,  ///< Primitive Vector to be updated.

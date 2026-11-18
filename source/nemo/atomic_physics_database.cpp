@@ -66,7 +66,7 @@ std::vector<std::string> atomic_physics_database::import_species(
   // if the element is not in the database return error.
   if (key == "") {
     spdlog::error("Element not found in database {}", element_name);
-    exit_nemo(1);
+    throw nemo_error("element not found in atomic database: " + element_name);
   }
 
   return element_species_set;

@@ -33,6 +33,7 @@
 #include <fmt/ranges.h>
 
 #include <atomic>
+#include <stdexcept>
 
 using namespace std;
 
@@ -511,7 +512,15 @@ int Ydot_for_cvode(
   // Now call the class member ydot() function:
   //
   class cvode_solver *S = static_cast<cvode_solver *>(data);
-  return S->ydot(t, y, yd, 0);
+  // Exceptions must not propagate into CVODE (C code): report an
+  // unrecoverable failure instead, so CVode() returns an error code.
+  try {
+    return S->ydot(t, y, yd, 0);
+  }
+  catch (const std::exception &e) {
+    spdlog::error("Ydot_for_cvode: {}", e.what());
+    return -1;
+  }
 }
 
 // ##################################################################
@@ -537,11 +546,17 @@ int Jacobian_for_cvode(
   // to post-process anything afterwards.
   //
   class cvode_solver *S = static_cast<cvode_solver *>(data);
+  try {
 #if defined CVODE2
-  return S->Jacobian(N, t, y, yd, 0, J);
+    return S->Jacobian(N, t, y, yd, 0, J);
 #else
-  return S->Jacobian(t, y, yd, 0, J);
+    return S->Jacobian(t, y, yd, 0, J);
 #endif
+  }
+  catch (const std::exception &e) {
+    spdlog::error("Jacobian_for_cvode: {}", e.what());
+    return -1;
+  }
 }
 
 // ##################################################################

@@ -21,6 +21,9 @@
 /* prevent clang-format reordering */
 #include <fmt/ranges.h>
 
+#include <stdexcept>
+#include <string>
+
 #ifndef INTEL
 #include <cmath>
 #else
@@ -152,7 +155,30 @@ public:
 #define RT_EFFECT_MP10_BLACKBODY 10  ///< BLACKBODY
 
 ///
-/// Global function to exit NEMO
+/// Exception thrown by NEMO when it cannot continue (bad input, inconsistent
+/// tracer list, missing data, ...).  The library never calls exit():
+/// functions that return an int error code (update_single_cell(), Set_Temp())
+/// catch this and return its code; all other functions, including the
+/// constructor, let it propagate to the caller.  The error is also logged
+/// with spdlog::error() before it is thrown.
+///
+class nemo_error : public std::runtime_error {
+public:
+  explicit nemo_error(const std::string &msg, const int code = 1) :
+      std::runtime_error(msg), err_code(code != 0 ? code : 1)
+  {
+  }
+  /// non-zero error code
+  int code() const noexcept { return err_code; }
+
+private:
+  int err_code;
+};
+
+///
+/// Exit the program after logging an error.  For use by programs that use
+/// NEMO (e.g. the tests), not by the library itself, which throws
+/// nemo_error instead.
 ///
 inline int exit_nemo(const int i)
 {

@@ -20,6 +20,13 @@ target_link_libraries(scma-test PRIVATE MPI::MPI_CXX)
 target_compile_features(scma-test PRIVATE cxx_std_14)
 add_test(NAME scma-test COMMAND scma-test)
 
+# Errors are reported to the caller (return codes / nemo_error), not exit()
+add_executable(error-handling error-handling.cpp)
+target_link_libraries(error-handling PRIVATE nemo)
+target_link_libraries(error-handling PRIVATE MPI::MPI_CXX)
+target_compile_features(error-handling PRIVATE cxx_std_14)
+add_test(NAME error-handling COMMAND error-handling)
+
 # Add data files from sub-directory to cmake
 file(GLOB DATA_FILES "${CMAKE_CURRENT_SOURCE_DIR}/data/*.txt")
 add_custom_target(copy_data ALL

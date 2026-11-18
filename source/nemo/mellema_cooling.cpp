@@ -103,7 +103,7 @@ void mellema_cooling::generate_mellema_table(
         spdlog::error(
             "Mellema cooling: Temperature outside the specified range for {:s}",
             species[location].Name);
-        exit_nemo(1);
+        throw nemo_error("Mellema cooling: temperature outside table range");
       }
     }
   }
@@ -121,7 +121,8 @@ void mellema_cooling::generate_mellema_table(
             "Mellema cooling: Electron density outside the specified "
             "range for {:s}",
             species[location].Name);
-        exit_nemo(1);
+        throw nemo_error(
+            "Mellema cooling: electron density outside table range");
       }
     }
   }
