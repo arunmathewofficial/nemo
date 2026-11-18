@@ -159,3 +159,40 @@ Install:
     - "${EXAMPLE_BUILD_DIR}-wind/wind-ionisation examples/wind-ionisation/example_wc_wind.txt"
 
 
+
+# Python package: build the sdist, then manylinux wheels from it for each
+# CPython version, and test them (the full test suite for one version).
+# Nothing is uploaded; the sdist and wheels are kept as artifacts.
+# (Wheels for macOS and aarch64 are built by .github/workflows/wheels.yml.)
+Python:
+  stage: test
+  image: quay.io/pypa/manylinux_2_28_x86_64
+  tags:
+    - docker
+  needs: []
+  script:
+    - PY=/opt/python/cp313-cp313/bin/python
+    - $PY -m pip install build
+    - $PY -m build --sdist --outdir dist .
+    - |
+      set -e
+      for py in /opt/python/cp31[0-5]-cp31[0-5]/bin/python; do
+        echo "=== $py"
+        $py -m pip wheel --no-deps --wheel-dir wheelhouse-raw dist/*.tar.gz
+      done
+      auditwheel repair --wheel-dir wheelhouse wheelhouse-raw/*.whl
+      for py in /opt/python/cp31[0-5]-cp31[0-5]/bin/python; do
+        tag=$(basename $(dirname $(dirname $py)))
+        echo "=== test ${tag}"
+        $py -m venv venv-${tag}
+        venv-${tag}/bin/pip install pytest wheelhouse/*-${tag}-*.whl
+        tests="-m 'not slow'"
+        if [ "${tag}" = "cp313-cp313" ]; then tests=""; fi
+        eval venv-${tag}/bin/pytest python/tests -p no:cacheprovider ${tests}
+      done
+  artifacts:
+    name: python-packages
+    paths:
+      - dist/
+      - wheelhouse/
+    expire_in: 1 week

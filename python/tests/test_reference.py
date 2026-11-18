@@ -18,19 +18,37 @@ REPO_DATA = Path(__file__).resolve().parents[2] / "tests" / "data"
 LOCAL_DATA = Path(__file__).resolve().parent / "data"
 
 needs_data = pytest.mark.skipif(
-    not REPO_DATA.is_dir(), reason="needs tests/data from the NEMO repository"
-)
+    not REPO_DATA.is_dir(), reason="needs tests/data from the NEMO repository")
 
 ELEMENTS = ["H", "He", "C", "N", "O", "Ne", "Si", "S", "Fe"]
-ATOMIC_NUMBER = {"H": 1, "He": 2, "C": 6, "N": 7, "O": 8, "Ne": 10,
-                 "Si": 14, "S": 16, "Fe": 26}
+ATOMIC_NUMBER = {
+    "H": 1,
+    "He": 2,
+    "C": 6,
+    "N": 7,
+    "O": 8,
+    "Ne": 10,
+    "Si": 14,
+    "S": 16,
+    "Fe": 26
+}
 # Masses (g) from NEMO's atomic_physics_database.
-ATOMIC_MASS = {"H": 1.6738e-24, "He": 6.6464768e-24, "C": 1.994374e-23,
-               "N": 2.325892e-23, "O": 2.6567628e-23, "Ne": 3.3509177e-23,
-               "Si": 4.6637066e-23, "S": 5.3245181e-23, "Fe": 9.2732796e-23}
+ATOMIC_MASS = {
+    "H": 1.6738e-24,
+    "He": 6.6464768e-24,
+    "C": 1.994374e-23,
+    "N": 2.325892e-23,
+    "O": 2.6567628e-23,
+    "Ne": 3.3509177e-23,
+    "Si": 4.6637066e-23,
+    "S": 5.3245181e-23,
+    "Fe": 9.2732796e-23
+}
 # Solar-like element mass fractions used by several tests.
-SOLAR = [0.7381, 0.2495736, 0.002368, 0.000693, 0.005739, 0.0012579,
-         0.0006656, 0.0003096, 0.0012933]
+SOLAR = [
+    0.7381, 0.2495736, 0.002368, 0.000693, 0.005739, 0.0012579, 0.0006656,
+    0.0003096, 0.0012933
+]
 
 PC = 3.085677581e18  # cm
 
@@ -82,10 +100,13 @@ def charge_density(prim, tracers):
     total = 0.0
     for e_name in [t[2:] for t in tracers if t.startswith("X_")]:
         X_e = prim[2 + tracers.index("X_" + e_name)]
-        ions = [i for i, t in enumerate(tracers)
-                if not t.startswith("X_") and element_of(t) == e_name]
+        ions = [
+            i for i, t in enumerate(tracers)
+            if not t.startswith("X_") and element_of(t) == e_name
+        ]
         charge = sum(charge_of(tracers[i]) * prim[2 + i] for i in ions)
-        charge += ATOMIC_NUMBER[e_name] * (X_e - sum(prim[2 + i] for i in ions))
+        charge += ATOMIC_NUMBER[e_name] * (X_e - sum(prim[2 + i]
+                                                     for i in ions))
         total += charge / ATOMIC_MASS[e_name]
     return prim[0] * total
 
@@ -101,11 +122,15 @@ def test_cie():
     tracers = header[1:]
     prim0 = np.zeros(2 + len(tracers))
     prim0[0], prim0[1] = 1.0e-24, 1.0e-9
-    prim0[2:11] = [0.7381, 0.2495, 0.002368, 0.000693, 0.005739, 0.0012579,
-                   0.0006656, 0.0003096, 0.0012933]
-    opt = nemo.Options(
-        update_energy=False, cooling=False, charge_exchange=True,
-        cosmicray_ionization=True, onthespot_radiation=True)
+    prim0[2:11] = [
+        0.7381, 0.2495, 0.002368, 0.000693, 0.005739, 0.0012579, 0.0006656,
+        0.0003096, 0.0012933
+    ]
+    opt = nemo.Options(update_energy=False,
+                       cooling=False,
+                       charge_exchange=True,
+                       cosmicray_ionization=True,
+                       onthespot_radiation=True)
     s = nemo.Nemo(tracers, options=opt)
     T = np.geomspace(1.0e4, 5.0e8, 100)
     prim = s.set_temperature(np.tile(prim0, (100, 1)), T)
@@ -129,10 +154,12 @@ def test_isochoric_cooling():
         tracers += [e] + [f"{e}{q}+" for q in range(1, Z)]
         prim0 += [X / (Z + 1)] * Z
     prim0 = np.array(prim0)
-    opt = nemo.Options(
-        min_temperature=1.0e3, reltol=1.0e-8, timestep_limiter=0,
-        collisional_ionization=False, charge_exchange=False,
-        radiative_recombination=False)
+    opt = nemo.Options(min_temperature=1.0e3,
+                       reltol=1.0e-8,
+                       timestep_limiter=0,
+                       collisional_ionization=False,
+                       charge_exchange=False,
+                       radiative_recombination=False)
     s = nemo.Nemo(tracers, options=opt)
     # Each interval starts from the reference temperature at its start.
     prim = np.tile(prim0, (len(t_ref) - 1, 1))
@@ -162,9 +189,10 @@ def test_isochoric_nei():
     y_ref, dydt = ref[:, 3:3 + n_ions], ref[:, 3 + n_ions:]
     X_el = np.array([SOLAR[ELEMENTS.index(element_of(i))] for i in ions])
 
-    opt = nemo.Options(
-        min_temperature=1.0e3, reltol=1.0e-8, timestep_limiter=0,
-        cosmicray_ionization=False)
+    opt = nemo.Options(min_temperature=1.0e3,
+                       reltol=1.0e-8,
+                       timestep_limiter=0,
+                       cosmicray_ionization=False)
     s = nemo.Nemo(tracers, options=opt)
     n = len(t) - 1
     prim = np.zeros((n, 2 + len(tracers)))
@@ -180,8 +208,9 @@ def test_isochoric_nei():
         err = np.abs(value - ref_value)
         ok = err <= rel_tol * np.abs(ref_value) + abs_tol
         with np.errstate(divide="ignore", invalid="ignore"):
-            time_error = np.where(
-                dref_dt != 0, err / np.abs(dref_dt) / interval[:, None], np.inf)
+            time_error = np.where(dref_dt != 0,
+                                  err / np.abs(dref_dt) / interval[:, None],
+                                  np.inf)
         return np.isfinite(value) & (ok | (time_error <= 1.0e-5))
 
     T = s.temperature(out)[:, None]
@@ -196,9 +225,11 @@ def test_isochoric_nei():
 # ---------------------------------------------------------------------------
 # Charge exchange (tests/cx-test)
 
-CX_OPTIONS = dict(
-    update_energy=False, cooling=False, collisional_ionization=False,
-    charge_exchange=True, radiative_recombination=False)
+CX_OPTIONS = dict(update_energy=False,
+                  cooling=False,
+                  collisional_ionization=False,
+                  charge_exchange=True,
+                  radiative_recombination=False)
 
 
 def cx_two_element(el1, el2, T, t_end, start):
@@ -221,15 +252,16 @@ def cx_two_element(el1, el2, T, t_end, start):
     return s, tracers, prim, out
 
 
-@pytest.mark.parametrize(
-    "ion, T, t_end, ratio",
-    [("O", 1000.0, 1.0e13, 5.1811635240e-01),
-     ("N", 1.0e4, 5.0e13, 1.5199216941e+00),
-     ("C", 8000.0, 1.0e16, 1.3798769809e+03)])
+@pytest.mark.parametrize("ion, T, t_end, ratio",
+                         [("O", 1000.0, 1.0e13, 5.1811635240e-01),
+                          ("N", 1.0e4, 5.0e13, 1.5199216941e+00),
+                          ("C", 8000.0, 1.0e16, 1.3798769809e+03)])
 def test_cx_equilibrium_with_hydrogen(ion, T, t_end, ratio):
     """X+ + H <-> X + H+ reaches n(X+) n(H) / [n(X) n(H+)] = k_rev/k_fwd."""
-    s, tr, _, out = cx_two_element(
-        "H", ion, T, t_end, {"H": 0.5, ion + "1+": 1.0})
+    s, tr, _, out = cx_two_element("H", ion, T, t_end, {
+        "H": 0.5,
+        ion + "1+": 1.0
+    })
     X_H0 = out[2 + tr.index("H")]
     X_Hp = out[2 + tr.index("X_H")] - X_H0
     X_0 = out[2 + tr.index(ion)]
@@ -239,13 +271,16 @@ def test_cx_equilibrium_with_hydrogen(ion, T, t_end, ratio):
 
 def test_cx_equilibrium_c2p_helium():
     """C2+ + He <-> C+ + He+, and charge is conserved."""
-    s, tr, prim, out = cx_two_element(
-        "He", "C", 8000.0, 1.0e13, {"He": 0.5, "He1+": 0.5, "C2+": 1.0})
+    s, tr, prim, out = cx_two_element("He", "C", 8000.0, 1.0e13, {
+        "He": 0.5,
+        "He1+": 0.5,
+        "C2+": 1.0
+    })
     v = {n: out[2 + tr.index(n)] for n in ("He", "He1+", "C1+", "C2+")}
     r = v["C2+"] * v["He"] / (v["C1+"] * v["He1+"])
     assert r == pytest.approx(3.4590722950e-06, rel=2e-6)
-    assert charge_density(out, tr) == pytest.approx(
-        charge_density(prim, tr), rel=2e-6)
+    assert charge_density(out, tr) == pytest.approx(charge_density(prim, tr),
+                                                    rel=2e-6)
 
 
 def test_cx_full_network():
@@ -262,9 +297,11 @@ def test_cx_full_network():
     ref = np.loadtxt(LOCAL_DATA / "cx_full_network_reference.txt")
     # compare_scalar of cx-test: rel. to the sum, or abs 1e-14
     diff = np.abs(out - ref)
-    assert ((diff <= 1e-14) | (diff <= 1e-6 * (np.abs(out) + np.abs(ref)))).all()
-    assert charge_density(out, tracers) == pytest.approx(
-        charge_density(prim, tracers), rel=2e-6)
+    assert ((diff <= 1e-14) | (diff <= 1e-6 *
+                               (np.abs(out) + np.abs(ref)))).all()
+    assert charge_density(out, tracers) == pytest.approx(charge_density(
+        prim, tracers),
+                                                         rel=2e-6)
 
 
 # ---------------------------------------------------------------------------
@@ -281,14 +318,15 @@ def evolve_shells(s, prim, n_cells, t_end=3.156e13, ds_factor=None):
     r = np.linspace(0.0, 5.76 * PC, n_cells + 1)
     dr = r[1] - r[0]
     ds = np.outer(np.ones(n_cells), dr * np.asarray(ds_factor))
-    vshell = 4.0 * np.pi / 3.0 * (r[1:] ** 3 - r[:-1] ** 3)
+    vshell = 4.0 * np.pi / 3.0 * (r[1:]**3 - r[:-1]**3)
     vshell = np.column_stack([vshell] * n_src)
     vshell[:, np.asarray(ds_factor) == 0] = 1.0e200
     state = np.tile(prim, (n_cells, 1))
     time = 0.0
     while time < t_end:
         # optical depth through each shell, and from the source to it
-        dtau = np.stack([s.dtau(state, ds[:, k]) for k in range(n_src)], axis=1)
+        dtau = np.stack([s.dtau(state, ds[:, k]) for k in range(n_src)],
+                        axis=1)
         tau = np.cumsum(dtau, axis=0) - dtau
         rt = dict(tau=tau, dtau=dtau, ds=ds, vshell=vshell)
         remaining = t_end - time
@@ -303,17 +341,26 @@ def evolve_shells(s, prim, n_cells, t_end=3.156e13, ds_factor=None):
 
 
 HII_ELEMENTS = ["H", "He", "C", "N", "O", "Ne", "S"]
-HII_X = [7.0933e-01, 2.8373e-01, 1.8725e-03, 3.9726e-04, 3.7452e-03,
-         7.1647e-04, 2.0492e-04]
+HII_X = [
+    7.0933e-01, 2.8373e-01, 1.8725e-03, 3.9726e-04, 3.7452e-03, 7.1647e-04,
+    2.0492e-04
+]
 
 
 def hii_initial(tracers, rho, p):
     prim = np.zeros(2 + len(tracers))
     prim[:2] = rho, p
     prim[2:2 + len(HII_X)] = HII_X
-    for name, value in {"H": 7.0933e-01, "He": 2.8373e-01, "C": 1.0e-3,
-                        "C1+": 0.8725e-3, "N": 3.9726e-04, "O": 3.7452e-03,
-                        "Ne": 7.1647e-04, "S": 2.0492e-04}.items():
+    for name, value in {
+            "H": 7.0933e-01,
+            "He": 2.8373e-01,
+            "C": 1.0e-3,
+            "C1+": 0.8725e-3,
+            "N": 3.9726e-04,
+            "O": 3.7452e-03,
+            "Ne": 7.1647e-04,
+            "S": 2.0492e-04
+    }.items():
         prim[2 + tracers.index(name)] = value
     return prim
 
@@ -330,19 +377,22 @@ def test_photoionisation_equilibrium():
     header, ref = read_table("pieq_test_refdata.txt")
     tracers = header[2:header.index("[plus")]
     assert tracers == all_ion_tracers(HII_ELEMENTS)
-    opt = nemo.Options(
-        update_energy=False, cooling=False, collisional_ionization=False,
-        photoionization=True, charge_exchange=False,
-        onthespot_radiation=True)
+    opt = nemo.Options(update_energy=False,
+                       cooling=False,
+                       collisional_ionization=False,
+                       photoionization=True,
+                       charge_exchange=False,
+                       onthespot_radiation=True)
     s = nemo.Nemo(tracers, options=opt, sources=[star()])
     out, tau = evolve_shells(s, hii_initial(tracers, 2.36e-22, 2.43e-10), 32)
     compare_data(np.column_stack([out, tau]), ref, 1.0e-4, 1.0e-9)
 
 
 def hii40_solver(tracers, sources):
-    opt = nemo.Options(
-        min_temperature=1.0e3, photoionization=True,
-        cosmicray_ionization=True, onthespot_radiation=True)
+    opt = nemo.Options(min_temperature=1.0e3,
+                       photoionization=True,
+                       cosmicray_ionization=True,
+                       onthespot_radiation=True)
     return nemo.Nemo(tracers, options=opt, sources=sources)
 
 
@@ -372,8 +422,10 @@ def test_hii40_two_sources():
     split, _ = evolve_shells(hii40_solver(tracers, [half, half]), prim, 20)
     compare_data(split, single, 1.0e-4, 1.0e-11)
     teff, radius = 3.0e4, 10.0
-    lum = 4.0 * np.pi * 5.670374e-5 * teff**4 * (radius * 6.957e10) ** 2
+    lum = 4.0 * np.pi * 5.670374e-5 * teff**4 * (radius * 6.957e10)**2
     other = star(lum, radius, teff)
-    absent, _ = evolve_shells(
-        hii40_solver(tracers, [star(), other]), prim, 20, ds_factor=[1, 0])
+    absent, _ = evolve_shells(hii40_solver(tracers, [star(), other]),
+                              prim,
+                              20,
+                              ds_factor=[1, 0])
     compare_data(absent, single, 1.0e-12, 1.0e-20)

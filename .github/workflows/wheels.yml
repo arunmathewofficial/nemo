@@ -1,0 +1,91 @@
+# Build the Python package (sdist and wheels for Linux and macOS), test the
+# wheels, and, only when started by hand with "publish" set, upload them to
+# PyPI or TestPyPI.
+#
+# Publishing uses PyPI "trusted publishing": on (test.)pypi.org, add this
+# repository and workflow (wheels.yml), with environment "pypi" or
+# "testpypi", as a trusted publisher of the project.  No API token is
+# needed.
+name: Python wheels
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Upload to a package index"
+        type: choice
+        options: ["no", "testpypi", "pypi"]
+        default: "no"
+
+jobs:
+  sdist:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sdist
+        run: pipx run build --sdist
+      - name: Build and test a wheel from the sdist
+        run: |
+          python3 -m venv venv
+          venv/bin/pip install dist/*.tar.gz pytest
+          venv/bin/pytest python/tests -m "not slow" -p no:cacheprovider
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  wheels:
+    name: wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # x86_64 and aarch64 Linux, Intel and Apple-silicon macOS
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pypa/cibuildwheel@v4.3.5
+        with:
+          output-dir: wheelhouse
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+
+  # The full test suite (including the slow tests) on one platform.
+  test-all:
+    needs: [wheels]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels-ubuntu-24.04
+          path: wheelhouse
+      - run: |
+          pip install pytest numpy
+          pip install --no-deps wheelhouse/*-cp313-cp313-*x86_64.whl
+          pytest python/tests -p no:cacheprovider
+
+  publish:
+    needs: [sdist, wheels, test-all]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish != 'no'
+    runs-on: ubuntu-24.04
+    environment:
+      name: ${{ inputs.publish }}
+    permissions:
+      id-token: write  # for trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: ${{ inputs.publish == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}

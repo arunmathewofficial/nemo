@@ -13,16 +13,15 @@ PRIM = np.array([1.0e-22, 1.0e-12, 0.72, 0.28, 0.36, 0.05, 0.1])
 
 def test_minimal_example():
     """Same set-up and result as the C++ examples/minimal."""
-    opt = nemo.Options(
-        update_energy=False, cooling=False, cosmicray_ionization=True
-    )
+    opt = nemo.Options(update_energy=False,
+                       cooling=False,
+                       cosmicray_ionization=True)
     tr = ["unrelated_mass_scalar"] + TRACERS
     s = nemo.Nemo(tr, options=opt)
     p = np.array([1.0e-22, 1.0e-9, 1.0, 0.72, 0.28, 0.36, 0.05, 0.1])
     out = s.update(p, 1.0e14)
-    np.testing.assert_allclose(
-        out[5:], [1.45928e-05, 4.84255e-05, 0.130434], rtol=1e-5
-    )
+    np.testing.assert_allclose(out[5:], [1.45928e-05, 4.84255e-05, 0.130434],
+                               rtol=1e-5)
     np.testing.assert_array_equal(out[:5], p[:5])
 
 
@@ -48,9 +47,8 @@ def test_many_cells_match_one_cell():
     many = s.update(grid, 1.0e10)
     assert many.shape == (3, 4, 7)
     np.testing.assert_array_equal(many, np.broadcast_to(one, many.shape))
-    np.testing.assert_array_equal(
-        s.temperature(grid), np.full((3, 4), s.temperature(PRIM))
-    )
+    np.testing.assert_array_equal(s.temperature(grid),
+                                  np.full((3, 4), s.temperature(PRIM)))
     # dt per cell
     dts = np.array([1.0e9, 1.0e10])
     two = s.update(np.tile(PRIM, (2, 1)), dts)
@@ -66,9 +64,8 @@ def test_derived_quantities():
     ne = s.electron_density(PRIM)
     assert ne > 0
     m_H = 1.6735575e-24
-    assert s.ion_density("H", PRIM) == pytest.approx(
-        PRIM[0] * PRIM[4] / m_H, rel=1e-3
-    )
+    assert s.ion_density("H", PRIM) == pytest.approx(PRIM[0] * PRIM[4] / m_H,
+                                                     rel=1e-3)
     assert s.timescale(PRIM) > 0
     # sCMA renormalises the element fractions to sum to 1
     bad = PRIM.copy()
@@ -107,9 +104,9 @@ def test_errors():
 
 def test_photoionisation():
     src = nemo.Source(3.0e39, 4.0e4, 18.0, nemo.SED_BLACKBODY)
-    s = nemo.Nemo(
-        TRACERS, options=nemo.Options(photoionization=True), sources=[src]
-    )
+    s = nemo.Nemo(TRACERS,
+                  options=nemo.Options(photoionization=True),
+                  sources=[src])
     nb = s.n_bins
     assert nb > 0 and s.sources[0].n_bins == nb
     assert len(s.sources[0].energy_bins) == nb
@@ -119,7 +116,7 @@ def test_photoionisation():
         tau=np.zeros((1, nb)),
         dtau=s.dtau(p, dr)[None, :],
         ds=np.array([dr]),
-        vshell=np.array([4 / 3 * np.pi * ((r + dr / 2) ** 3 - (r - dr / 2) ** 3)]),
+        vshell=np.array([4 / 3 * np.pi * ((r + dr / 2)**3 - (r - dr / 2)**3)]),
     )
     out = s.update(p, 3.0e11, **rt)
     assert out[4] / out[2] < 1e-4  # hydrogen ionised
@@ -133,9 +130,8 @@ def test_photoionisation():
     n = 5
     grid = np.tile(p, (n, 1))
     rtg = {k: np.repeat(v[None], n, axis=0) for k, v in rt.items()}
-    np.testing.assert_array_equal(
-        s.update(grid, 3.0e11, **rtg), np.tile(out, (n, 1))
-    )
+    np.testing.assert_array_equal(s.update(grid, 3.0e11, **rtg),
+                                  np.tile(out, (n, 1)))
 
 
 def test_threads():
@@ -147,7 +143,7 @@ def test_threads():
     def work(i):
         results[i] = s.update(grid, 1.0e12)  # same object: serialised
 
-    th = [threading.Thread(target=work, args=(i,)) for i in range(4)]
+    th = [threading.Thread(target=work, args=(i, )) for i in range(4)]
     for t in th:
         t.start()
     for t in th:
