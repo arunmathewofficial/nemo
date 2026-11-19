@@ -44,6 +44,8 @@ sdist.exclude = ["*"]
 sdist.include = [
   "/CMakeLists.txt", "/LICENSE", "/README.md", "/pyproject.toml",
   "/cmake/**", "/source/**", "/python/**",
+  # sdist.include overrides .gitignore, so leave out caches explicitly.
+  "!__pycache__/", "!*.py[cod]", "!.DS_Store",
 ]
 
 [tool.scikit-build.cmake.define]
