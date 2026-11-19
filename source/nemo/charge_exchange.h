@@ -11,7 +11,7 @@
 #include <spdlog/spdlog.h>
 /* prevent clang-format reordering */
 #include "atomic_physics_database.h"
-#include <fmt/ranges.h>
+#include "nemo-fmt.h"
 #include <map>
 #include <variant>
 

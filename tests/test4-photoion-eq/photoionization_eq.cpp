@@ -17,7 +17,7 @@
 #ifdef SPDLOG_FWD
 #include <spdlog/fwd.h>
 #endif
-#include <fmt/ranges.h>
+#include "nemo-fmt.h"
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 

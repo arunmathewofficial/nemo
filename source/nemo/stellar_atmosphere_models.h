@@ -13,7 +13,7 @@
 #endif
 #include <spdlog/spdlog.h>
 /* prevent clang-format reordering */
-#include <fmt/ranges.h>
+#include "nemo-fmt.h"
 
 // std lib
 #include <fstream>

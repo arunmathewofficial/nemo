@@ -11,7 +11,7 @@
 #endif
 #include <spdlog/spdlog.h>
 /* prevent clang-format reordering */
-#include <fmt/ranges.h>
+#include "nemo-fmt.h"
 
 #include "nemo-constants.h"
 #include "solver/interpolate.h"

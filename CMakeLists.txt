@@ -100,21 +100,6 @@ else()
   # Get spdlog version
   message(STATUS "spdlog version: ${spdlog_VERSION}")
 
-  # Create an interface target that abstracts the spdlog+fmt combination
-  add_library(spdlog_deps INTERFACE)
-
-  if(spdlog_VERSION VERSION_LESS "1.13.0" OR APPLE)
-    message(STATUS "using external fmt b/c old spdlog or apple")
-    find_package(fmt REQUIRED)
-    message(STATUS "fmt version = ${fmt_VERSION}")
-    target_compile_definitions(spdlog_deps INTERFACE SPDLOG_FMT_EXTERNAL)
-    target_link_libraries(spdlog_deps INTERFACE spdlog::spdlog fmt::fmt)
-    # Suppress deprecation warnings from fmt/spdlog version mismatch in Homebrew
-    target_compile_options(spdlog_deps INTERFACE -Wno-deprecated-declarations)
-  else()
-    target_link_libraries(spdlog_deps INTERFACE spdlog::spdlog)
-  endif()
-
   set(NEMO_BOOST_TARGET Boost::boost)
   set(NEMO_MPI_TARGET MPI::MPI_CXX)
   set(NEMO_SUNDIALS_TARGETS ${SUNDIALS_LIBRARY})
