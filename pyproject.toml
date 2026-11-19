@@ -3,7 +3,7 @@ requires = ["scikit-build-core>=0.10", "pybind11>=2.13"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "nemo-plasma"
+name = "nemo-astro"
 dynamic = ["version"]
 description = "Python interface to NEMO, a non-equilibrium multi-ion solver for the ionisation and thermal state of astrophysical plasmas"
 readme = "python/README.md"
@@ -37,7 +37,7 @@ Paper = "https://doi.org/10.1051/0004-6361/202452373"
 [tool.scikit-build]
 minimum-version = "build-system.requires"
 cmake.version = ">=3.28"
-wheel.packages = ["python/nemo_plasma"]
+wheel.packages = ["python/nemo_astro"]
 # The C++ sources, CMake files and Python package; not tests, examples or
 # local build directories.
 sdist.exclude = ["*"]

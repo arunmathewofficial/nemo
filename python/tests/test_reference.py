@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-import nemo_plasma as nemo
+import nemo_astro as nemo
 
 REPO_DATA = Path(__file__).resolve().parents[2] / "tests" / "data"
 LOCAL_DATA = Path(__file__).resolve().parent / "data"

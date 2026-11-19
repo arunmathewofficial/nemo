@@ -1,7 +1,7 @@
 ///
 /// \file bindings.cpp
 ///
-/// Python bindings for NEMO (module nemo_plasma._core), using pybind11.
+/// Python bindings for NEMO (module nemo_astro._core), using pybind11.
 ///
 /// Each method of the Python class Nemo wraps one public function of
 /// NEMO::nemo.  The methods take a state vector of shape (nv,) for one cell,

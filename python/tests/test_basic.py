@@ -1,11 +1,11 @@
-"""Basic tests of the nemo_plasma bindings."""
+"""Basic tests of the nemo_astro bindings."""
 
 import threading
 
 import numpy as np
 import pytest
 
-import nemo_plasma as nemo
+import nemo_astro as nemo
 
 TRACERS = ["X_H", "X_He", "H", "He", "He1+"]
 PRIM = np.array([1.0e-22, 1.0e-12, 0.72, 0.28, 0.36, 0.05, 0.1])

@@ -6,7 +6,7 @@ Mathew, Mackey, Celeste, Haworth & Mellema (2025), A&A 695, A73.
 Example::
 
     import numpy as np
-    import nemo_plasma as nemo
+    import nemo_astro as nemo
 
     tracers = ["X_H", "X_He", "H", "He", "He1+"]
     solver = nemo.Nemo(tracers, options=nemo.Options(cooling=False))

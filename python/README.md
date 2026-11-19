@@ -1,4 +1,4 @@
-# nemo-plasma
+# nemo-astro
 
 Python interface to [NEMO](https://gitlab.git.nrw/jmackey1/nemo), the
 Non-Equilibrium Multi-ion mOdule for ionised astrophysical plasmas.  NEMO
@@ -12,7 +12,7 @@ Mellema, G. (2025), A&A, 695, A73,
 ## Installation
 
 ```bash
-pip install nemo-plasma
+pip install nemo-astro
 ```
 
 The wheels contain everything that NEMO needs (SUNDIALS is built in); no MPI
@@ -23,7 +23,7 @@ compiler; CMake and the other dependencies are downloaded during the build.
 
 ```python
 import numpy as np
-import nemo_plasma as nemo
+import nemo_astro as nemo
 
 tracers = ["X_H", "X_He", "H", "He", "He1+"]   # elements, then ions
 solver = nemo.Nemo(tracers, options=nemo.Options(cooling=False))
@@ -44,8 +44,8 @@ number, followed by the ions of each element from the neutral upwards
 element is not listed.  Element mass fractions must sum to 1.  See the
 [NEMO README](https://gitlab.git.nrw/jmackey1/nemo) for details.
 
-Errors (bad input, failed integration) raise `nemo_plasma.NemoError`, which
-has an error `code`.  `nemo_plasma.set_log_level("info")` shows NEMO's log
+Errors (bad input, failed integration) raise `nemo_astro.NemoError`, which
+has an error `code`.  `nemo_astro.set_log_level("info")` shows NEMO's log
 messages.
 
 A `Nemo` object can be used from several Python threads (calls are

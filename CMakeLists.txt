@@ -33,7 +33,7 @@ set(
 
 option(
     NEMO_PYTHON
-    "Build the Python module nemo_plasma._core (sets NEMO_FETCH_DEPS=ON, \
+    "Build the Python module nemo_astro._core (sets NEMO_FETCH_DEPS=ON, \
 NEMO_BUILD_TESTS=OFF, NEMO_OMP=OFF).  Normally set by pip via pyproject.toml."
     OFF
 )
