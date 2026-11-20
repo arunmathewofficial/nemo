@@ -30,7 +30,7 @@ classifiers = [
 test = ["pytest"]
 
 [project.urls]
-Homepage = "https://github.com/jmackey-astro/nemo"
+Homepage = "https://github.com/arunmathewofficial/nemo"
 Source = "https://gitlab.git.nrw/jmackey1/nemo"
 Paper = "https://doi.org/10.1051/0004-6361/202452373"
 

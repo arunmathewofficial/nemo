@@ -1,6 +1,7 @@
 # Build the Python package (sdist and wheels for Linux and macOS), test the
 # wheels, and, only when started by hand with "publish" set, upload them to
-# PyPI or TestPyPI.
+# PyPI or TestPyPI.  Uploads must be started from a tag vX.Y.Z (choose the
+# tag under "Use workflow from"), and the tag must match the package version.
 #
 # Publishing uses PyPI "trusted publishing": on (test.)pypi.org, add this
 # repository and workflow (wheels.yml), with environment "pypi" or
@@ -86,6 +87,23 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      - name: Check that the workflow was started from the version's tag
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          sdist=$(ls dist/*.tar.gz)
+          version=$(basename "$sdist" .tar.gz)
+          version=${version#*-}
+          echo "Package version ${version}, started from ${REF_TYPE} ${REF_NAME}"
+          if [ "$REF_TYPE" != tag ]; then
+            echo "::error::Start the upload from the tag v${version} (\"Use workflow from\"), not from a branch."
+            exit 1
+          fi
+          if [ "$REF_NAME" != "v${version}" ]; then
+            echo "::error::Tag ${REF_NAME} does not match the package version ${version}."
+            exit 1
+          fi
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: ${{ inputs.publish == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}

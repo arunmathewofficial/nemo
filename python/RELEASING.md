@@ -9,8 +9,9 @@
 - **GitHub Actions, `.github/workflows/wheels.yml`:** builds the sdist and the
   wheels for Linux (x86_64, aarch64) and macOS (Intel, Apple silicon) with
   cibuildwheel, and tests them. The workflow runs on pull requests and on
-  pushes to `main` of the GitHub repository. It uploads only when started by
-  hand ("Run workflow") with `publish` set to `testpypi` or `pypi`.
+  pushes to `main` of the GitHub repository, which is a push mirror of
+  GitLab. It uploads only when started by hand ("Run workflow") from a
+  version tag, with `publish` set to `testpypi` or `pypi`.
 
 The cibuildwheel settings (Python versions, platforms, test command) are in
 `[tool.cibuildwheel]` in `pyproject.toml`. To build Linux wheels locally,
@@ -34,7 +35,22 @@ has been deleted, so increase the version for every upload. For a
 Python-only fix, use a post-release, e.g. `1.4.0.post1`. That needs a change
 to the version regex in `pyproject.toml`.
 
-## First release
+## Making a release
+
+1. Set the new version in `CMakeLists.txt`, merge it into `main` on GitLab,
+   and tag that commit `vX.Y.Z`. The mirror copies the commit and the tag to
+   GitHub within a few minutes.
+2. On GitHub, under Actions, "Python wheels", click "Run workflow". Under
+   "Use workflow from", choose **the tag**, not `main`, and set
+   `publish = testpypi`. The upload job refuses to run from a branch, or
+   from a tag that does not match the package version, so that the files on
+   PyPI are always those of the tag.
+3. Check that it installs:
+   `pip install -i https://test.pypi.org/simple/ --extra-index-url
+   https://pypi.org/simple/ nemo-astro==X.Y.Z`.
+4. Run the workflow again from the same tag with `publish = pypi`.
+
+## Setting up publishing (done for 1.4.1)
 
 1. Create an account on https://pypi.org and on https://test.pypi.org (they
    are separate), and turn on two-factor authentication. Uploading is
@@ -46,11 +62,8 @@ to the version regex in `pyproject.toml`.
    name; the first upload creates the project.
 3. In the GitHub repository, under Settings, then Environments, create the
    environments `pypi` and `testpypi`. Requiring a reviewer for `pypi` adds a
-   manual approval step.
-4. Run the workflow with `publish = testpypi`, then check that it installs:
-   `pip install -i https://test.pypi.org/simple/ --extra-index-url
-   https://pypi.org/simple/ nemo-astro`.
-5. Run the workflow with `publish = pypi`.
+   manual approval step. If an environment limits the branches and tags it
+   can be deployed from, it must allow the `v*` tags.
 
 The package is called `nemo-astro` on PyPI and is imported as `nemo_astro`.
 The first upload to pypi.org fixes the project name for good.
