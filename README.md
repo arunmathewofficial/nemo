@@ -3,9 +3,38 @@ Non-Equilibrium Multi-ion mOdule for ionised plasmas
 
 NEMO: 
 + [gitlab](https://gitlab.git.nrw/jmackey1/nemo)
-+ [github](https://github.com/jmackey-astro/nemo) 
++ [github](https://github.com/arunmathewofficial/nemo) (a read-only mirror of the GitLab repository)
++ [PyPI](https://pypi.org/project/nemo-astro/): the Python package `nemo-astro`
 + [Description](https://arunmathewofficial.github.io/software/nemo/)
 + [Methods paper](https://doi.org/10.1051/0004-6361/202452373): Mathew, A., Mackey, J., Celeste, M., Haworth, T. J., & Mellema, G. (2025), *"A multi-ion non-equilibrium solver for ionised astrophysical plasmas with arbitrary elemental abundances," Astronomy & Astrophysics, 695, A73.*
+
+# Python package
+
+NEMO can also be used from Python.  The package `nemo-astro` (imported as
+`nemo_astro`) has wheels for Linux and macOS that need no compiler, MPI,
+SUNDIALS or other libraries:
+```bash
+pip install nemo-astro
+```
+```python
+import numpy as np
+import nemo_astro as nemo
+
+solver = nemo.Nemo(["X_H", "X_He", "H", "He", "He1+"])
+# density (g/cm^3), pressure (dyne/cm^2), then the tracer mass fractions
+prim = np.array([1e-22, 1e-12, 0.72, 0.28, 0.36, 0.05, 0.1])
+new = solver.update(prim, dt=1e10)   # also works on arrays of many cells
+```
+The class `Nemo` has the main functions of the C++ library (`update`,
+`temperature`, `set_temperature`, `timescale`, `electron_density`,
+`ion_density`, `dtau`, `scma`), and point sources of ionising radiation.  Its
+methods take NumPy arrays of any number of cells, and errors raise
+`nemo_astro.NemoError`.  See
+[python/README.md](python/README.md) for the documentation and tests, and
+[python/RELEASING.md](python/RELEASING.md) for how the package is built and
+released.
+
+The rest of this README is about the C++ library.
 
 # Requirements:
 
