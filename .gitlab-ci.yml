@@ -29,9 +29,15 @@ image: $CI_REGISTRY_IMAGE/nemo-ci:latest
     CMAKE_PREFIX_PATH: "/usr/lib/x86_64-linux-gnu"
     NEMO_OMP: "ON"
 
+# Jobs only run on a runner that has all of a job's tags.  "zetaoph" is the
+# podman runner on the zetaoph workstation; set RUNNER_TAG=docker (e.g. when
+# running a pipeline by hand) to use the server's shared runners instead.
+variables:
+  RUNNER_TAG: "zetaoph"
+
 .default_job: &default_job
   tags:
-    - docker
+    - $RUNNER_TAG
   variables:
     <<: *default_cmake_variables
   script:
@@ -168,7 +174,7 @@ Python:
   stage: test
   image: quay.io/pypa/manylinux_2_28_x86_64
   tags:
-    - docker
+    - $RUNNER_TAG
   needs: []
   script:
     - PY=/opt/python/cp313-cp313/bin/python
