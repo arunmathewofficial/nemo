@@ -1,6 +1,6 @@
 # nemo-astro
 
-Python interface to [NEMO](https://gitlab.git.nrw/jmackey1/nemo), the
+Python interface to [NEMO](https://github.com/arunmathewofficial/nemo), the
 Non-Equilibrium Multi-ion mOdule for ionised astrophysical plasmas.  NEMO
 integrates the ionisation state of many elements and ions, and the gas
 temperature, with the CVODE solver from SUNDIALS.
@@ -42,7 +42,7 @@ Tracer names: elements are `X_H`, `X_He`, `X_C`, ... in order of atomic
 number, followed by the ions of each element from the neutral upwards
 (`H`, `He`, `He1+`, `C`, `C1+`, ...); the highest ionisation stage of each
 element is not listed.  Element mass fractions must sum to 1.  See the
-[NEMO README](https://gitlab.git.nrw/jmackey1/nemo) for details.
+[NEMO README](https://github.com/arunmathewofficial/nemo) for details.
 
 Errors (bad input, failed integration) raise `nemo_astro.NemoError`, which
 has an error `code`.  `nemo_astro.set_log_level("info")` shows NEMO's log

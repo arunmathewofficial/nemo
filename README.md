@@ -2,8 +2,7 @@
 Non-Equilibrium Multi-ion mOdule for ionised plasmas
 
 NEMO: 
-+ [gitlab](https://gitlab.git.nrw/jmackey1/nemo)
-+ [github](https://github.com/arunmathewofficial/nemo) (a read-only mirror of the GitLab repository)
++ [GitHub](https://github.com/arunmathewofficial/nemo): the public repository, with the released versions (see [Contributing](#contributing))
 + [PyPI](https://pypi.org/project/nemo-astro/): the Python package `nemo-astro`
 + [Description](https://arunmathewofficial.github.io/software/nemo/)
 + [Methods paper](https://doi.org/10.1051/0004-6361/202452373): Mathew, A., Mackey, J., Celeste, M., Haworth, T. J., & Mellema, G. (2025), *"A multi-ion non-equilibrium solver for ionised astrophysical plasmas with arbitrary elemental abundances," Astronomy & Astrophysics, 695, A73.*
@@ -133,3 +132,17 @@ CVODE integration).  All other functions, including the constructor, throw a
 `NEMO::nemo_error` (derived from `std::runtime_error`, with an error code from
 `code()`) if they cannot continue, for example because the tracer list is
 invalid.  The error is also logged through spdlog before it is reported.
+
+# Contributing
+
+This GitHub repository is a public mirror of NEMO's released versions.
+Development happens in a private repository, and the `main` branch here is
+updated at each release.  If you would like access to the development
+version, contact the maintainers,
+[Arun Mathew](https://github.com/arunmathewofficial) and
+[Jonathan Mackey](https://github.com/jmackey-astro).
+
+Bug reports, bug fixes and new features are welcome, as GitHub issues and
+pull requests.  Pull requests are not merged here: we merge them into the
+development repository, and they appear here with the next release, with
+you as the author of your commits.  See [CONTRIBUTING.md](CONTRIBUTING.md).
